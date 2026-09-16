@@ -60,48 +60,10 @@ input:focus{border-color:#ed166a}
 .user-box{background:#fff;border-radius:20px;padding:18px;margin-bottom:20px}
 .small{font-size:13px;color:#737783}
 @media(max-width:390px){.hello{font-size:34px}.total{font-size:35px}.brand{font-size:30px}main{padding:0 16px}.topbar{padding:0 16px}}
-
-.auth-screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:24px;background:#f5f5f5}
-.auth-card{width:100%;max-width:520px;background:#fff;border-radius:28px;padding:26px 22px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
-.auth-card h1{margin:0 0 8px;font-size:30px}.auth-card p{margin:0 0 22px;color:#737783}
-.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f1f2f5;padding:5px;border-radius:14px;margin-bottom:18px}
-.auth-tabs button{border:0;background:transparent;border-radius:10px;padding:12px;font-weight:800;cursor:pointer}
-.auth-tabs button.active{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-.auth-error{color:#b0003a;font-size:14px;margin-top:12px;min-height:18px}
-.auth-success{color:#137333;font-size:14px;margin-top:12px;min-height:18px}
-.auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}
 </style>
 </head>
 <body>
-
-<div class="auth-screen" id="authScreen">
-  <div class="auth-card">
-    <h1>Driver's Accounting</h1>
-    <p>Login ya naya driver account create karein.</p>
-    <div class="auth-tabs">
-      <button id="loginTab" class="active" onclick="showAuthMode('login')">Login</button>
-      <button id="signupTab" onclick="showAuthMode('signup')">Sign Up</button>
-    </div>
-
-    <div id="loginForm">
-      <label>Email</label><input type="email" id="loginEmail" placeholder="Email">
-      <label>Password</label><input type="password" id="loginPassword" placeholder="Password">
-      <button class="primary" onclick="loginUser()">Login</button>
-    </div>
-
-    <div id="signupForm" style="display:none">
-      <label>Driver ID</label><input type="text" id="signupDriverId" placeholder="e.g. D12345">
-      <label>Mobile</label><input type="tel" id="signupMobile" placeholder="05xxxxxxxx">
-      <label>Email</label><input type="email" id="signupEmail" placeholder="Email">
-      <label>Password</label><input type="password" id="signupPassword" placeholder="Minimum 6 characters">
-      <button class="primary" onclick="signupUser()">Create Account</button>
-    </div>
-    <div class="auth-error" id="authError"></div>
-    <div class="auth-success" id="authSuccess"></div>
-    <div class="auth-note">Aapka driver data Firebase UID ke under save hoga, is liye har driver ka data alag rahega.</div>
-  </div>
-</div>
-<div class="app" id="appShell" style="display:none">
+<div class="app">
 <header class="topbar">
 <button class="icon-btn" onclick="toggleMenu()">☰</button>
 <div class="brand">Driver's</div>
@@ -201,7 +163,7 @@ input:focus{border-color:#ed166a}
 <div class="user-box">
 <h2>Driver Profile</h2>
 <div><b>Driver ID:</b> <span id="profileDriverId">—</span></div>
-<div><b>Mobile:</b> <span id="profileMobile">—</span></div>
+div><b>Mobile:</b> <span id="profileMobile">—</span></div>
 <div><b>Firebase User ID:</b><div class="small" id="profileUid">—</div></div>
 </div>
 </section>
@@ -223,7 +185,7 @@ input:focus{border-color:#ed166a}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -255,69 +217,7 @@ if(pageId==="historyPage")renderHistory();
 
 window.logout=async()=>{
 await signOut(auth);
-showAuth();
-};
-
-
-function showAuth(){
-  document.getElementById("authScreen").style.display="flex";
-  document.getElementById("appShell").style.display="none";
-}
-function hideAuth(){
-  document.getElementById("authScreen").style.display="none";
-  document.getElementById("appShell").style.display="block";
-}
-window.showAuthMode=mode=>{
-  const login=mode==="login";
-  document.getElementById("loginForm").style.display=login?"block":"none";
-  document.getElementById("signupForm").style.display=login?"none":"block";
-  document.getElementById("loginTab").classList.toggle("active",login);
-  document.getElementById("signupTab").classList.toggle("active",!login);
-  document.getElementById("authError").textContent="";
-  document.getElementById("authSuccess").textContent="";
-};
-function authMsg(error){
-  const code=error?.code||"";
-  const map={
-    "auth/invalid-credential":"Email ya password ghalat hai.",
-    "auth/invalid-email":"Email format check karein.",
-    "auth/email-already-in-use":"Ye email pehle se registered hai.",
-    "auth/weak-password":"Password kam az kam 6 characters ka rakhein.",
-    "auth/network-request-failed":"Internet connection check karein.",
-    "auth/too-many-requests":"Kuch dair baad dobara try karein."
-  };
-  return map[code]||error?.message||"Authentication error.";
-}
-window.loginUser=async()=>{
-  const email=document.getElementById("loginEmail").value.trim();
-  const password=document.getElementById("loginPassword").value;
-  document.getElementById("authError").textContent="";
-  document.getElementById("authSuccess").textContent="";
-  if(!email||!password){document.getElementById("authError").textContent="Email aur password enter karein.";return}
-  try{
-    await signInWithEmailAndPassword(auth,email,password);
-  }catch(e){document.getElementById("authError").textContent=authMsg(e)}
-};
-window.signupUser=async()=>{
-  const driverId=document.getElementById("signupDriverId").value.trim();
-  const mobile=document.getElementById("signupMobile").value.trim();
-  const email=document.getElementById("signupEmail").value.trim();
-  const password=document.getElementById("signupPassword").value;
-  document.getElementById("authError").textContent="";
-  document.getElementById("authSuccess").textContent="";
-  if(!driverId||!mobile||!email||!password){
-    document.getElementById("authError").textContent="Driver ID, Mobile, Email aur Password sab fill karein.";return
-  }
-  if(password.length<6){
-    document.getElementById("authError").textContent="Password kam az kam 6 characters ka hona chahiye.";return
-  }
-  try{
-    const cred=await createUserWithEmailAndPassword(auth,email,password);
-    await setDoc(doc(db,"drivers",cred.user.uid),{
-      driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,createdAt:serverTimestamp()
-    },{merge:true});
-    document.getElementById("authSuccess").textContent="Account create ho gaya. Dashboard open ho raha hai...";
-  }catch(e){document.getElementById("authError").textContent=authMsg(e)}
+location.href="login.html";
 };
 
 window.saveInvoice=async()=>{
@@ -330,9 +230,8 @@ const total=data.creditCard+data.app+data.cash+data.shiftDiscount+data.careemDis
 const deductions=data.tips+data.halaJunior+data.halaPeak+data.peak+data.tolls+
 (data.shiftTrips*(Number(driverData.shiftTripsRate)||0))+
 (data.bookings*(Number(driverData.bookingPrice)||0))+
-(data.km*(Number(driverData.kmRate)||0))+
-data.extraCharges;
-const net=total-deductions;
+(data.km*(Number(driverData.kmRate)||0));
+const net=total-deductions-data.extraCharges;
 data.total=total;data.deductions=deductions;data.net=net;data.updatedAt=serverTimestamp();
 try{
 if(editingId){
@@ -363,9 +262,8 @@ const total=d.creditCard+d.app+d.cash+d.shiftDiscount+d.careemDiscount+d.paidCar
 const deductions=d.tips+d.halaJunior+d.halaPeak+d.peak+d.tolls+
 (d.shiftTrips*(Number(driverData.shiftTripsRate)||0))+
 (d.bookings*(Number(driverData.bookingPrice)||0))+
-(d.km*(Number(driverData.kmRate)||0))+
-d.extraCharges;
-const net=total-deductions;
+(d.km*(Number(driverData.kmRate)||0));
+const net=total-deductions-d.extraCharges;
 document.getElementById("invoicePreview").textContent=`Total: ${money(total)} AED · Deductions: ${money(deductions)} AED · Net: ${money(net)} AED`;
 }
 ids.forEach(id=>document.getElementById(id).addEventListener("input",updatePreview));
@@ -445,8 +343,8 @@ arr.forEach(x=>{const bar=document.createElement("div");bar.className="bar";bar.
 }
 
 onAuthStateChanged(auth,async user=>{
-if(!user){currentUser=null;showAuth();return}
-currentUser=user;hideAuth();
+if(!user){location.href="login.html";return}
+currentUser=user;
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
