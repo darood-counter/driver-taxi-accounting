@@ -95,6 +95,7 @@ input:focus{border-color:#ed166a}
     </div>
 
     <div id="signupForm" style="display:none">
+      <label>Name</label><input type="text" id="signupName" placeholder="Enter your name" autocomplete="name">
       <label>Driver ID</label><input type="text" id="signupDriverId" placeholder="e.g. D12345">
       <label>Mobile</label><input type="tel" id="signupMobile" placeholder="05xxxxxxxx">
       <label>Email</label><input type="email" id="signupEmail" placeholder="Enter email">
@@ -209,6 +210,7 @@ input:focus{border-color:#ed166a}
 <button class="back" onclick="showPage('dashboardPage')">← Back</button>
 <div class="user-box">
 <h2>Driver Profile</h2>
+<div><b>Name:</b> <span id="profileName">—</span></div>
 <div><b>Driver ID:</b> <span id="profileDriverId">—</span></div>
 <div><b>Mobile:</b> <span id="profileMobile">—</span></div>
 
@@ -344,14 +346,15 @@ window.loginUser=async()=>{
   }
 };
 window.signupUser=async()=>{
+  const name=document.getElementById("signupName").value.trim();
   const driverId=document.getElementById("signupDriverId").value.trim();
   const mobile=document.getElementById("signupMobile").value.trim();
   const email=document.getElementById("signupEmail").value.trim();
   const password=document.getElementById("signupPassword").value;
   document.getElementById("authError").textContent="";
   document.getElementById("authSuccess").textContent="";
-  if(!driverId||!mobile||!email||!password){
-    document.getElementById("authError").textContent="Please fill in Driver ID, Mobile, Email and Password.";return
+  if(!name||!driverId||!mobile||!email||!password){
+    document.getElementById("authError").textContent="Please fill in Name, Driver ID, Mobile, Email and Password.";return
   }
   if(password.length<6){
     document.getElementById("authError").textContent="Password must be at least 6 characters.";return
@@ -365,7 +368,7 @@ window.signupUser=async()=>{
     }
     const cred=await createUserWithEmailAndPassword(auth,email,password);
     await setDoc(doc(db,"drivers",cred.user.uid),{
-      driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,createdAt:serverTimestamp()
+      name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,createdAt:serverTimestamp()
     },{merge:true});
     await setDoc(doc(db,"driverLogin",driverKey),{
       driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
@@ -498,15 +501,16 @@ arr.forEach(x=>{const bar=document.createElement("div");bar.className="bar";bar.
 }
 
 onAuthStateChanged(auth,async user=>{
+try{
 if(!user){currentUser=null;showAuth();return}
 currentUser=user;hideAuth();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
-document.getElementById("helloText").textContent="Hey, "+(driverData.driverId||"Driver")+"!";
+document.getElementById("helloText").textContent="Hi, "+(driverData.name||"Driver")+" 👋";
+document.getElementById("profileName").textContent=driverData.name||"—";
 document.getElementById("profileDriverId").textContent=driverData.driverId||"—";
 document.getElementById("profileMobile").textContent=driverData.mobile||"—";
-
 document.getElementById("targetPercent").value=driverData.targetPercent??"";
 document.getElementById("targetTripRate").value=driverData.shiftTripsRate??"";
 document.getElementById("targetBookingRate").value=driverData.bookingPrice??"";
@@ -514,10 +518,20 @@ document.getElementById("targetKmRate").value=driverData.kmRate??"";
 if(unsubscribeInvoices)unsubscribeInvoices();
 unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
 invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();
-});
+},error=>{console.error("Invoice listener error:",error);document.getElementById("authError").textContent="Unable to load invoices: "+(error.message||"Firebase error");});
 clearInvoice();
+}catch(error){
+console.error("Firebase startup error:",error);
+currentUser=null;
+showAuth();
+document.getElementById("authError").textContent="Firebase error: "+(error.message||"Unable to load account");
+}
 });
 
+</script>
+<script>
+window.addEventListener("error",e=>{console.error(e.error||e.message);const x=document.getElementById("authError");if(x&&e.message)x.textContent="Page error: "+e.message;});
+window.addEventListener("unhandledrejection",e=>{console.error(e.reason);const x=document.getElementById("authError");if(x&&e.reason)x.textContent="App error: "+(e.reason.message||String(e.reason));});
 </script>
 </body>
 </html>
