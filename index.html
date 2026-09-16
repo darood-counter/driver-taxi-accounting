@@ -59,147 +59,7 @@ input:focus{border-color:#ed166a}
 .edit-btn{background:#eef0f5}.delete-btn{background:#ffe7ef;color:#a3003f}
 .user-box{background:#fff;border-radius:20px;padding:18px;margin-bottom:20px}
 .small{font-size:13px;color:#737783}
-/* ===== Mobile-first responsive layout ===== */
-@media(max-width:600px){
-  html,body{width:100%;overflow-x:hidden}
-  body{font-size:15px}
-  .app{width:100%;max-width:none;padding-bottom:24px}
-  .topbar{
-    height:64px;
-    padding:0 14px;
-  }
-  .icon-btn{font-size:26px;padding:4px}
-  .brand{font-size:26px;letter-spacing:-1px}
-  .bell{font-size:23px}
-  main{padding:0 14px}
-  .hello{
-    font-size:31px;
-    line-height:1.15;
-    margin:18px 0 28px;
-    letter-spacing:-1px;
-  }
-  .section-title{
-    font-size:19px;
-    margin-bottom:12px;
-  }
-  .notice{
-    border-width:1.5px;
-    border-radius:20px;
-    padding:12px;
-    gap:9px;
-    margin-bottom:28px;
-  }
-  .notice-icon{
-    width:44px;height:44px;
-    font-size:22px;
-    flex:0 0 44px;
-  }
-  .notice-text{font-size:14px;line-height:1.25}
-  .badge{padding:9px 10px;border-radius:9px;font-size:13px}
-  .card{
-    border-radius:21px;
-    padding:18px 15px;
-    margin-bottom:25px;
-  }
-  .period{font-size:14px;margin-bottom:14px}
-  .total{font-size:32px;letter-spacing:-1px}
-  .currency{font-size:16px}
-  .money-icon{
-    width:58px;height:58px;
-    font-size:25px;
-  }
-  .chart{
-    height:180px;
-    gap:5px;
-    padding:14px 0 4px;
-  }
-  .bar{min-width:7px;border-radius:5px 5px 0 0}
-  .days{gap:3px;font-size:9px;padding-top:6px}
-  .avg{margin-top:25px;border-left-width:4px;padding-left:10px}
-  .avg-label{font-size:13px;margin-bottom:5px}
-  .avg-value{font-size:25px}
-  .quick-grid{gap:8px;margin-bottom:25px}
-  .quick{
-    border-radius:16px;
-    padding:13px 5px;
-    font-size:12px;
-    min-height:84px;
-  }
-  .quick span{font-size:23px;margin-bottom:6px}
-  .summary-grid{gap:8px}
-  .summary{border-radius:16px;padding:14px 12px}
-  .summary small{font-size:12px;margin-bottom:5px}
-  .summary strong{font-size:20px}
-  .back{
-    padding:10px 13px;
-    border-radius:12px;
-    margin-bottom:14px
-  }
-  .form-card{
-    border-radius:19px;
-    padding:17px 14px;
-    margin-bottom:16px
-  }
-  .form-card h2{font-size:21px;margin-bottom:14px}
-  label{font-size:13px;margin:11px 0 6px}
-  input{
-    padding:13px 12px;
-    min-height:47px;
-    border-radius:11px;
-    font-size:16px;
-  }
-  .primary{
-    border-radius:12px;
-    padding:14px;
-    font-size:15px;
-    margin-top:15px
-  }
-  .result{
-    border-radius:12px;
-    padding:12px;
-    font-size:13px;
-    line-height:1.5
-  }
-  .history-item{
-    border-radius:16px;
-    padding:14px;
-    margin-bottom:9px
-  }
-  .history-top{font-size:13px}
-  .history-net{font-size:21px;margin:7px 0}
-  .history-actions{gap:6px}
-  .history-actions button{padding:10px 7px;font-size:13px}
-  .user-box{border-radius:16px;padding:15px}
-  .menu{
-    width:min(86%,330px);
-    padding:24px 17px;
-    border-radius:0 22px 22px 0
-  }
-  .menu h2{font-size:23px;margin-bottom:20px}
-  .menu button{padding:14px 7px;font-size:16px}
-  .auth-screen{padding:14px}
-  .auth-card{
-    max-width:none;
-    border-radius:21px;
-    padding:20px 16px;
-  }
-  .auth-card h1{font-size:26px}
-  .auth-tabs{margin-bottom:15px}
-}
-
-@media(max-width:390px){
-  .topbar{height:60px;padding:0 12px}
-  .brand{font-size:24px}
-  main{padding:0 12px}
-  .hello{font-size:28px;margin:16px 0 24px}
-  .section-title{font-size:18px}
-  .notice-text{font-size:13px}
-  .total{font-size:29px}
-  .money-icon{width:52px;height:52px}
-  .chart{height:160px}
-  .quick{min-height:80px;font-size:11px}
-  .summary strong{font-size:18px}
-}
+@media(max-width:390px){.hello{font-size:34px}.total{font-size:35px}.brand{font-size:30px}main{padding:0 16px}.topbar{padding:0 16px}}
 
 .auth-screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:24px;background:#f5f5f5}
 .auth-card{width:100%;max-width:520px;background:#fff;border-radius:28px;padding:26px 22px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
@@ -210,6 +70,47 @@ input:focus{border-color:#ed166a}
 .auth-error{color:#b0003a;font-size:14px;font-weight:700;margin-top:12px;min-height:22px;line-height:1.4}
 .auth-success{color:#137333;font-size:14px;margin-top:12px;min-height:18px}
 .auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}.password-wrap{position:relative}.password-wrap input{padding-right:72px}.show-pass{position:absolute;right:8px;top:7px;border:0;background:#eef0f5;border-radius:9px;padding:9px 10px;font-weight:700;color:#444;cursor:pointer}
+
+/* ===== Profile screen ===== */
+.profile-screen{background:#0d1238;margin:0 -22px -30px;min-height:calc(100vh - 82px);padding:24px 22px 34px;color:#fff;border-radius:0 0 28px 28px}
+.profile-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.profile-round-btn{width:46px;height:46px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:31px;display:grid;place-items:center;cursor:pointer}
+.profile-avatar-wrap{text-align:center;margin:10px auto 20px}
+.profile-avatar{width:142px;height:142px;border-radius:50%;background:#fff;color:#0d1238;display:grid;place-items:center;margin:auto;font-size:52px;font-weight:900;overflow:hidden;border:4px solid #fff}
+.profile-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-avatar-edit{width:42px;height:42px;border-radius:50%;background:#fff;color:#111827;border:3px solid #0d1238;display:grid;place-items:center;margin:-25px 0 0 calc(50% + 45px);position:relative;font-size:19px}
+.profile-name{font-size:38px;font-weight:900;text-align:center;margin:0 0 24px;letter-spacing:-1px}
+.profile-id-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+.profile-id-card{background:#353b72;border-radius:25px;padding:20px 12px;text-align:center}
+.profile-id-card small{display:block;color:#b9bdd1;font-size:15px;font-weight:800;margin-bottom:9px}
+.profile-id-card strong{font-size:22px;font-weight:900;word-break:break-word}
+.profile-body{background:#f1f1f1;color:#111827;margin:0 -22px;padding:34px 22px 35px;border-radius:34px 34px 0 0}
+.profile-section-title{font-size:21px;color:#656a79;font-weight:900;margin:0 0 16px}
+.profile-info-card{background:#fff;border-radius:24px;padding:12px 16px;margin-bottom:28px}
+.profile-info-row{display:flex;align-items:center;gap:13px;padding:13px 0;min-width:0}
+.profile-info-icon{width:52px;height:52px;flex:0 0 52px;border-radius:50%;background:#f0f0f5;display:grid;place-items:center;font-size:25px;color:#111827}
+.profile-info-main{min-width:0;flex:1}
+.profile-info-label{font-size:14px;color:#676c79;font-weight:800;margin-bottom:4px}
+.profile-info-value{font-size:17px;font-weight:700;line-height:1.45;word-break:break-word}
+.profile-edit-mini{border:0;background:transparent;font-size:23px;cursor:pointer;padding:7px;color:#111827}
+.profile-option-card{background:#fff;border-radius:22px;padding:5px 10px;margin-bottom:14px}
+.profile-option{width:100%;border:0;background:transparent;display:flex;align-items:center;gap:13px;text-align:left;padding:15px 8px;cursor:pointer}
+.profile-option .profile-info-icon{width:50px;height:50px;flex-basis:50px}
+.profile-option-text{flex:1}.profile-option-title{font-size:18px;font-weight:900}.profile-option-sub{font-size:13px;color:#6b6f7a;margin-top:3px;line-height:1.35}
+.profile-chevron{font-size:28px;color:#737783}
+.security-card{background:#fff;border-radius:24px;padding:18px;margin-bottom:18px}
+.security-card h3{margin:0 0 5px;font-size:21px}.security-note{font-size:13px;color:#737783;margin-bottom:15px}
+.profile-screen input{background:#fff}
+.profile-security-actions{display:flex;gap:9px}.profile-security-actions .primary{margin-top:0}
+.profile-danger{width:100%;border:0;border-radius:15px;background:#ffe7ef;color:#a3003f;padding:14px;font-size:15px;font-weight:900;cursor:pointer}
+.profile-status{font-size:13px;color:#666;margin-top:10px;min-height:18px;line-height:1.45}
+@media(max-width:600px){
+  .profile-screen{margin:0 -14px -24px;min-height:calc(100vh - 64px);padding:18px 14px 25px;border-radius:0 0 24px 24px}
+  .profile-head{margin-bottom:8px}.profile-round-btn{width:42px;height:42px;font-size:29px}
+  .profile-avatar{width:128px;height:128px;font-size:46px}.profile-avatar-edit{margin:-24px 0 0 calc(50% + 40px);width:39px;height:39px}
+  .profile-name{font-size:32px;margin-bottom:21px}.profile-id-grid{gap:9px;margin-bottom:23px}.profile-id-card{border-radius:20px;padding:17px 8px}.profile-id-card small{font-size:13px}.profile-id-card strong{font-size:19px}
+  .profile-body{margin:0 -14px;padding:27px 14px 28px;border-radius:29px 29px 0 0}.profile-section-title{font-size:19px}.profile-info-card{border-radius:20px;padding:10px 12px}.profile-info-row{gap:10px;padding:11px 0}.profile-info-icon{width:46px;height:46px;flex-basis:46px;font-size:22px}.profile-info-label{font-size:12px}.profile-info-value{font-size:15px}.profile-edit-mini{font-size:21px}.profile-option-title{font-size:16px}.profile-option-sub{font-size:12px}.security-card{border-radius:20px;padding:15px}.security-card h3{font-size:19px}
+}
 </style>
 </head>
 <body>
@@ -347,14 +248,55 @@ input:focus{border-color:#ed166a}
 </section>
 
 <section id="profilePage" class="page">
-<button class="back" onclick="showPage('dashboardPage')">← Back</button>
-<div class="user-box">
-<h2>Driver Profile</h2>
-<div><b>Name:</b> <span id="profileName">—</span></div>
-<div><b>Driver ID:</b> <span id="profileDriverId">—</span></div>
-<div><b>Mobile:</b> <span id="profileMobile">—</span></div>
+  <div class="profile-screen">
+    <div class="profile-head">
+      <button class="profile-round-btn" onclick="showPage('dashboardPage')" aria-label="Back">←</button>
+      <button class="profile-round-btn" onclick="alert('Profile help: You can view your details and change your password here.')" aria-label="Help">?</button>
+    </div>
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar" id="profileAvatar">D</div>
+      <div class="profile-avatar-edit">✎</div>
+    </div>
+    <h1 class="profile-name" id="profileNameLarge">Driver</h1>
+    <div class="profile-id-grid">
+      <div class="profile-id-card"><small>Driver ID</small><strong id="profileDriverId">—</strong></div>
+      <div class="profile-id-card"><small>Account</small><strong id="profileAccountStatus">Active</strong></div>
+    </div>
+  </div>
 
-</div>
+  <div class="profile-body">
+    <h2 class="profile-section-title">Contact Details</h2>
+    <div class="profile-info-card">
+      <div class="profile-info-row">
+        <div class="profile-info-icon">☎</div>
+        <div class="profile-info-main"><div class="profile-info-label">Phone Number</div><div class="profile-info-value" id="profileMobile">—</div></div>
+      </div>
+      <div class="profile-info-row">
+        <div class="profile-info-icon">✉</div>
+        <div class="profile-info-main"><div class="profile-info-label">Email</div><div class="profile-info-value" id="profileEmail">—</div></div>
+      </div>
+      <div class="profile-info-row">
+        <div class="profile-info-icon">👤</div>
+        <div class="profile-info-main"><div class="profile-info-label">Driver Name</div><div class="profile-info-value" id="profileName">—</div></div>
+      </div>
+    </div>
+
+    <h2 class="profile-section-title">Account Security</h2>
+    <div class="security-card">
+      <h3>Change Password</h3>
+      <div class="security-note">Create a new password for your driver account.</div>
+      <label>New Password</label>
+      <div class="password-wrap"><input type="password" id="newProfilePassword" placeholder="Minimum 6 characters" autocomplete="new-password"><button type="button" class="show-pass" onclick="togglePassword('newProfilePassword',this)">Show</button></div>
+      <label>Confirm Password</label>
+      <div class="password-wrap"><input type="password" id="confirmProfilePassword" placeholder="Re-enter new password" autocomplete="new-password"><button type="button" class="show-pass" onclick="togglePassword('confirmProfilePassword',this)">Show</button></div>
+      <button class="primary" onclick="changeProfilePassword()">Change Password</button>
+      <div class="profile-status" id="passwordStatus"></div>
+    </div>
+
+    <div class="profile-option-card">
+      <button class="profile-option" onclick="logout()"><div class="profile-info-icon">↪</div><div class="profile-option-text"><div class="profile-option-title">Logout</div><div class="profile-option-sub">Sign out from this driver account</div></div><div class="profile-chevron">›</div></button>
+    </div>
+  </div>
 </section>
 </main>
 </div>
@@ -374,7 +316,7 @@ input:focus{border-color:#ed166a}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -516,6 +458,27 @@ window.signupUser=async()=>{
     document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
   }catch(e){document.getElementById("authError").textContent=authMsg(e)}
 };
+window.changeProfilePassword=async()=>{
+  if(!currentUser){return}
+  const p=document.getElementById("newProfilePassword").value;
+  const c=document.getElementById("confirmProfilePassword").value;
+  const status=document.getElementById("passwordStatus");
+  status.textContent="";
+  if(!p||!c){status.textContent="Please enter and confirm your new password.";return}
+  if(p.length<6){status.textContent="Password must be at least 6 characters.";return}
+  if(p!==c){status.textContent="Passwords do not match.";return}
+  try{
+    await updatePassword(currentUser,p);
+    status.textContent="Password changed successfully.";
+    document.getElementById("newProfilePassword").value="";
+    document.getElementById("confirmProfilePassword").value="";
+  }catch(e){
+    console.error(e);
+    if(e?.code==="auth/requires-recent-login") status.textContent="For security, please log out, log in again, then change your password.";
+    else status.textContent="Unable to change password: "+(e?.message||"Please try again.");
+  }
+};
+
 window.saveInvoice=async()=>{
 if(!currentUser){alert("Please login first.");return}
 const date=document.getElementById("invDate").value;
@@ -648,6 +611,9 @@ const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
 document.getElementById("helloText").textContent="Hi, "+(driverData.name||"Driver")+" 👋";
+document.getElementById("profileNameLarge").textContent=driverData.name||"Driver";
+document.getElementById("profileAvatar").textContent=(driverData.name||"D").trim().charAt(0).toUpperCase()||"D";
+document.getElementById("profileEmail").textContent=driverData.email||user.email||"—";
 document.getElementById("profileName").textContent=driverData.name||"—";
 document.getElementById("profileDriverId").textContent=driverData.driverId||"—";
 document.getElementById("profileMobile").textContent=driverData.mobile||"—";
