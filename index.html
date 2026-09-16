@@ -1,166 +1,367 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#f5f5f5" />
-  <title>Driver Taxi Accounting</title>
-  <style>
-    *{box-sizing:border-box}
-    body{
-      margin:0;background:#f5f5f5;color:#111827;
-      font-family:Arial,Helvetica,sans-serif;
-    }
-    .app{max-width:520px;margin:auto;min-height:100vh;padding-bottom:30px}
-    .topbar{
-      height:82px;display:flex;align-items:center;justify-content:space-between;
-      padding:0 22px;background:#f5f5f5;position:sticky;top:0;z-index:10;
-    }
-    .icon-btn{border:0;background:transparent;font-size:31px;cursor:pointer;line-height:1}
-    .brand{font-size:34px;font-weight:900;letter-spacing:-2px}
-    .bell{font-size:30px}
-    main{padding:0 22px}
-    .hello{font-size:39px;font-weight:700;margin:24px 0 58px;letter-spacing:-1.5px}
-    .section-title{font-size:22px;font-weight:700;color:#737783;margin:0 0 18px}
-    .notice{
-      border:2px solid #d62970;border-radius:27px;background:#fff;
-      padding:17px 18px;display:flex;align-items:center;gap:14px;margin-bottom:48px;
-    }
-    .notice-icon{
-      width:54px;height:54px;border-radius:50%;background:#f0f1f6;
-      display:grid;place-items:center;font-size:27px;
-    }
-    .notice-text{font-size:17px;font-weight:700;flex:1}
-    .badge{background:#ec1268;color:white;padding:12px 13px;border-radius:11px;font-weight:800}
-    .card{
-      background:#fff;border-radius:28px;padding:25px 22px;
-      box-shadow:0 1px 1px rgba(0,0,0,.02);margin-bottom:34px;
-    }
-    .period{font-size:16px;color:#70747e;margin-bottom:20px}
-    .total-row{display:flex;justify-content:space-between;align-items:center}
-    .total{font-size:42px;font-weight:800;letter-spacing:-1.5px}
-    .currency{font-size:20px;font-weight:700}
-    .money-icon{
-      width:75px;height:75px;border-radius:50%;background:#0d1033;color:#fff;
-      display:grid;place-items:center;font-size:32px;
-    }
-    .chart{height:250px;display:flex;align-items:flex-end;gap:9px;padding:18px 0 5px;border-bottom:2px solid #171717}
-    .bar{flex:1;background:#cfd5f5;border-radius:7px 7px 0 0;min-width:10px}
-    .days{display:flex;gap:9px;font-size:11px;color:#555;justify-content:space-between;padding-top:8px}
-    .avg{margin-top:42px;border-left:6px solid #ed166a;padding-left:14px}
-    .avg-label{font-size:15px;margin-bottom:8px}
-    .avg-value{font-size:32px;font-weight:800}
-    .quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:34px}
-    .quick{
-      background:#fff;border:0;border-radius:20px;padding:17px 8px;
-      font-weight:700;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04)
-    }
-    .quick span{display:block;font-size:27px;margin-bottom:9px}
-    .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .summary{
-      background:#fff;border-radius:20px;padding:18px
-    }
-    .summary small{display:block;color:#737783;margin-bottom:8px}
-    .summary strong{font-size:25px}
-    .drawer{
-      position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:20
-    }
-    .drawer.open{display:block}
-    .menu{
-      width:82%;max-width:360px;height:100%;background:#fff;padding:30px 22px;
-      border-radius:0 28px 28px 0
-    }
-    .menu h2{margin:0 0 28px;font-size:27px}
-    .menu button{
-      width:100%;text-align:left;border:0;background:transparent;padding:16px 8px;
-      font-size:18px;border-radius:12px;cursor:pointer
-    }
-    .menu button:hover{background:#f1f2f5}
-    @media(max-width:390px){
-      .hello{font-size:34px}.total{font-size:35px}.brand{font-size:30px}
-      main{padding:0 16px}.topbar{padding:0 16px}
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#f5f5f5">
+<title>Driver Taxi Accounting</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f5f5;color:#111827;font-family:Arial,Helvetica,sans-serif}
+.app{max-width:520px;margin:auto;min-height:100vh;padding-bottom:30px}
+.topbar{height:82px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#f5f5f5;position:sticky;top:0;z-index:10}
+.icon-btn{border:0;background:transparent;font-size:31px;cursor:pointer;line-height:1}
+.brand{font-size:34px;font-weight:900;letter-spacing:-2px}
+.bell{font-size:27px}
+main{padding:0 22px}
+.hello{font-size:39px;font-weight:700;margin:24px 0 58px;letter-spacing:-1.5px}
+.section-title{font-size:22px;font-weight:700;color:#737783;margin:0 0 18px}
+.notice{border:2px solid #d62970;border-radius:27px;background:#fff;padding:17px 18px;display:flex;align-items:center;gap:14px;margin-bottom:48px}
+.notice-icon{width:54px;height:54px;border-radius:50%;background:#f0f1f6;display:grid;place-items:center;font-size:27px}
+.notice-text{font-size:17px;font-weight:700;flex:1}
+.badge{background:#ec1268;color:white;padding:12px 13px;border-radius:11px;font-weight:800}
+.card{background:#fff;border-radius:28px;padding:25px 22px;box-shadow:0 1px 1px rgba(0,0,0,.02);margin-bottom:34px}
+.period{font-size:16px;color:#70747e;margin-bottom:20px}
+.total-row{display:flex;justify-content:space-between;align-items:center}
+.total{font-size:42px;font-weight:800;letter-spacing:-1.5px}
+.currency{font-size:20px;font-weight:700}
+.money-icon{width:75px;height:75px;border-radius:50%;background:#0d1033;color:#fff;display:grid;place-items:center;font-size:32px}
+.chart{height:250px;display:flex;align-items:flex-end;gap:9px;padding:18px 0 5px;border-bottom:2px solid #171717}
+.bar{flex:1;background:#cfd5f5;border-radius:7px 7px 0 0;min-width:10px}
+.days{display:flex;gap:9px;font-size:11px;color:#555;justify-content:space-between;padding-top:8px}
+.avg{margin-top:42px;border-left:6px solid #ed166a;padding-left:14px}
+.avg-label{font-size:15px;margin-bottom:8px}.avg-value{font-size:32px;font-weight:800}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:34px}
+.quick{background:#fff;border:0;border-radius:20px;padding:17px 8px;font-weight:700;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.quick span{display:block;font-size:27px;margin-bottom:9px}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.summary{background:#fff;border-radius:20px;padding:18px}.summary small{display:block;color:#737783;margin-bottom:8px}.summary strong{font-size:25px}
+.drawer{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:20}.drawer.open{display:block}
+.menu{width:82%;max-width:360px;height:100%;background:#fff;padding:30px 22px;border-radius:0 28px 28px 0}
+.menu h2{margin:0 0 28px;font-size:27px}.menu button{width:100%;text-align:left;border:0;background:transparent;padding:16px 8px;font-size:18px;border-radius:12px;cursor:pointer}
+.menu button:hover{background:#f1f2f5}
+.page{display:none}.page.active{display:block}
+.back{border:0;background:#fff;border-radius:14px;padding:12px 16px;font-weight:700;margin-bottom:18px;cursor:pointer}
+.form-card{background:#fff;border-radius:24px;padding:20px;margin-bottom:20px}
+.form-card h2{margin:0 0 18px;font-size:24px}
+label{display:block;font-size:14px;font-weight:700;color:#5f6470;margin:13px 0 7px}
+input{width:100%;padding:14px;border:1px solid #d7d9df;border-radius:13px;font-size:16px;outline:none;background:#fff}
+input:focus{border-color:#ed166a}
+.primary{width:100%;border:0;border-radius:15px;background:#ed166a;color:#fff;padding:15px;font-size:16px;font-weight:800;cursor:pointer;margin-top:18px}
+.secondary{border:0;border-radius:13px;background:#eef0f5;padding:12px 15px;font-weight:700;cursor:pointer}
+.result{margin-top:15px;background:#f5f6fa;border-radius:15px;padding:15px;font-weight:700}
+.status{font-size:14px;color:#6b7280;margin-top:10px;min-height:18px}
+.history-item{background:#fff;border-radius:20px;padding:16px;margin-bottom:12px}
+.history-top{display:flex;justify-content:space-between;gap:10px;font-weight:800}
+.history-net{font-size:24px;margin:9px 0}
+.history-actions{display:flex;gap:8px}
+.history-actions button{flex:1;border:0;border-radius:11px;padding:11px;font-weight:700;cursor:pointer}
+.edit-btn{background:#eef0f5}.delete-btn{background:#ffe7ef;color:#a3003f}
+.user-box{background:#fff;border-radius:20px;padding:18px;margin-bottom:20px}
+.small{font-size:13px;color:#737783}
+@media(max-width:390px){.hello{font-size:34px}.total{font-size:35px}.brand{font-size:30px}main{padding:0 16px}.topbar{padding:0 16px}}
+</style>
 </head>
 <body>
 <div class="app">
-  <header class="topbar">
-    <button class="icon-btn" onclick="toggleMenu()">☰</button>
-    <div class="brand">Driver's</div>
-    <button class="icon-btn bell">♧</button>
-  </header>
+<header class="topbar">
+<button class="icon-btn" onclick="toggleMenu()">☰</button>
+<div class="brand">Driver's</div>
+<button class="icon-btn bell">♧</button>
+</header>
 
-  <main>
-    <h1 class="hello">Hey, Driver!</h1>
+<main>
+<section id="dashboardPage" class="page active">
+<h1 class="hello" id="helloText">Hey, Driver!</h1>
+<h2 class="section-title">Highlights</h2>
+<div class="notice"><div class="notice-icon">▣</div><div class="notice-text">Accounting notifications</div><div class="badge" id="invoiceBadge">0 ›</div></div>
+<h2 class="section-title">My Collections</h2>
+<section class="card">
+<div class="period">Collections - Current Cycle</div>
+<div class="total-row"><div><span class="total" id="totalAmount">0.00</span> <span class="currency">AED</span></div><div class="money-icon">▣</div></div>
+<div class="chart" id="chart"></div><div class="days" id="days"></div>
+<div class="avg"><div class="avg-label">Daily Avg</div><div class="avg-value" id="avgAmount">0.00 AED</div></div>
+</section>
+<h2 class="section-title">Quick Actions</h2>
+<div class="quick-grid">
+<button class="quick" onclick="showPage('invoicePage')"><span>＋</span>New Invoice</button>
+<button class="quick" onclick="showPage('calculatorPage')"><span>🧮</span>Calculator</button>
+<button class="quick" onclick="showPage('targetPage')"><span>🎯</span>Target Setup</button>
+</div>
+<h2 class="section-title">My Summary</h2>
+<div class="summary-grid">
+<div class="summary"><small>Target</small><strong id="sumTarget">0%</strong></div>
+<div class="summary"><small>Target Amount</small><strong id="sumTargetAmount">0 AED</strong></div>
+<div class="summary"><small>Deductions</small><strong id="sumDeductions">0 AED</strong></div>
+<div class="summary"><small>Net Amount</small><strong id="sumNet">0 AED</strong></div>
+</div>
+</section>
 
-    <h2 class="section-title">Highlights</h2>
-    <div class="notice">
-      <div class="notice-icon">▣</div>
-      <div class="notice-text">Accounting notifications</div>
-      <div class="badge">0 ›</div>
-    </div>
+<section id="invoicePage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="form-card">
+<h2 id="invoiceTitle">New Invoice</h2>
+<div class="small">Invoice Number is automatic. You can edit any saved invoice later.</div>
+<label>Date</label><input type="date" id="invDate">
+<label>Credit Card</label><input type="number" step="0.01" id="creditCard">
+<label>App</label><input type="number" step="0.01" id="app">
+<label>Cash</label><input type="number" step="0.01" id="cash">
+<label>Tips</label><input type="number" step="0.01" id="tips">
+<label>Tollways</label><input type="number" step="0.01" id="tolls">
+<label>Shift Discount</label><input type="number" step="0.01" id="shiftDiscount">
+<label>Shift Trips</label><input type="number" step="0.01" id="shiftTrips">
+<label>Bookings</label><input type="number" step="0.01" id="bookings">
+<label>Kilometers Hired</label><input type="number" step="0.01" id="km">
+<label>Careem Discount</label><input type="number" step="0.01" id="careemDiscount">
+<label>Paid in Careem</label><input type="number" step="0.01" id="paidCareem">
+<label>Hala Juniors</label><input type="number" step="0.01" id="halaJunior">
+<label>Hala Peak</label><input type="number" step="0.01" id="halaPeak">
+<label>Peak</label><input type="number" step="0.01" id="peak">
+<label>Extra Charges</label><input type="number" step="0.01" id="extraCharges">
+<div class="result" id="invoicePreview">Total: 0.00 AED · Deductions: 0.00 AED · Net: 0.00 AED</div>
+<button class="primary" id="saveInvoiceBtn" onclick="saveInvoice()">Save Invoice</button>
+<div class="status" id="invoiceStatus"></div>
+</div>
+</section>
 
-    <h2 class="section-title">My Collections</h2>
-    <section class="card">
-      <div class="period">Collections - Current Cycle</div>
-      <div class="total-row">
-        <div><span class="total" id="totalAmount">0.00</span> <span class="currency">AED</span></div>
-        <div class="money-icon">▣</div>
-      </div>
+<section id="historyPage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<h2 class="section-title">Invoice History</h2>
+<div id="historyList"></div>
+</section>
 
-      <div class="chart" aria-label="Collection chart">
-        <div class="bar" style="height:35%"></div>
-        <div class="bar" style="height:55%"></div>
-        <div class="bar" style="height:70%"></div>
-        <div class="bar" style="height:62%"></div>
-        <div class="bar" style="height:48%"></div>
-        <div class="bar" style="height:65%"></div>
-        <div class="bar" style="height:42%"></div>
-        <div class="bar" style="height:28%"></div>
-      </div>
-      <div class="days"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span><span>Today</span></div>
+<section id="calculatorPage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="form-card">
+<h2>Calculator / Charges</h2>
+<label>Shift Trips</label><input type="number" id="calcTrips">
+<label>Shift Trips Rate</label><input type="number" step="0.01" id="tripRate">
+<label>Bookings</label><input type="number" id="calcBookings">
+<label>Booking Price</label><input type="number" step="0.01" id="bookingRate">
+<label>Kilometers Hired</label><input type="number" step="0.01" id="calcKm">
+<label>KM Rate</label><input type="number" step="0.01" id="kmRate">
+<button class="primary" onclick="runCalculator()">Calculate</button>
+<div class="result" id="calcResult">Charges: 0.00 AED</div>
+</div>
+</section>
 
-      <div class="avg">
-        <div class="avg-label">Daily Avg</div>
-        <div class="avg-value" id="avgAmount">0.00 AED</div>
-      </div>
-    </section>
+<section id="targetPage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="form-card">
+<h2>Target Setup</h2>
+<label>Target Percentage</label><input type="number" min="0" max="100" step="0.5" id="targetPercent" placeholder="e.g. 40">
+<label>Shift Trips Rate</label><input type="number" step="0.01" id="targetTripRate">
+<label>Booking Price</label><input type="number" step="0.01" id="targetBookingRate">
+<label>KM Rate</label><input type="number" step="0.01" id="targetKmRate">
+<button class="primary" onclick="saveTarget()">Save Target Settings</button>
+<div class="status" id="targetStatus"></div>
+</div>
+</section>
 
-    <h2 class="section-title">Quick Actions</h2>
-    <div class="quick-grid">
-      <button class="quick" onclick="alert('New Invoice screen will be connected next.')"><span>＋</span>New Invoice</button>
-      <button class="quick" onclick="alert('Calculator will be connected next.')"><span>🧮</span>Calculator</button>
-      <button class="quick" onclick="alert('Target Setup will be connected next.')"><span>🎯</span>Target Setup</button>
-    </div>
-
-    <h2 class="section-title">My Summary</h2>
-    <div class="summary-grid">
-      <div class="summary"><small>Target</small><strong>0%</strong></div>
-      <div class="summary"><small>Target Amount</small><strong>0 AED</strong></div>
-      <div class="summary"><small>Deductions</small><strong>0 AED</strong></div>
-      <div class="summary"><small>Net Amount</small><strong>0 AED</strong></div>
-    </div>
-  </main>
+<section id="profilePage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="user-box">
+<h2>Driver Profile</h2>
+<div><b>Driver ID:</b> <span id="profileDriverId">—</span></div>
+div><b>Mobile:</b> <span id="profileMobile">—</span></div>
+<div><b>Firebase User ID:</b><div class="small" id="profileUid">—</div></div>
+</div>
+</section>
+</main>
 </div>
 
 <div class="drawer" id="drawer" onclick="toggleMenu()">
-  <nav class="menu" onclick="event.stopPropagation()">
-    <h2>Driver Accounting</h2>
-    <button>🏠 Dashboard</button>
-    <button>🧾 New Invoice</button>
-    <button>🧮 Calculator / Charges</button>
-    <button>🎯 Target Setup</button>
-    <button>📋 Invoice History</button>
-    <button>📊 Reports</button>
-    <button>👤 Profile</button>
-    <button>↪ Logout</button>
-  </nav>
+<nav class="menu" onclick="event.stopPropagation()">
+<h2>Driver Accounting</h2>
+<button onclick="showPage('dashboardPage');toggleMenu()">🏠 Dashboard</button>
+<button onclick="showPage('invoicePage');toggleMenu()">🧾 New Invoice</button>
+<button onclick="showPage('calculatorPage');toggleMenu()">🧮 Calculator / Charges</button>
+<button onclick="showPage('targetPage');toggleMenu()">🎯 Target Setup</button>
+<button onclick="showPage('historyPage');toggleMenu()">📋 Invoice History</button>
+<button onclick="showPage('profilePage');toggleMenu()">👤 Profile</button>
+<button onclick="logout()">↪ Logout</button>
+</nav>
 </div>
 
-<script>
-  function toggleMenu(){
-    document.getElementById('drawer').classList.toggle('open');
-  }
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {getAuth,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAlY5ir-8IPQE77Dpfr09UFoDG4VkKZvE8",
+authDomain:"driver-taxi-accounting.firebaseapp.com",
+projectId:"driver-taxi-accounting",
+storageBucket:"driver-taxi-accounting.firebasestorage.app",
+messagingSenderId:"749260589680",
+appId:"1:749260589680:web:3fbaa5c98edfc5028d42b5",
+measurementId:"G-0HWWENTGX6"
+};
+
+const appFirebase=initializeApp(firebaseConfig);
+const auth=getAuth(appFirebase);
+const db=getFirestore(appFirebase);
+let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null;
+
+const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
+const n=id=>Number(document.getElementById(id)?.value||0);
+const money=v=>(Number(v)||0).toFixed(2);
+
+window.toggleMenu=()=>document.getElementById("drawer").classList.toggle("open");
+
+window.showPage=pageId=>{
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(pageId).classList.add("active");
+if(pageId==="historyPage")renderHistory();
+};
+
+window.logout=async()=>{
+await signOut(auth);
+location.href="login.html";
+};
+
+window.saveInvoice=async()=>{
+if(!currentUser){alert("Please login first.");return}
+const date=document.getElementById("invDate").value;
+if(!date){document.getElementById("invoiceStatus").textContent="Please select invoice date.";return}
+const data={date};
+ids.forEach(id=>data[id]=n(id));
+const total=data.creditCard+data.app+data.cash+data.shiftDiscount+data.careemDiscount+data.paidCareem;
+const deductions=data.tips+data.halaJunior+data.halaPeak+data.peak+data.tolls+
+(data.shiftTrips*(Number(driverData.shiftTripsRate)||0))+
+(data.bookings*(Number(driverData.bookingPrice)||0))+
+(data.km*(Number(driverData.kmRate)||0));
+const net=total-deductions-data.extraCharges;
+data.total=total;data.deductions=deductions;data.net=net;data.updatedAt=serverTimestamp();
+try{
+if(editingId){
+await updateDoc(doc(db,"drivers",currentUser.uid,"invoices",editingId),data);
+document.getElementById("invoiceStatus").textContent="Invoice updated successfully.";
+editingId=null;
+document.getElementById("saveInvoiceBtn").textContent="Save Invoice";
+document.getElementById("invoiceTitle").textContent="New Invoice";
+}else{
+data.invoiceNumber="INV-"+Date.now();
+data.createdAt=serverTimestamp();
+await addDoc(collection(db,"drivers",currentUser.uid,"invoices"),data);
+document.getElementById("invoiceStatus").textContent="Invoice saved successfully.";
+}
+clearInvoice();
+}catch(e){console.error(e);document.getElementById("invoiceStatus").textContent="Error: "+e.message}
+};
+
+function clearInvoice(){
+document.getElementById("invDate").value=new Date().toISOString().slice(0,10);
+ids.forEach(id=>document.getElementById(id).value="");
+updatePreview();
+}
+
+function updatePreview(){
+const d={};ids.forEach(id=>d[id]=n(id));
+const total=d.creditCard+d.app+d.cash+d.shiftDiscount+d.careemDiscount+d.paidCareem;
+const deductions=d.tips+d.halaJunior+d.halaPeak+d.peak+d.tolls+
+(d.shiftTrips*(Number(driverData.shiftTripsRate)||0))+
+(d.bookings*(Number(driverData.bookingPrice)||0))+
+(d.km*(Number(driverData.kmRate)||0));
+const net=total-deductions-d.extraCharges;
+document.getElementById("invoicePreview").textContent=`Total: ${money(total)} AED · Deductions: ${money(deductions)} AED · Net: ${money(net)} AED`;
+}
+ids.forEach(id=>document.getElementById(id).addEventListener("input",updatePreview));
+
+window.editInvoice=id=>{
+const x=invoices.find(i=>i.id===id);if(!x)return;
+editingId=id;
+document.getElementById("invoiceTitle").textContent="Edit Invoice";
+document.getElementById("saveInvoiceBtn").textContent="Update Invoice";
+document.getElementById("invDate").value=x.date||"";
+ids.forEach(k=>document.getElementById(k).value=x[k]??"");
+updatePreview();showPage("invoicePage");
+};
+
+window.deleteInvoice=async id=>{
+if(!currentUser)return;
+if(!confirm("Delete this invoice? This cannot be undone."))return;
+await deleteDoc(doc(db,"drivers",currentUser.uid,"invoices",id));
+};
+
+function renderHistory(){
+const box=document.getElementById("historyList");
+if(!invoices.length){box.innerHTML='<div class="form-card">No invoices saved yet.</div>';return}
+box.innerHTML=[...invoices].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(x=>`
+<div class="history-item">
+<div class="history-top"><span>${x.invoiceNumber||"Invoice"}</span><span>${x.date||""}</span></div>
+<div class="history-net">${money(x.net)} AED</div>
+<div class="small">Total ${money(x.total)} · Deductions ${money(x.deductions)}</div>
+<div class="history-actions">
+<button class="edit-btn" onclick="editInvoice('${x.id}')">✏️ Edit</button>
+<button class="delete-btn" onclick="deleteInvoice('${x.id}')">🗑 Delete</button>
+</div></div>`).join("");
+}
+
+window.runCalculator=()=>{
+const a=nId("calcTrips")*nId("tripRate");
+const b=nId("calcBookings")*nId("bookingRate");
+const c=nId("calcKm")*nId("kmRate");
+document.getElementById("calcResult").textContent=`Shift Trips: ${money(a)} AED · Bookings: ${money(b)} AED · KM: ${money(c)} AED · Total Charges: ${money(a+b+c)} AED`;
+};
+function nId(id){return Number(document.getElementById(id).value||0)}
+
+window.saveTarget=async()=>{
+if(!currentUser)return;
+const target=Number(document.getElementById("targetPercent").value||0);
+const tripRate=Number(document.getElementById("targetTripRate").value||0);
+const bookingRate=Number(document.getElementById("targetBookingRate").value||0);
+const kmRate=Number(document.getElementById("targetKmRate").value||0);
+await setDoc(doc(db,"drivers",currentUser.uid),{targetPercent:target,shiftTripsRate:tripRate,bookingPrice:bookingRate,kmRate,updatedAt:serverTimestamp()},{merge:true});
+driverData={...driverData,targetPercent:target,shiftTripsRate:tripRate,bookingPrice:bookingRate,kmRate};
+document.getElementById("targetStatus").textContent="Target settings saved.";
+updateDashboard();
+};
+
+function updateDashboard(){
+const total=invoices.reduce((s,x)=>s+(Number(x.net)||0),0);
+const deductions=invoices.reduce((s,x)=>s+(Number(x.deductions)||0),0);
+const avg=invoices.length?total/invoices.length:0;
+const target=Number(driverData.targetPercent||0);
+document.getElementById("totalAmount").textContent=money(total);
+document.getElementById("avgAmount").textContent=money(avg)+" AED";
+document.getElementById("sumTarget").textContent=target+"%";
+document.getElementById("sumTargetAmount").textContent=money(total*target/100)+" AED";
+document.getElementById("sumDeductions").textContent=money(deductions)+" AED";
+document.getElementById("sumNet").textContent=money(total)+" AED";
+document.getElementById("invoiceBadge").textContent=invoices.length+" ›";
+renderChart();
+}
+
+function renderChart(){
+const chart=document.getElementById("chart"),days=document.getElementById("days");
+chart.innerHTML="";days.innerHTML="";
+const now=new Date(),arr=[];
+for(let i=7;i>=0;i--){const d=new Date(now);d.setDate(now.getDate()-i);const key=d.toISOString().slice(0,10);const value=invoices.filter(x=>x.date===key).reduce((s,x)=>s+(Number(x.net)||0),0);arr.push({key,value,label:i===0?"Today":d.toLocaleDateString("en-US",{weekday:"short"})})}
+const max=Math.max(...arr.map(x=>x.value),1);
+arr.forEach(x=>{const bar=document.createElement("div");bar.className="bar";bar.style.height=Math.max(3,(x.value/max)*100)+"%";bar.title=x.label+": "+money(x.value)+" AED";chart.appendChild(bar);const sp=document.createElement("span");sp.textContent=x.label;days.appendChild(sp)});
+}
+
+onAuthStateChanged(auth,async user=>{
+if(!user){location.href="login.html";return}
+currentUser=user;
+const ref=doc(db,"drivers",user.uid);
+const snap=await getDoc(ref);
+driverData=snap.exists()?snap.data():{};
+document.getElementById("helloText").textContent="Hey, "+(driverData.driverId||"Driver")+"!";
+document.getElementById("profileDriverId").textContent=driverData.driverId||"—";
+document.getElementById("profileMobile").textContent=driverData.mobile||"—";
+document.getElementById("profileUid").textContent=user.uid;
+document.getElementById("targetPercent").value=driverData.targetPercent??"";
+document.getElementById("targetTripRate").value=driverData.shiftTripsRate??"";
+document.getElementById("targetBookingRate").value=driverData.bookingPrice??"";
+document.getElementById("targetKmRate").value=driverData.kmRate??"";
+if(unsubscribeInvoices)unsubscribeInvoices();
+unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
+invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();
+});
+clearInvoice();
+});
 </script>
 </body>
 </html>
