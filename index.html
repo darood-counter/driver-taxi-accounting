@@ -36,36 +36,6 @@ main{padding:0 22px}
 .quick span{display:block;font-size:27px;margin-bottom:9px}
 .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .summary{background:#fff;border-radius:20px;padding:18px}.summary small{display:block;color:#737783;margin-bottom:8px}.summary strong{font-size:25px}
-/* Profile redesign */
-.profile-page{margin:0 -22px;background:#f1f1f3;min-height:calc(100vh - 82px)}
-.profile-hero{background:#0d1238;color:#fff;padding:18px 22px 34px;text-align:center;position:relative;border-radius:0 0 34px 34px}
-.profile-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
-.profile-back,.profile-help{width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:31px;display:grid;place-items:center;cursor:pointer}
-.profile-help{border:3px solid #fff;font-size:25px;font-weight:800}
-.profile-avatar-wrap{position:relative;width:150px;height:150px;margin:0 auto 20px}
-.profile-avatar{width:150px;height:150px;border-radius:50%;background:#eef0f4;color:#0d1238;display:grid;place-items:center;font-size:54px;font-weight:900;overflow:hidden;border:4px solid #fff}
-.profile-avatar img{width:100%;height:100%;object-fit:cover}
-.profile-edit{position:absolute;right:0;bottom:-2px;width:48px;height:48px;border-radius:50%;border:4px solid #0d1238;background:#fff;color:#111827;font-size:21px;cursor:pointer}
-.profile-name{font-size:39px;font-weight:900;margin:0 0 25px;letter-spacing:-1px}
-.profile-id-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.profile-id-card{background:#353b70;border-radius:25px;padding:18px 10px}
-.profile-id-card small{display:block;color:#b9bbca;font-size:16px;font-weight:800;margin-bottom:10px}
-.profile-id-card strong{font-size:26px}
-.profile-body{padding:28px 22px 36px}
-.profile-section-title{font-size:22px;font-weight:800;color:#686b77;margin:10px 0 16px}
-.profile-info-card{background:#fff;border-radius:26px;padding:18px 14px;box-shadow:0 1px 2px rgba(0,0,0,.03);margin-bottom:25px}
-.profile-row{display:flex;align-items:center;gap:14px;padding:12px 5px}
-.profile-row+.profile-row{border-top:1px solid #f0f0f2}
-.profile-row-icon{flex:0 0 54px;width:54px;height:54px;border-radius:50%;background:#f1f2f6;display:grid;place-items:center;font-size:26px}
-.profile-row-content{min-width:0;flex:1;text-align:left}
-.profile-row-label{font-size:14px;font-weight:800;color:#6e707b;margin-bottom:5px}
-.profile-row-value{font-size:17px;font-weight:700;color:#171923;overflow-wrap:anywhere;line-height:1.35}
-.profile-row-edit{flex:0 0 42px;width:42px;height:42px;border:0;background:transparent;font-size:25px;cursor:pointer}
-.password-card{background:#fff;border-radius:26px;padding:20px 16px;margin-bottom:20px}
-.password-card h3{margin:0 0 6px;font-size:21px}
-.password-card p{margin:0 0 15px;color:#737783;font-size:13px;line-height:1.4}
-.profile-password-msg{min-height:20px;font-size:13px;font-weight:700;margin-top:10px}
-
 .drawer{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:20}.drawer.open{display:block}
 .menu{width:82%;max-width:360px;height:100%;background:#fff;padding:30px 22px;border-radius:0 28px 28px 0}
 .menu h2{margin:0 0 28px;font-size:27px}.menu button{width:100%;text-align:left;border:0;background:transparent;padding:16px 8px;font-size:18px;border-radius:12px;cursor:pointer}
@@ -89,28 +59,147 @@ input:focus{border-color:#ed166a}
 .edit-btn{background:#eef0f5}.delete-btn{background:#ffe7ef;color:#a3003f}
 .user-box{background:#fff;border-radius:20px;padding:18px;margin-bottom:20px}
 .small{font-size:13px;color:#737783}
+/* ===== Mobile-first responsive layout ===== */
 @media(max-width:600px){
-.profile-page{margin:0 -14px;min-height:calc(100vh - 64px)}
-.profile-hero{padding:12px 18px 28px;border-radius:0 0 28px 28px}
-.profile-top{margin-bottom:20px}
-.profile-avatar-wrap,.profile-avatar{width:128px;height:128px}
-.profile-avatar-wrap{margin-bottom:15px}
-.profile-name{font-size:31px;margin-bottom:20px}
-.profile-id-grid{gap:9px}
-.profile-id-card{border-radius:19px;padding:14px 7px}
-.profile-id-card small{font-size:13px;margin-bottom:7px}
-.profile-id-card strong{font-size:21px}
-.profile-body{padding:22px 14px 30px}
-.profile-section-title{font-size:19px;margin:8px 0 12px}
-.profile-info-card,.password-card{border-radius:21px;padding:14px 11px}
-.profile-row{gap:10px;padding:10px 3px}
-.profile-row-icon{flex-basis:48px;width:48px;height:48px;font-size:22px}
-.profile-row-label{font-size:12px}
-.profile-row-value{font-size:15px}
-.profile-row-edit{font-size:21px;width:36px;flex-basis:36px}
-.password-card h3{font-size:19px}
+  html,body{width:100%;overflow-x:hidden}
+  body{font-size:15px}
+  .app{width:100%;max-width:none;padding-bottom:24px}
+  .topbar{
+    height:64px;
+    padding:0 14px;
+  }
+  .icon-btn{font-size:26px;padding:4px}
+  .brand{font-size:26px;letter-spacing:-1px}
+  .bell{font-size:23px}
+  main{padding:0 14px}
+  .hello{
+    font-size:31px;
+    line-height:1.15;
+    margin:18px 0 28px;
+    letter-spacing:-1px;
+  }
+  .section-title{
+    font-size:19px;
+    margin-bottom:12px;
+  }
+  .notice{
+    border-width:1.5px;
+    border-radius:20px;
+    padding:12px;
+    gap:9px;
+    margin-bottom:28px;
+  }
+  .notice-icon{
+    width:44px;height:44px;
+    font-size:22px;
+    flex:0 0 44px;
+  }
+  .notice-text{font-size:14px;line-height:1.25}
+  .badge{padding:9px 10px;border-radius:9px;font-size:13px}
+  .card{
+    border-radius:21px;
+    padding:18px 15px;
+    margin-bottom:25px;
+  }
+  .period{font-size:14px;margin-bottom:14px}
+  .total{font-size:32px;letter-spacing:-1px}
+  .currency{font-size:16px}
+  .money-icon{
+    width:58px;height:58px;
+    font-size:25px;
+  }
+  .chart{
+    height:180px;
+    gap:5px;
+    padding:14px 0 4px;
+  }
+  .bar{min-width:7px;border-radius:5px 5px 0 0}
+  .days{gap:3px;font-size:9px;padding-top:6px}
+  .avg{margin-top:25px;border-left-width:4px;padding-left:10px}
+  .avg-label{font-size:13px;margin-bottom:5px}
+  .avg-value{font-size:25px}
+  .quick-grid{gap:8px;margin-bottom:25px}
+  .quick{
+    border-radius:16px;
+    padding:13px 5px;
+    font-size:12px;
+    min-height:84px;
+  }
+  .quick span{font-size:23px;margin-bottom:6px}
+  .summary-grid{gap:8px}
+  .summary{border-radius:16px;padding:14px 12px}
+  .summary small{font-size:12px;margin-bottom:5px}
+  .summary strong{font-size:20px}
+  .back{
+    padding:10px 13px;
+    border-radius:12px;
+    margin-bottom:14px
+  }
+  .form-card{
+    border-radius:19px;
+    padding:17px 14px;
+    margin-bottom:16px
+  }
+  .form-card h2{font-size:21px;margin-bottom:14px}
+  label{font-size:13px;margin:11px 0 6px}
+  input{
+    padding:13px 12px;
+    min-height:47px;
+    border-radius:11px;
+    font-size:16px;
+  }
+  .primary{
+    border-radius:12px;
+    padding:14px;
+    font-size:15px;
+    margin-top:15px
+  }
+  .result{
+    border-radius:12px;
+    padding:12px;
+    font-size:13px;
+    line-height:1.5
+  }
+  .history-item{
+    border-radius:16px;
+    padding:14px;
+    margin-bottom:9px
+  }
+  .history-top{font-size:13px}
+  .history-net{font-size:21px;margin:7px 0}
+  .history-actions{gap:6px}
+  .history-actions button{padding:10px 7px;font-size:13px}
+  .user-box{border-radius:16px;padding:15px}
+  .menu{
+    width:min(86%,330px);
+    padding:24px 17px;
+    border-radius:0 22px 22px 0
+  }
+  .menu h2{font-size:23px;margin-bottom:20px}
+  .menu button{padding:14px 7px;font-size:16px}
+  .auth-screen{padding:14px}
+  .auth-card{
+    max-width:none;
+    border-radius:21px;
+    padding:20px 16px;
+  }
+  .auth-card h1{font-size:26px}
+  .auth-tabs{margin-bottom:15px}
 }
-@media(max-width:390px){.hello{font-size:34px}.total{font-size:35px}.brand{font-size:30px}main{padding:0 16px}.topbar{padding:0 16px}}
+
+@media(max-width:390px){
+  .topbar{height:60px;padding:0 12px}
+  .brand{font-size:24px}
+  main{padding:0 12px}
+  .hello{font-size:28px;margin:16px 0 24px}
+  .section-title{font-size:18px}
+  .notice-text{font-size:13px}
+  .total{font-size:29px}
+  .money-icon{width:52px;height:52px}
+  .chart{height:160px}
+  .quick{min-height:80px;font-size:11px}
+  .summary strong{font-size:18px}
+}
 
 .auth-screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:24px;background:#f5f5f5}
 .auth-card{width:100%;max-width:520px;background:#fff;border-radius:28px;padding:26px 22px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
@@ -258,52 +347,13 @@ input:focus{border-color:#ed166a}
 </section>
 
 <section id="profilePage" class="page">
-<div class="profile-page">
-<div class="profile-hero">
-<div class="profile-top">
-<button class="profile-back" onclick="showPage('dashboardPage')" aria-label="Back">←</button>
-<button class="profile-help" type="button" onclick="alert('Profile information and account settings')">?</button>
-</div>
-<div class="profile-avatar-wrap">
-<div class="profile-avatar" id="profileAvatar">D</div>
-<button class="profile-edit" type="button" onclick="alert('Profile photo editing can be connected when a photo field is added.')">✎</button>
-</div>
-<h1 class="profile-name" id="profileHeroName">Driver</h1>
-<div class="profile-id-grid">
-<div class="profile-id-card"><small>Driver ID</small><strong id="profileDriverIdHero">—</strong></div>
-<div class="profile-id-card"><small>Account</small><strong>Active</strong></div>
-</div>
-</div>
-<div class="profile-body">
-<h2 class="profile-section-title">Contact Details</h2>
-<div class="profile-info-card">
-<div class="profile-row">
-<div class="profile-row-icon">📱</div>
-<div class="profile-row-content"><div class="profile-row-label">Phone Number</div><div class="profile-row-value" id="profileMobileCard">—</div></div>
-</div>
-<div class="profile-row">
-<div class="profile-row-icon">✉</div>
-<div class="profile-row-content"><div class="profile-row-label">Email</div><div class="profile-row-value" id="profileEmail">—</div></div>
-</div>
-<div class="profile-row">
-<div class="profile-row-icon">🪪</div>
-<div class="profile-row-content"><div class="profile-row-label">Driver ID</div><div class="profile-row-value" id="profileDriverIdCard">—</div></div>
-</div>
-</div>
-<h2 class="profile-section-title">Account Security</h2>
-<div class="password-card">
-<h3>Change Password</h3>
-<p>Update your account password securely.</p>
-<label>New Password</label>
-<div class="password-wrap"><input type="password" id="newPassword" placeholder="Minimum 6 characters" autocomplete="new-password"><button type="button" class="show-pass" onclick="togglePassword('newPassword',this)">Show</button></div>
-<label>Confirm New Password</label>
-<div class="password-wrap"><input type="password" id="confirmPassword" placeholder="Re-enter new password" autocomplete="new-password"><button type="button" class="show-pass" onclick="togglePassword('confirmPassword',this)">Show</button></div>
-<button class="primary" onclick="changePassword()">Change Password</button>
-<div class="profile-password-msg" id="passwordStatus"></div>
-</div>
-<h2 class="profile-section-title">Other</h2>
-<div class="password-card" style="cursor:pointer" onclick="logout()"><h3>Logout</h3><p style="margin-bottom:0">Sign out from this driver account.</p></div>
-</div>
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="user-box">
+<h2>Driver Profile</h2>
+<div><b>Name:</b> <span id="profileName">—</span></div>
+<div><b>Driver ID:</b> <span id="profileDriverId">—</span></div>
+<div><b>Mobile:</b> <span id="profileMobile">—</span></div>
+
 </div>
 </section>
 </main>
@@ -324,7 +374,7 @@ input:focus{border-color:#ed166a}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -466,25 +516,6 @@ window.signupUser=async()=>{
     document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
   }catch(e){document.getElementById("authError").textContent=authMsg(e)}
 };
-window.changePassword=async()=>{
-const status=document.getElementById("passwordStatus");
-const newPass=document.getElementById("newPassword").value;
-const confirm=document.getElementById("confirmPassword").value;
-status.textContent="";status.style.color="#b0003a";
-if(!currentUser){status.textContent="Please login first.";return}
-if(newPass.length<6){status.textContent="Password must be at least 6 characters.";return}
-if(newPass!==confirm){status.textContent="Passwords do not match.";return}
-try{
-await updatePassword(currentUser,newPass);
-document.getElementById("newPassword").value="";
-document.getElementById("confirmPassword").value="";
-status.style.color="#137333";status.textContent="Password changed successfully.";
-}catch(e){
-console.error(e);
-status.textContent=e?.code==="auth/requires-recent-login"?"For security, please logout and login again, then change the password.":"Unable to change password. Please login again and try.";
-}
-};
-
 window.saveInvoice=async()=>{
 if(!currentUser){alert("Please login first.");return}
 const date=document.getElementById("invDate").value;
@@ -617,18 +648,9 @@ const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
 document.getElementById("helloText").textContent="Hi, "+(driverData.name||"Driver")+" 👋";
-const profileName=driverData.name||"Driver";
-document.getElementById("profileName").textContent=profileName;
-document.getElementById("profileHeroName").textContent=profileName;
+document.getElementById("profileName").textContent=driverData.name||"—";
 document.getElementById("profileDriverId").textContent=driverData.driverId||"—";
-document.getElementById("profileDriverIdHero").textContent=driverData.driverId||"—";
-document.getElementById("profileDriverIdCard").textContent=driverData.driverId||"—";
 document.getElementById("profileMobile").textContent=driverData.mobile||"—";
-document.getElementById("profileMobileCard").textContent=driverData.mobile||"—";
-document.getElementById("profileEmail").textContent=driverData.email||user.email||"—";
-const avatar=document.getElementById("profileAvatar");
-if(driverData.photoURL){avatar.innerHTML=`<img src="${driverData.photoURL}" alt="Profile">`;}
-else{avatar.textContent=profileName.trim().charAt(0).toUpperCase()||"D";}
 document.getElementById("targetPercent").value=driverData.targetPercent??"";
 document.getElementById("targetTripRate").value=driverData.shiftTripsRate??"";
 document.getElementById("targetBookingRate").value=driverData.bookingPrice??"";
