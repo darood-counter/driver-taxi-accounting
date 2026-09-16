@@ -60,10 +60,57 @@ input:focus{border-color:#ed166a}
 .user-box{background:#fff;border-radius:20px;padding:18px;margin-bottom:20px}
 .small{font-size:13px;color:#737783}
 @media(max-width:390px){.hello{font-size:34px}.total{font-size:35px}.brand{font-size:30px}main{padding:0 16px}.topbar{padding:0 16px}}
+
+.auth-screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:24px;background:#f5f5f5}
+.auth-card{width:100%;max-width:520px;background:#fff;border-radius:28px;padding:26px 22px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.auth-card h1{margin:0 0 8px;font-size:30px}.auth-card p{margin:0 0 22px;color:#737783}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f1f2f5;padding:5px;border-radius:14px;margin-bottom:18px}
+.auth-tabs button{border:0;background:transparent;border-radius:10px;padding:12px;font-weight:800;cursor:pointer}
+.auth-tabs button.active{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.auth-error{color:#b0003a;font-size:14px;font-weight:700;margin-top:12px;min-height:22px;line-height:1.4}
+.auth-success{color:#137333;font-size:14px;margin-top:12px;min-height:18px}
+.auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}.password-wrap{position:relative}.password-wrap input{padding-right:72px}.show-pass{position:absolute;right:8px;top:7px;border:0;background:#eef0f5;border-radius:9px;padding:9px 10px;font-weight:700;color:#444;cursor:pointer}
 </style>
 </head>
 <body>
-<div class="app">
+
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <h1>Driver's Accounting</h1>
+    <p>Log in or create a new driver account.</p>
+    <div class="auth-tabs">
+      <button id="loginTab" class="active" onclick="showAuthMode('login')">Login</button>
+      <button id="signupTab" onclick="showAuthMode('signup')">Sign Up</button>
+    </div>
+
+    <div id="loginForm">
+      <label>ID / Email</label>
+      <input type="text" id="loginIdentifier" placeholder="Driver ID / Email" autocomplete="username">
+      <label>Password</label>
+      <div class="password-wrap">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+        <button type="button" class="show-pass" onclick="togglePassword('loginPassword',this)">Show</button>
+      </div>
+      <button class="primary" onclick="loginUser()">Login</button>
+    </div>
+
+    <div id="signupForm" style="display:none">
+      <label>Driver ID</label><input type="text" id="signupDriverId" placeholder="e.g. D12345">
+      <label>Mobile</label><input type="tel" id="signupMobile" placeholder="05xxxxxxxx">
+      <label>ID / Email</label><input type="email" id="signupEmail" placeholder="Enter ID or Email">
+      <label>Password</label>
+      <div class="password-wrap">
+        <input type="password" id="signupPassword" placeholder="Minimum 6 characters" autocomplete="new-password">
+        <button type="button" class="show-pass" onclick="togglePassword('signupPassword',this)">Show</button>
+      </div>
+      <button class="primary" onclick="signupUser()">Create Account</button>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-success" id="authSuccess"></div>
+    <div class="auth-note">Login mein Driver ID ya Email dono use kar sakte hain. Password ke liye Show option diya gaya hai.</div>
+  </div>
+</div>
+<div class="app" id="appShell" style="display:none">
 <header class="topbar">
 <button class="icon-btn" onclick="toggleMenu()">☰</button>
 <div class="brand">Driver's</div>
@@ -163,7 +210,7 @@ input:focus{border-color:#ed166a}
 <div class="user-box">
 <h2>Driver Profile</h2>
 <div><b>Driver ID:</b> <span id="profileDriverId">—</span></div>
-div><b>Mobile:</b> <span id="profileMobile">—</span></div>
+<div><b>Mobile:</b> <span id="profileMobile">—</span></div>
 <div><b>Firebase User ID:</b><div class="small" id="profileUid">—</div></div>
 </div>
 </section>
@@ -185,7 +232,7 @@ div><b>Mobile:</b> <span id="profileMobile">—</span></div>
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -216,8 +263,480 @@ if(pageId==="historyPage")renderHistory();
 };
 
 window.logout=async()=>{
-await signOut(auth);
-location.href="login.html";
+  try{ if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;} }catch(e){}
+  try{ await signOut(auth); }catch(e){}
+  showAuth();
+};
+
+
+function showAuth(){
+  const drawer=document.getElementById("drawer");
+  if(drawer) drawer.classList.remove("open");
+  document.getElementById("authScreen").style.display="flex";
+  document.getElementById("appShell").style.display="none";
+  document.getElementById("authError").textContent="";
+  document.getElementById("authSuccess").textContent="";
+}
+function hideAuth(){
+  document.getElementById("authScreen").style.display="none";
+  document.getElementById("appShell").style.display="block";
+}
+window.showAuthMode=mode=>{
+  const login=mode==="login";
+  document.getElementById("loginForm").style.display=login?"block":"none";
+  document.getElementById("signupForm").style.display=login?"none":"block";
+  document.getElementById("loginTab").classList.toggle("active",login);
+  document.getElementById("signupTab").classList.toggle("active",!login);
+  document.getElementById("authError").textContent="";
+  document.getElementById("authSuccess").textContent="";
+};
+function authMsg(error){
+  const code=error?.code||"";
+  const map={
+    "auth/invalid-credential":"Password wrong hai ya Email / ID ghalat hai.",
+    "auth/wrong-password":"Password wrong hai. Dobara check karein.",
+    "auth/user-not-found":"Is Email ka account nahi bana hua.",
+    "auth/invalid-email":"Invalid email format.",
+    "auth/email-already-in-use":"This email is already registered.",
+    "auth/weak-password":"Password must be at least 6 characters.",
+    "auth/network-request-failed":"Please check your internet connection.",
+    "auth/too-many-requests":"Too many attempts. Please try again later.",
+    "auth/user-disabled":"This account is disabled. Please contact the administrator."
+  };
+  return map[code]||"Login failed. Check your ID / Email and Password.";
+}
+function normalizeDriverId(v){return String(v||"").trim().toLowerCase()}
+window.togglePassword=(id,btn)=>{
+  const input=document.getElementById(id);
+  if(!input)return;
+  const showing=input.type==="text";
+  input.type=showing?"password":"text";
+  btn.textContent=showing?"Show":"Hide";
+};
+window.loginUser=async()=>{
+  const identifier=document.getElementById("loginIdentifier").value.trim();
+  const password=document.getElementById("loginPassword").value;
+  document.getElementById("authError").textContent="";
+  document.getElementById("authSuccess").textContent="";
+  if(!identifier||!password){document.getElementById("authError").textContent="Enter your ID / Email and Password.";return}
+  try{
+    let email=identifier;
+    if(!identifier.includes("@")){
+      const mapSnap=await getDoc(doc(db,"driverLogin",normalizeDriverId(identifier)));
+      if(!mapSnap.exists()){
+        document.getElementById("authError").textContent="Account not found. Check your ID or sign up first.";
+        return;
+      }
+      email=mapSnap.data().email||"";
+      if(!email){
+        document.getElementById("authError").textContent="This Driver ID account setup is incomplete.";
+        return;
+      }
+    }
+    await signInWithEmailAndPassword(auth,email,password);
+  }catch(e){
+    const code=e?.code||"";
+    if(code==="auth/invalid-credential" || code==="auth/wrong-password"){
+      document.getElementById("authError").textContent="Wrong password or ID / Email. Please check and try again.";
+    }else{
+      document.getElementById("authError").textContent=authMsg(e);
+    }
+  }
+};
+window.signupUser=async()=>{
+  const driverId=document.getElementById("signupDriverId").value.trim();
+  const mobile=document.getElementById("signupMobile").value.trim();
+  const email=document.getElementById("signupEmail").value.trim();
+  const password=document.getElementById("signupPassword").value;
+  document.getElementById("authError").textContent="";
+  document.getElementById("authSuccess").textContent="";
+  if(!driverId||!mobile||!email||!password){
+    document.getElementById("authError").textContent="Driver ID, Mobile, Email aur Password sab fill karein.";return
+  }
+  if(password.length<6){
+    document.getElementById("authError").textContent="Password kam az kam 6 characters ka hona chahiye.";return
+  }
+  try{
+    const driverKey=normalizeDriverId(driverId);
+    const existing=await getDoc(doc(db,"driverLogin",driverKey));
+    if(existing.exists()){
+      document.getElementById("authError").textContent="Ye Driver ID pehle se registered hai.";
+      return;
+    }
+    const cred=await createUserWithEmailAndPassword(auth,email,password);
+    await setDoc(doc(db,"drivers",cred.user.uid),{
+      driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,createdAt:serverTimestamp()
+    },{merge:true});
+    await setDoc(doc(db,"driverLogin",driverKey),{
+      driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
+    });
+    document.getElementById("authSuccess").textContent="Account create ho gaya. Dashboard open ho raha hai...";
+  }catch(e){document.getElementById("authError").textContent=authMsg(e)}
+};DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#f5f5f5">
+<title>Driver Taxi Accounting</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f5f5;color:#111827;font-family:Arial,Helvetica,sans-serif}
+.app{max-width:520px;margin:auto;min-height:100vh;padding-bottom:30px}
+.topbar{height:82px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#f5f5f5;position:sticky;top:0;z-index:10}
+.icon-btn{border:0;background:transparent;font-size:31px;cursor:pointer;line-height:1}
+.brand{font-size:34px;font-weight:900;letter-spacing:-2px}
+.bell{font-size:27px}
+main{padding:0 22px}
+.hello{font-size:39px;font-weight:700;margin:24px 0 58px;letter-spacing:-1.5px}
+.section-title{font-size:22px;font-weight:700;color:#737783;margin:0 0 18px}
+.notice{border:2px solid #d62970;border-radius:27px;background:#fff;padding:17px 18px;display:flex;align-items:center;gap:14px;margin-bottom:48px}
+.notice-icon{width:54px;height:54px;border-radius:50%;background:#f0f1f6;display:grid;place-items:center;font-size:27px}
+.notice-text{font-size:17px;font-weight:700;flex:1}
+.badge{background:#ec1268;color:white;padding:12px 13px;border-radius:11px;font-weight:800}
+.card{background:#fff;border-radius:28px;padding:25px 22px;box-shadow:0 1px 1px rgba(0,0,0,.02);margin-bottom:34px}
+.period{font-size:16px;color:#70747e;margin-bottom:20px}
+.total-row{display:flex;justify-content:space-between;align-items:center}
+.total{font-size:42px;font-weight:800;letter-spacing:-1.5px}
+.currency{font-size:20px;font-weight:700}
+.money-icon{width:75px;height:75px;border-radius:50%;background:#0d1033;color:#fff;display:grid;place-items:center;font-size:32px}
+.chart{height:250px;display:flex;align-items:flex-end;gap:9px;padding:18px 0 5px;border-bottom:2px solid #171717}
+.bar{flex:1;background:#cfd5f5;border-radius:7px 7px 0 0;min-width:10px}
+.days{display:flex;gap:9px;font-size:11px;color:#555;justify-content:space-between;padding-top:8px}
+.avg{margin-top:42px;border-left:6px solid #ed166a;padding-left:14px}
+.avg-label{font-size:15px;margin-bottom:8px}.avg-value{font-size:32px;font-weight:800}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:34px}
+.quick{background:#fff;border:0;border-radius:20px;padding:17px 8px;font-weight:700;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.quick span{display:block;font-size:27px;margin-bottom:9px}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.summary{background:#fff;border-radius:20px;padding:18px}.summary small{display:block;color:#737783;margin-bottom:8px}.summary strong{font-size:25px}
+.drawer{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:20}.drawer.open{display:block}
+.menu{width:82%;max-width:360px;height:100%;background:#fff;padding:30px 22px;border-radius:0 28px 28px 0}
+.menu h2{margin:0 0 28px;font-size:27px}.menu button{width:100%;text-align:left;border:0;background:transparent;padding:16px 8px;font-size:18px;border-radius:12px;cursor:pointer}
+.menu button:hover{background:#f1f2f5}
+.page{display:none}.page.active{display:block}
+.back{border:0;background:#fff;border-radius:14px;padding:12px 16px;font-weight:700;margin-bottom:18px;cursor:pointer}
+.form-card{background:#fff;border-radius:24px;padding:20px;margin-bottom:20px}
+.form-card h2{margin:0 0 18px;font-size:24px}
+label{display:block;font-size:14px;font-weight:700;color:#5f6470;margin:13px 0 7px}
+input{width:100%;padding:14px;border:1px solid #d7d9df;border-radius:13px;font-size:16px;outline:none;background:#fff}
+input:focus{border-color:#ed166a}
+.primary{width:100%;border:0;border-radius:15px;background:#ed166a;color:#fff;padding:15px;font-size:16px;font-weight:800;cursor:pointer;margin-top:18px}
+.secondary{border:0;border-radius:13px;background:#eef0f5;padding:12px 15px;font-weight:700;cursor:pointer}
+.result{margin-top:15px;background:#f5f6fa;border-radius:15px;padding:15px;font-weight:700}
+.status{font-size:14px;color:#6b7280;margin-top:10px;min-height:18px}
+.history-item{background:#fff;border-radius:20px;padding:16px;margin-bottom:12px}
+.history-top{display:flex;justify-content:space-between;gap:10px;font-weight:800}
+.history-net{font-size:24px;margin:9px 0}
+.history-actions{display:flex;gap:8px}
+.history-actions button{flex:1;border:0;border-radius:11px;padding:11px;font-weight:700;cursor:pointer}
+.edit-btn{background:#eef0f5}.delete-btn{background:#ffe7ef;color:#a3003f}
+.user-box{background:#fff;border-radius:20px;padding:18px;margin-bottom:20px}
+.small{font-size:13px;color:#737783}
+@media(max-width:390px){.hello{font-size:34px}.total{font-size:35px}.brand{font-size:30px}main{padding:0 16px}.topbar{padding:0 16px}}
+
+.auth-screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:24px;background:#f5f5f5}
+.auth-card{width:100%;max-width:520px;background:#fff;border-radius:28px;padding:26px 22px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.auth-card h1{margin:0 0 8px;font-size:30px}.auth-card p{margin:0 0 22px;color:#737783}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f1f2f5;padding:5px;border-radius:14px;margin-bottom:18px}
+.auth-tabs button{border:0;background:transparent;border-radius:10px;padding:12px;font-weight:800;cursor:pointer}
+.auth-tabs button.active{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.auth-error{color:#b0003a;font-size:14px;font-weight:700;margin-top:12px;min-height:22px;line-height:1.4}
+.auth-success{color:#137333;font-size:14px;margin-top:12px;min-height:18px}
+.auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}.password-wrap{position:relative}.password-wrap input{padding-right:72px}.show-pass{position:absolute;right:8px;top:7px;border:0;background:#eef0f5;border-radius:9px;padding:9px 10px;font-weight:700;color:#444;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <h1>Driver's Accounting</h1>
+    <p>Log in or create a new driver account.</p>
+    <div class="auth-tabs">
+      <button id="loginTab" class="active" onclick="showAuthMode('login')">Login</button>
+      <button id="signupTab" onclick="showAuthMode('signup')">Sign Up</button>
+    </div>
+
+    <div id="loginForm">
+      <label>ID / Email</label>
+      <input type="text" id="loginIdentifier" placeholder="Driver ID / Email" autocomplete="username">
+      <label>Password</label>
+      <div class="password-wrap">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+        <button type="button" class="show-pass" onclick="togglePassword('loginPassword',this)">Show</button>
+      </div>
+      <button class="primary" onclick="loginUser()">Login</button>
+    </div>
+
+    <div id="signupForm" style="display:none">
+      <label>Driver ID</label><input type="text" id="signupDriverId" placeholder="e.g. D12345">
+      <label>Mobile</label><input type="tel" id="signupMobile" placeholder="05xxxxxxxx">
+      <label>ID / Email</label><input type="email" id="signupEmail" placeholder="Enter ID or Email">
+      <label>Password</label>
+      <div class="password-wrap">
+        <input type="password" id="signupPassword" placeholder="Minimum 6 characters" autocomplete="new-password">
+        <button type="button" class="show-pass" onclick="togglePassword('signupPassword',this)">Show</button>
+      </div>
+      <button class="primary" onclick="signupUser()">Create Account</button>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-success" id="authSuccess"></div>
+    
+  </div>
+</div>
+<div class="app" id="appShell" style="display:none">
+<header class="topbar">
+<button class="icon-btn" onclick="toggleMenu()">☰</button>
+<div class="brand">Driver's</div>
+<button class="icon-btn bell">♧</button>
+</header>
+
+<main>
+<section id="dashboardPage" class="page active">
+<h1 class="hello" id="helloText">Hey, Driver!</h1>
+<h2 class="section-title">Highlights</h2>
+<div class="notice"><div class="notice-icon">▣</div><div class="notice-text">Accounting notifications</div><div class="badge" id="invoiceBadge">0 ›</div></div>
+<h2 class="section-title">My Collections</h2>
+<section class="card">
+<div class="period">Collections - Current Cycle</div>
+<div class="total-row"><div><span class="total" id="totalAmount">0.00</span> <span class="currency">AED</span></div><div class="money-icon">▣</div></div>
+<div class="chart" id="chart"></div><div class="days" id="days"></div>
+<div class="avg"><div class="avg-label">Daily Avg</div><div class="avg-value" id="avgAmount">0.00 AED</div></div>
+</section>
+<h2 class="section-title">Quick Actions</h2>
+<div class="quick-grid">
+<button class="quick" onclick="showPage('invoicePage')"><span>＋</span>New Invoice</button>
+<button class="quick" onclick="showPage('calculatorPage')"><span>🧮</span>Calculator</button>
+<button class="quick" onclick="showPage('targetPage')"><span>🎯</span>Target Setup</button>
+</div>
+<h2 class="section-title">My Summary</h2>
+<div class="summary-grid">
+<div class="summary"><small>Target</small><strong id="sumTarget">0%</strong></div>
+<div class="summary"><small>Target Amount</small><strong id="sumTargetAmount">0 AED</strong></div>
+<div class="summary"><small>Deductions</small><strong id="sumDeductions">0 AED</strong></div>
+<div class="summary"><small>Net Amount</small><strong id="sumNet">0 AED</strong></div>
+</div>
+</section>
+
+<section id="invoicePage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="form-card">
+<h2 id="invoiceTitle">New Invoice</h2>
+<div class="small">Invoice Number is automatic. You can edit any saved invoice later.</div>
+<label>Date</label><input type="date" id="invDate">
+<label>Credit Card</label><input type="number" step="0.01" id="creditCard">
+<label>App</label><input type="number" step="0.01" id="app">
+<label>Cash</label><input type="number" step="0.01" id="cash">
+<label>Tips</label><input type="number" step="0.01" id="tips">
+<label>Tollways</label><input type="number" step="0.01" id="tolls">
+<label>Shift Discount</label><input type="number" step="0.01" id="shiftDiscount">
+<label>Shift Trips</label><input type="number" step="0.01" id="shiftTrips">
+<label>Bookings</label><input type="number" step="0.01" id="bookings">
+<label>Kilometers Hired</label><input type="number" step="0.01" id="km">
+<label>Careem Discount</label><input type="number" step="0.01" id="careemDiscount">
+<label>Paid in Careem</label><input type="number" step="0.01" id="paidCareem">
+<label>Hala Juniors</label><input type="number" step="0.01" id="halaJunior">
+<label>Hala Peak</label><input type="number" step="0.01" id="halaPeak">
+<label>Peak</label><input type="number" step="0.01" id="peak">
+<label>Extra Charges</label><input type="number" step="0.01" id="extraCharges">
+<div class="result" id="invoicePreview">Total: 0.00 AED · Deductions: 0.00 AED · Net: 0.00 AED</div>
+<button class="primary" id="saveInvoiceBtn" onclick="saveInvoice()">Save Invoice</button>
+<div class="status" id="invoiceStatus"></div>
+</div>
+</section>
+
+<section id="historyPage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<h2 class="section-title">Invoice History</h2>
+<div id="historyList"></div>
+</section>
+
+<section id="calculatorPage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="form-card">
+<h2>Calculator / Charges</h2>
+<label>Shift Trips</label><input type="number" id="calcTrips">
+<label>Shift Trips Rate</label><input type="number" step="0.01" id="tripRate">
+<label>Bookings</label><input type="number" id="calcBookings">
+<label>Booking Price</label><input type="number" step="0.01" id="bookingRate">
+<label>Kilometers Hired</label><input type="number" step="0.01" id="calcKm">
+<label>KM Rate</label><input type="number" step="0.01" id="kmRate">
+<button class="primary" onclick="runCalculator()">Calculate</button>
+<div class="result" id="calcResult">Charges: 0.00 AED</div>
+</div>
+</section>
+
+<section id="targetPage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="form-card">
+<h2>Target Setup</h2>
+<label>Target Percentage</label><input type="number" min="0" max="100" step="0.5" id="targetPercent" placeholder="e.g. 40">
+<label>Shift Trips Rate</label><input type="number" step="0.01" id="targetTripRate">
+<label>Booking Price</label><input type="number" step="0.01" id="targetBookingRate">
+<label>KM Rate</label><input type="number" step="0.01" id="targetKmRate">
+<button class="primary" onclick="saveTarget()">Save Target Settings</button>
+<div class="status" id="targetStatus"></div>
+</div>
+</section>
+
+<section id="profilePage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="user-box">
+<h2>Driver Profile</h2>
+<div><b>Driver ID:</b> <span id="profileDriverId">—</span></div>
+<div><b>Mobile:</b> <span id="profileMobile">—</span></div>
+<div><b>Firebase User ID:</b><div class="small" id="profileUid">—</div></div>
+</div>
+</section>
+</main>
+</div>
+
+<div class="drawer" id="drawer" onclick="toggleMenu()">
+<nav class="menu" onclick="event.stopPropagation()">
+<h2>Driver Accounting</h2>
+<button onclick="showPage('dashboardPage');toggleMenu()">🏠 Dashboard</button>
+<button onclick="showPage('invoicePage');toggleMenu()">🧾 New Invoice</button>
+<button onclick="showPage('calculatorPage');toggleMenu()">🧮 Calculator / Charges</button>
+<button onclick="showPage('targetPage');toggleMenu()">🎯 Target Setup</button>
+<button onclick="showPage('historyPage');toggleMenu()">📋 Invoice History</button>
+<button onclick="showPage('profilePage');toggleMenu()">👤 Profile</button>
+<button onclick="logout()">↪ Logout</button>
+</nav>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAlY5ir-8IPQE77Dpfr09UFoDG4VkKZvE8",
+authDomain:"driver-taxi-accounting.firebaseapp.com",
+projectId:"driver-taxi-accounting",
+storageBucket:"driver-taxi-accounting.firebasestorage.app",
+messagingSenderId:"749260589680",
+appId:"1:749260589680:web:3fbaa5c98edfc5028d42b5",
+measurementId:"G-0HWWENTGX6"
+};
+
+const appFirebase=initializeApp(firebaseConfig);
+const auth=getAuth(appFirebase);
+const db=getFirestore(appFirebase);
+let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null;
+
+const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
+const n=id=>Number(document.getElementById(id)?.value||0);
+const money=v=>(Number(v)||0).toFixed(2);
+
+window.toggleMenu=()=>document.getElementById("drawer").classList.toggle("open");
+
+window.showPage=pageId=>{
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(pageId).classList.add("active");
+if(pageId==="historyPage")renderHistory();
+};
+
+window.logout=async()=>{
+  try{ if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;} }catch(e){}
+  try{ await signOut(auth); }catch(e){}
+  showAuth();
+};
+
+
+function showAuth(){
+  const drawer=document.getElementById("drawer");
+  if(drawer) drawer.classList.remove("open");
+  document.getElementById("authScreen").style.display="flex";
+  document.getElementById("appShell").style.display="none";
+  document.getElementById("authError").textContent="";
+  document.getElementById("authSuccess").textContent="";
+}
+function hideAuth(){
+  document.getElementById("authScreen").style.display="none";
+  document.getElementById("appShell").style.display="block";
+}
+window.showAuthMode=mode=>{
+  const login=mode==="login";
+  document.getElementById("loginForm").style.display=login?"block":"none";
+  document.getElementById("signupForm").style.display=login?"none":"block";
+  document.getElementById("loginTab").classList.toggle("active",login);
+  document.getElementById("signupTab").classList.toggle("active",!login);
+  document.getElementById("authError").textContent="";
+  document.getElementById("authSuccess").textContent="";
+};
+function authMsg(error){
+  const code=error?.code||"";
+  const map={
+    "auth/invalid-credential":"Password wrong hai ya Email / ID ghalat hai.",
+    "auth/wrong-password":"Password wrong hai. Dobara check karein.",
+    "auth/user-not-found":"Is Email ka account nahi bana hua.",
+    "auth/invalid-email":"Invalid email format.",
+    "auth/email-already-in-use":"This email is already registered.",
+    "auth/weak-password":"Password must be at least 6 characters.",
+    "auth/network-request-failed":"Please check your internet connection.",
+    "auth/too-many-requests":"Too many attempts. Please try again later.",
+    "auth/user-disabled":"This account is disabled. Please contact the administrator."
+  };
+  return map[code]||"Login failed. Check your ID / Email and Password.";
+}
+function normalizeDriverId(v){return String(v||"").trim().toLowerCase()}
+window.togglePassword=(id,btn)=>{
+  const input=document.getElementById(id);
+  if(!input)return;
+  const showing=input.type==="text";
+  input.type=showing?"password":"text";
+  btn.textContent=showing?"Show":"Hide";
+};
+window.loginUser=async()=>{
+  const identifier=document.getElementById("loginIdentifier").value.trim();
+  const password=document.getElementById("loginPassword").value;
+  document.getElementById("authError").textContent="";
+  document.getElementById("authSuccess").textContent="";
+  if(!identifier||!password){document.getElementById("authError").textContent="Enter your ID / Email and Password.";return}
+  try{
+    let email=identifier;
+    if(!identifier.includes("@")){
+      const mapSnap=await getDoc(doc(db,"driverLogin",normalizeDriverId(identifier)));
+      if(!mapSnap.exists()){
+        document.getElementById("authError").textContent="Account not found. Check your ID or sign up first.";
+        return;
+      }
+      email=mapSnap.data().email||"";
+      if(!email){
+        document.getElementById("authError").textContent="This Driver ID account setup is incomplete.";
+        return;
+      }
+    }
+    await signInWithEmailAndPassword(auth,email,password);
+  }catch(e){
+    const code=e?.code||"";
+    if(code==="auth/invalid-credential" || code==="auth/wrong-password"){
+      document.getElementById("authError").textContent="Wrong password or ID / Email. Please check and try again.";
+    }else{
+      document.getElementById("authError").textContent=authMsg(e);
+    }
+  }
+};
+window.signupUser=async()=>{
+  const driverId=document.getElementById("signupDriverId").value.trim();
+  const mobile=document.getElementById("signupMobile").value.trim();
+  const email=document.getElementById("signupEmail").value.trim();
+  const password=document.getElementById("signupPassword").value;
+  document.getElementById("authError").textContent="";
+  document.getElementById("authSuccess").textContent="";
+  if(!driverId||!mobile||!email||!password){
+    document.getElementById("authError").textContent="Driver ID, Mobile, Email aur Password sab fill karein.";return
+  }
+  if(password.length<6){
+    document.getElementById("authError").textContent="Password kam az kam 6 characters ka hona chahiye.";return
+  }
+  try{
+    const cred=await createUserWithEmailAndPassword(auth,email,password);
+    await setDoc(doc(db,"drivers",cred.user.uid),{
+      driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,createdAt:serverTimestamp()
+    },{merge:true});
+    document.getElementById("authSuccess").textContent="Account create ho gaya. Dashboard open ho raha hai...";
+  }catch(e){document.getElementById("authError").textContent=authMsg(e)}
 };
 
 window.saveInvoice=async()=>{
@@ -230,8 +749,9 @@ const total=data.creditCard+data.app+data.cash+data.shiftDiscount+data.careemDis
 const deductions=data.tips+data.halaJunior+data.halaPeak+data.peak+data.tolls+
 (data.shiftTrips*(Number(driverData.shiftTripsRate)||0))+
 (data.bookings*(Number(driverData.bookingPrice)||0))+
-(data.km*(Number(driverData.kmRate)||0));
-const net=total-deductions-data.extraCharges;
+(data.km*(Number(driverData.kmRate)||0))+
+data.extraCharges;
+const net=total-deductions;
 data.total=total;data.deductions=deductions;data.net=net;data.updatedAt=serverTimestamp();
 try{
 if(editingId){
@@ -262,8 +782,9 @@ const total=d.creditCard+d.app+d.cash+d.shiftDiscount+d.careemDiscount+d.paidCar
 const deductions=d.tips+d.halaJunior+d.halaPeak+d.peak+d.tolls+
 (d.shiftTrips*(Number(driverData.shiftTripsRate)||0))+
 (d.bookings*(Number(driverData.bookingPrice)||0))+
-(d.km*(Number(driverData.kmRate)||0));
-const net=total-deductions-d.extraCharges;
+(d.km*(Number(driverData.kmRate)||0))+
+d.extraCharges;
+const net=total-deductions;
 document.getElementById("invoicePreview").textContent=`Total: ${money(total)} AED · Deductions: ${money(deductions)} AED · Net: ${money(net)} AED`;
 }
 ids.forEach(id=>document.getElementById(id).addEventListener("input",updatePreview));
@@ -343,8 +864,8 @@ arr.forEach(x=>{const bar=document.createElement("div");bar.className="bar";bar.
 }
 
 onAuthStateChanged(auth,async user=>{
-if(!user){location.href="login.html";return}
-currentUser=user;
+if(!user){currentUser=null;showAuth();return}
+currentUser=user;hideAuth();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
