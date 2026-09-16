@@ -67,9 +67,9 @@ input:focus{border-color:#ed166a}
 .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f1f2f5;padding:5px;border-radius:14px;margin-bottom:18px}
 .auth-tabs button{border:0;background:transparent;border-radius:10px;padding:12px;font-weight:800;cursor:pointer}
 .auth-tabs button.active{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-.auth-error{color:#b0003a;font-size:14px;margin-top:12px;min-height:18px}
+.auth-error{color:#b0003a;font-size:14px;font-weight:700;margin-top:12px;min-height:22px;line-height:1.4}
 .auth-success{color:#137333;font-size:14px;margin-top:12px;min-height:18px}
-.auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}
+.auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}.password-wrap{position:relative}.password-wrap input{padding-right:72px}.show-pass{position:absolute;right:8px;top:7px;border:0;background:#eef0f5;border-radius:9px;padding:9px 10px;font-weight:700;color:#444;cursor:pointer}
 </style>
 </head>
 <body>
@@ -77,28 +77,37 @@ input:focus{border-color:#ed166a}
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
     <h1>Driver's Accounting</h1>
-    <p>Login ya naya driver account create karein.</p>
+    <p>Log in or create a new driver account.</p>
     <div class="auth-tabs">
       <button id="loginTab" class="active" onclick="showAuthMode('login')">Login</button>
       <button id="signupTab" onclick="showAuthMode('signup')">Sign Up</button>
     </div>
 
     <div id="loginForm">
-      <label>Email</label><input type="email" id="loginEmail" placeholder="Email">
-      <label>Password</label><input type="password" id="loginPassword" placeholder="Password">
+      <label>ID / Email</label>
+      <input type="text" id="loginIdentifier" placeholder="Enter ID or Email" autocomplete="username">
+      <label>Password</label>
+      <div class="password-wrap">
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+        <button type="button" class="show-pass" onclick="togglePassword('loginPassword',this)">Show</button>
+      </div>
       <button class="primary" onclick="loginUser()">Login</button>
     </div>
 
     <div id="signupForm" style="display:none">
       <label>Driver ID</label><input type="text" id="signupDriverId" placeholder="e.g. D12345">
       <label>Mobile</label><input type="tel" id="signupMobile" placeholder="05xxxxxxxx">
-      <label>Email</label><input type="email" id="signupEmail" placeholder="Email">
-      <label>Password</label><input type="password" id="signupPassword" placeholder="Minimum 6 characters">
+      <label>Email</label><input type="email" id="signupEmail" placeholder="Enter email">
+      <label>Password</label>
+      <div class="password-wrap">
+        <input type="password" id="signupPassword" placeholder="Minimum 6 characters" autocomplete="new-password">
+        <button type="button" class="show-pass" onclick="togglePassword('signupPassword',this)">Show</button>
+      </div>
       <button class="primary" onclick="signupUser()">Create Account</button>
     </div>
     <div class="auth-error" id="authError"></div>
     <div class="auth-success" id="authSuccess"></div>
-    <div class="auth-note">Aapka driver data Firebase UID ke under save hoga, is liye har driver ka data alag rahega.</div>
+    
   </div>
 </div>
 <div class="app" id="appShell" style="display:none">
@@ -202,7 +211,7 @@ input:focus{border-color:#ed166a}
 <h2>Driver Profile</h2>
 <div><b>Driver ID:</b> <span id="profileDriverId">—</span></div>
 <div><b>Mobile:</b> <span id="profileMobile">—</span></div>
-<div><b>Firebase User ID:</b><div class="small" id="profileUid">—</div></div>
+
 </div>
 </section>
 </main>
@@ -254,14 +263,19 @@ if(pageId==="historyPage")renderHistory();
 };
 
 window.logout=async()=>{
-await signOut(auth);
-showAuth();
+  try{ if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;} }catch(e){}
+  try{ await signOut(auth); }catch(e){}
+  showAuth();
 };
 
 
 function showAuth(){
+  const drawer=document.getElementById("drawer");
+  if(drawer) drawer.classList.remove("open");
   document.getElementById("authScreen").style.display="flex";
   document.getElementById("appShell").style.display="none";
+  document.getElementById("authError").textContent="";
+  document.getElementById("authSuccess").textContent="";
 }
 function hideAuth(){
   document.getElementById("authScreen").style.display="none";
@@ -279,24 +293,55 @@ window.showAuthMode=mode=>{
 function authMsg(error){
   const code=error?.code||"";
   const map={
-    "auth/invalid-credential":"Email ya password ghalat hai.",
-    "auth/invalid-email":"Email format check karein.",
-    "auth/email-already-in-use":"Ye email pehle se registered hai.",
-    "auth/weak-password":"Password kam az kam 6 characters ka rakhein.",
-    "auth/network-request-failed":"Internet connection check karein.",
-    "auth/too-many-requests":"Kuch dair baad dobara try karein."
+    "auth/invalid-credential":"Wrong password or ID / Email.",
+    "auth/wrong-password":"Wrong password. Please try again.",
+    "auth/user-not-found":"Account not found for this Email.",
+    "auth/invalid-email":"Invalid email format.",
+    "auth/email-already-in-use":"This email is already registered.",
+    "auth/weak-password":"Password must be at least 6 characters.",
+    "auth/network-request-failed":"Please check your internet connection.",
+    "auth/too-many-requests":"Too many attempts. Please try again later.",
+    "auth/user-disabled":"This account is disabled. Please contact the administrator."
   };
-  return map[code]||error?.message||"Authentication error.";
+  return map[code]||"Login failed. Check your ID / Email and Password.";
 }
+function normalizeDriverId(v){return String(v||"").trim().toLowerCase()}
+window.togglePassword=(id,btn)=>{
+  const input=document.getElementById(id);
+  if(!input)return;
+  const showing=input.type==="text";
+  input.type=showing?"password":"text";
+  btn.textContent=showing?"Show":"Hide";
+};
 window.loginUser=async()=>{
-  const email=document.getElementById("loginEmail").value.trim();
+  const identifier=document.getElementById("loginIdentifier").value.trim();
   const password=document.getElementById("loginPassword").value;
   document.getElementById("authError").textContent="";
   document.getElementById("authSuccess").textContent="";
-  if(!email||!password){document.getElementById("authError").textContent="Email aur password enter karein.";return}
+  if(!identifier||!password){document.getElementById("authError").textContent="Enter your ID / Email and Password.";return}
   try{
+    let email=identifier;
+    if(!identifier.includes("@")){
+      const mapSnap=await getDoc(doc(db,"driverLogin",normalizeDriverId(identifier)));
+      if(!mapSnap.exists()){
+        document.getElementById("authError").textContent="Account not found. Check your ID or sign up first.";
+        return;
+      }
+      email=mapSnap.data().email||"";
+      if(!email){
+        document.getElementById("authError").textContent="This Driver ID account setup is incomplete.";
+        return;
+      }
+    }
     await signInWithEmailAndPassword(auth,email,password);
-  }catch(e){document.getElementById("authError").textContent=authMsg(e)}
+  }catch(e){
+    const code=e?.code||"";
+    if(code==="auth/invalid-credential" || code==="auth/wrong-password"){
+      document.getElementById("authError").textContent="Wrong password or ID / Email. Please check and try again.";
+    }else{
+      document.getElementById("authError").textContent=authMsg(e);
+    }
+  }
 };
 window.signupUser=async()=>{
   const driverId=document.getElementById("signupDriverId").value.trim();
@@ -306,20 +351,28 @@ window.signupUser=async()=>{
   document.getElementById("authError").textContent="";
   document.getElementById("authSuccess").textContent="";
   if(!driverId||!mobile||!email||!password){
-    document.getElementById("authError").textContent="Driver ID, Mobile, Email aur Password sab fill karein.";return
+    document.getElementById("authError").textContent="Please fill in Driver ID, Mobile, Email and Password.";return
   }
   if(password.length<6){
-    document.getElementById("authError").textContent="Password kam az kam 6 characters ka hona chahiye.";return
+    document.getElementById("authError").textContent="Password must be at least 6 characters.";return
   }
   try{
+    const driverKey=normalizeDriverId(driverId);
+    const existing=await getDoc(doc(db,"driverLogin",driverKey));
+    if(existing.exists()){
+      document.getElementById("authError").textContent="This Driver ID is already registered.";
+      return;
+    }
     const cred=await createUserWithEmailAndPassword(auth,email,password);
     await setDoc(doc(db,"drivers",cred.user.uid),{
       driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,createdAt:serverTimestamp()
     },{merge:true});
-    document.getElementById("authSuccess").textContent="Account create ho gaya. Dashboard open ho raha hai...";
+    await setDoc(doc(db,"driverLogin",driverKey),{
+      driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
+    });
+    document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
   }catch(e){document.getElementById("authError").textContent=authMsg(e)}
 };
-
 window.saveInvoice=async()=>{
 if(!currentUser){alert("Please login first.");return}
 const date=document.getElementById("invDate").value;
@@ -453,7 +506,7 @@ driverData=snap.exists()?snap.data():{};
 document.getElementById("helloText").textContent="Hey, "+(driverData.driverId||"Driver")+"!";
 document.getElementById("profileDriverId").textContent=driverData.driverId||"—";
 document.getElementById("profileMobile").textContent=driverData.mobile||"—";
-document.getElementById("profileUid").textContent=user.uid;
+
 document.getElementById("targetPercent").value=driverData.targetPercent??"";
 document.getElementById("targetTripRate").value=driverData.shiftTripsRate??"";
 document.getElementById("targetBookingRate").value=driverData.bookingPrice??"";
@@ -464,6 +517,7 @@ invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();if(document
 });
 clearInvoice();
 });
+
 </script>
 </body>
 </html>
