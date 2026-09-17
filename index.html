@@ -256,6 +256,8 @@ const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
 let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null;
+window.__taxiAuth=auth;
+window.__taxiGetUser=()=>currentUser;
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
 const n=id=>Number(document.getElementById(id)?.value||0);
@@ -271,7 +273,7 @@ if(pageId==="historyPage")renderHistory();
 
 window.logout=async()=>{
   try{ if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;} }catch(e){}
-  try{ await signOut(auth); }catch(e){}
+  try{ await signOut(window.__taxiAuth); }catch(e){}
   showAuth();
 };
 
@@ -542,7 +544,7 @@ arr.forEach(x=>{const bar=document.createElement("div");bar.className="bar";bar.
 onAuthStateChanged(auth,async user=>{
 try{
 if(!user){currentUser=null;showAuth();return}
-currentUser=user;hideAuth();
+currentUser=user;window.__taxiCurrentUser=user;hideAuth();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
@@ -577,8 +579,8 @@ window.addEventListener("error",e=>{console.error(e.error||e.message);const x=do
 window.addEventListener("unhandledrejection",e=>{console.error(e.reason);const x=document.getElementById("authError");if(x&&e.reason)x.textContent="App error: "+(e.reason.message||String(e.reason));});
 
 window.toggleProfilePassword=(id,btn)=>{const input=document.getElementById(id);if(!input)return;const show=input.type==='password';input.type=show?'text':'password';btn.textContent=show?'Hide':'Show'};
-window.changeProfilePassword=async()=>{const cur=document.getElementById('currentProfilePassword').value;const np=document.getElementById('newProfilePassword').value;const cp=document.getElementById('confirmProfilePassword').value;const st=document.getElementById('passwordStatus');const btn=document.getElementById('changePasswordBtn');st.textContent='';if(!currentUser){st.textContent='You are not logged in. Please login first.';return}if(!cur){st.textContent='Please enter your current password.';return}if(np.length<6){st.textContent='New password must be at least 6 characters.';return}if(np!==cp){st.textContent='New passwords do not match.';return}if(cur===np){st.textContent='New password must be different from your current password.';return}btn.disabled=true;btn.textContent='Checking...';try{const email=currentUser.email;if(!email)throw new Error('No email is linked to this account.');const credential=EmailAuthProvider.credential(email,cur);await reauthenticateWithCredential(currentUser,credential);btn.textContent='Changing...';await updatePassword(currentUser,np);st.textContent='Password changed successfully. Logging out...';setTimeout(async()=>{try{await signOut(auth)}catch(e){}showAuth();showAuthMode('login');const ok=document.getElementById('authSuccess');if(ok)ok.textContent='Password changed successfully. Please login with your new password.'},900)}catch(e){console.error(e);const code=e?.code||'';const messages={'auth/wrong-password':'Current password is incorrect.','auth/invalid-credential':'Current password is incorrect.','auth/invalid-login-credentials':'Current password is incorrect.','auth/requires-recent-login':'Please login again and then change your password.','auth/weak-password':'New password must be at least 6 characters.','auth/network-request-failed':'Internet connection problem. Please try again.','auth/too-many-requests':'Too many attempts. Please try again later.'};st.textContent=messages[code]||('Password change failed: '+(e?.message||'Unknown error.'));btn.disabled=false;btn.textContent='Change Password'}};
-window.sendProfileResetEmail=async()=>{const st=document.getElementById('passwordStatus');st.textContent='';if(!currentUser){st.textContent='Please login first.';return}const email=currentUser.email;if(!email){st.textContent='No email is linked to this account.';return}try{await sendPasswordResetEmail(auth,email);st.textContent='Reset email sent to '+email+'. Check Inbox and Spam/Junk.'}catch(e){console.error(e);const code=e?.code||'';const messages={'auth/invalid-email':'The account email is invalid.','auth/user-not-found':'Firebase account not found.','auth/too-many-requests':'Too many attempts. Please try again later.','auth/network-request-failed':'Internet connection problem. Please try again.'};st.textContent=messages[code]||('Reset email failed: '+(e?.message||'Unknown error.'))}};
+window.changeProfilePassword=async()=>{const cur=document.getElementById('currentProfilePassword').value;const np=document.getElementById('newProfilePassword').value;const cp=document.getElementById('confirmProfilePassword').value;const st=document.getElementById('passwordStatus');const btn=document.getElementById('changePasswordBtn');st.textContent='';const user=window.__taxiCurrentUser || window.__taxiGetUser?.(); if(!user){st.textContent='You are not logged in. Please login first.';return}if(!cur){st.textContent='Please enter your current password.';return}if(np.length<6){st.textContent='New password must be at least 6 characters.';return}if(np!==cp){st.textContent='New passwords do not match.';return}if(cur===np){st.textContent='New password must be different from your current password.';return}btn.disabled=true;btn.textContent='Checking...';try{const email=user.email;if(!email)throw new Error('No email is linked to this account.');const credential=EmailAuthProvider.credential(email,cur);await reauthenticateWithCredential(user,credential);btn.textContent='Changing...';await updatePassword(user,np);st.textContent='Password changed successfully. Logging out...';setTimeout(async()=>{try{await signOut(window.__taxiAuth)}catch(e){}showAuth();showAuthMode('login');const ok=document.getElementById('authSuccess');if(ok)ok.textContent='Password changed successfully. Please login with your new password.'},900)}catch(e){console.error(e);const code=e?.code||'';const messages={'auth/wrong-password':'Current password is incorrect.','auth/invalid-credential':'Current password is incorrect.','auth/invalid-login-credentials':'Current password is incorrect.','auth/requires-recent-login':'Please login again and then change your password.','auth/weak-password':'New password must be at least 6 characters.','auth/network-request-failed':'Internet connection problem. Please try again.','auth/too-many-requests':'Too many attempts. Please try again later.'};st.textContent=messages[code]||('Password change failed: '+(e?.message||'Unknown error.'));btn.disabled=false;btn.textContent='Change Password'}};
+window.sendProfileResetEmail=async()=>{const st=document.getElementById('passwordStatus');st.textContent='';if(!currentUser){st.textContent='Please login first.';return}const email=user.email;if(!email){st.textContent='No email is linked to this account.';return}try{await sendPasswordResetEmail(window.__taxiAuth,email);st.textContent='Reset email sent to '+email+'. Check Inbox and Spam/Junk.'}catch(e){console.error(e);const code=e?.code||'';const messages={'auth/invalid-email':'The account email is invalid.','auth/user-not-found':'Firebase account not found.','auth/too-many-requests':'Too many attempts. Please try again later.','auth/network-request-failed':'Internet connection problem. Please try again.'};st.textContent=messages[code]||('Reset email failed: '+(e?.message||'Unknown error.'))}};
 </script>
 </body>
 </html>
