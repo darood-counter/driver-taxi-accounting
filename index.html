@@ -906,6 +906,24 @@ window.changePassword=async()=>{
   }
 };
 
+function getChargeSetupForDate(invoiceDate){
+  const records=Array.isArray(savedChargeRecords)?savedChargeRecords:[];
+  if(!records.length||!invoiceDate)return null;
+  const eligible=records.filter(r=>r&&r.date&&String(r.date)<=String(invoiceDate));
+  if(!eligible.length)return null;
+  return [...eligible].sort((a,b)=>{
+    const dc=String(b.date).localeCompare(String(a.date));
+    if(dc!==0)return dc;
+    return (new Date(b.updatedAt||b.createdAt||0).getTime()||0)-(new Date(a.updatedAt||a.createdAt||0).getTime()||0);
+  })[0];
+}
+
+function getLatestChargeSetup(){
+  const records=Array.isArray(savedChargeRecords)?savedChargeRecords:[];
+  if(!records.length)return null;
+  return [...records].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
+}
+
 window.saveInvoice=async()=>{
 if(!currentUser){alert("Please login first.");return}
 const date=document.getElementById("invDate").value;
@@ -913,10 +931,14 @@ if(!date){document.getElementById("invoiceStatus").textContent="Please select in
 const data={date};
 ids.forEach(id=>data[id]=n(id));
 const total=data.creditCard+data.app+data.cash+data.shiftDiscount+data.careemDiscount+data.paidCareem;
+const latestChargeSetup=getChargeSetupForDate(date);
+const shiftTripsCharge=Number(latestChargeSetup?.rtaCharges)||0;
+const bookingCharge=Number(latestChargeSetup?.bookingCharges)||0;
+const fuelCharge=Number(latestChargeSetup?.fuelCharges)||0;
 const deductions=data.tips+data.halaJunior+data.halaPeak+data.peak+data.tolls+
-(data.shiftTrips*(Number(driverData.shiftTripsRate)||0))+
-(data.bookings*(Number(driverData.bookingPrice)||0))+
-(data.km*(Number(driverData.kmRate)||0))+
+(data.shiftTrips*shiftTripsCharge)+
+(data.bookings*bookingCharge)+
+(data.km*fuelCharge)+
 data.extraCharges;
 const net=total-deductions;
 data.total=total;data.deductions=deductions;data.net=net;data.updatedAt=serverTimestamp();
@@ -946,10 +968,14 @@ updatePreview();
 function updatePreview(){
 const d={};ids.forEach(id=>d[id]=n(id));
 const total=d.creditCard+d.app+d.cash+d.shiftDiscount+d.careemDiscount+d.paidCareem;
+const latestChargeSetup=getChargeSetupForDate(document.getElementById("invDate").value);
+const shiftTripsCharge=Number(latestChargeSetup?.rtaCharges)||0;
+const bookingCharge=Number(latestChargeSetup?.bookingCharges)||0;
+const fuelCharge=Number(latestChargeSetup?.fuelCharges)||0;
 const deductions=d.tips+d.halaJunior+d.halaPeak+d.peak+d.tolls+
-(d.shiftTrips*(Number(driverData.shiftTripsRate)||0))+
-(d.bookings*(Number(driverData.bookingPrice)||0))+
-(d.km*(Number(driverData.kmRate)||0))+
+(d.shiftTrips*shiftTripsCharge)+
+(d.bookings*bookingCharge)+
+(d.km*fuelCharge)+
 d.extraCharges;
 const net=total-deductions;
 document.getElementById("invoicePreview").textContent=`Total: ${money(total)} AED · Deductions: ${money(deductions)} AED · Net: ${money(net)} AED`;
@@ -1326,7 +1352,7 @@ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
 // Target records are stored in the existing driver document to match the
 // Firebase permissions used by this app.
 savedTargetRecords=Array.isArray(driverData.targetRecords)?driverData.targetRecords.map(r=>({...r})):Object.values(driverData.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
-savedChargeRecords=Object.values(driverData.chargeSetupsByDate||{}).map(r=>({...r,id:r.date}));
+savedChargeRecords=Object.values(driverData.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
 renderSavedCharges();
 resetChargeSetup();
 renderSavedTargets();
