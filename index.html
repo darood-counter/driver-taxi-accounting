@@ -367,6 +367,24 @@ input:focus{border-color:#ed166a}
 .saved-charge-update{width:100%;border:0;border-radius:11px;padding:11px;margin-top:10px;background:#eef0f5;font-weight:800;cursor:pointer}
 .charge-empty{background:#fff;border-radius:16px;padding:14px;color:#737783;font-size:13px;text-align:center}
 @media(max-width:390px){.charge-day-row,.charge-range-grid{grid-template-columns:1fr}.charge-range{grid-template-columns:1fr 1fr}.charge-field select,.charge-field input[type="date"]{padding:12px;font-size:16px;min-height:47px}.saved-charge-values{gap:5px}.saved-charge-value{padding:9px 4px}.saved-charge-value strong{font-size:13px}.saved-charge-table th{padding:9px 5px;font-size:10px}.saved-charge-table td{padding:8px 4px;font-size:11px}.saved-charge-table .charge-range-cell{font-size:10px}.saved-charge-table .saved-charge-update{padding:7px 8px;font-size:11px}}
+
+/* Compact Invoice form + polished Saved Records table */
+.invoice-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+.invoice-field{display:flex;align-items:center;gap:7px;min-width:0;padding:2px 0}
+.invoice-field label{flex:0 0 44%;margin:0;font-size:12px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.invoice-field input{flex:1;min-width:0;width:56%;box-sizing:border-box;min-height:40px;padding:8px 7px;font-size:13px}
+.saved-invoice-title{font-size:20px;font-weight:900;margin:18px 0 10px}
+.saved-invoice-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.07);border:1px solid #e9ebf0}
+.saved-invoice-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;font-size:12px;white-space:nowrap}
+.saved-invoice-table th{position:sticky;top:0;background:#f4f6fa;color:#4b5060;font-weight:900;padding:11px 9px;border-bottom:1px solid #e1e4ea;text-align:center}
+.saved-invoice-table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:center;font-weight:650}
+.saved-invoice-table tbody tr:last-child td{border-bottom:0}
+.saved-invoice-table tbody tr:nth-child(even){background:#fafbfc}
+.saved-invoice-table .invoice-no-cell,.saved-invoice-table .invoice-date-cell{font-weight:900}
+.saved-invoice-table .net-cell{font-weight:950}
+.saved-invoice-update{border:0;border-radius:9px;padding:7px 10px;background:#eef1f6;font-weight:850;cursor:pointer;white-space:nowrap}
+@media(max-width:600px){.invoice-fields{grid-template-columns:1fr;gap:6px}.invoice-field label{font-size:12px;flex-basis:42%}.invoice-field input{width:58%;min-height:40px;font-size:13px}.saved-invoice-title{font-size:18px;margin-top:14px}.saved-invoice-table{font-size:11px}.saved-invoice-table th,.saved-invoice-table td{padding:8px 7px}.saved-invoice-update{padding:7px 9px;font-size:11px}}
+@media(max-width:350px){.invoice-fields{gap:4px}.invoice-field{gap:5px}.invoice-field label{font-size:11px}.invoice-field input{font-size:12px;min-height:38px}}
 </style>
 </head>
 <body>
@@ -447,22 +465,24 @@ input:focus{border-color:#ed166a}
 <div class="form-card">
 <h2 id="invoiceTitle">New Invoice</h2>
 <div class="small">Invoice Number is automatic. You can edit any saved invoice later.</div>
-<label>Date</label><input type="date" id="invDate">
-<label>Credit Card</label><input type="number" step="0.01" id="creditCard">
-<label>App</label><input type="number" step="0.01" id="app">
-<label>Cash</label><input type="number" step="0.01" id="cash">
-<label>Tips</label><input type="number" step="0.01" id="tips">
-<label>Tollways</label><input type="number" step="0.01" id="tolls">
-<label>Shift Discount</label><input type="number" step="0.01" id="shiftDiscount">
-<label>Shift Trips</label><input type="number" step="0.01" id="shiftTrips">
-<label>Bookings</label><input type="number" step="0.01" id="bookings">
-<label>Kilometers Hired</label><input type="number" step="0.01" id="km">
-<label>Careem Discount</label><input type="number" step="0.01" id="careemDiscount">
-<label>Paid in Careem</label><input type="number" step="0.01" id="paidCareem">
-<label>Hala Juniors</label><input type="number" step="0.01" id="halaJunior">
-<label>Hala Peak</label><input type="number" step="0.01" id="halaPeak">
-<label>Peak</label><input type="number" step="0.01" id="peak">
-<label>Extra Charges</label><input type="number" step="0.01" id="extraCharges">
+<div class="invoice-fields">
+<div class="invoice-field"><label for="invDate">Date</label><input type="date" id="invDate" ></div>
+<div class="invoice-field"><label for="creditCard">Credit Card</label><input type="number" id="creditCard" step="0.01"></div>
+<div class="invoice-field"><label for="app">App</label><input type="number" id="app" step="0.01"></div>
+<div class="invoice-field"><label for="cash">Cash</label><input type="number" id="cash" step="0.01"></div>
+<div class="invoice-field"><label for="tips">Tips</label><input type="number" id="tips" step="0.01"></div>
+<div class="invoice-field"><label for="tolls">Tollways</label><input type="number" id="tolls" step="0.01"></div>
+<div class="invoice-field"><label for="shiftDiscount">Shift Discount</label><input type="number" id="shiftDiscount" step="0.01"></div>
+<div class="invoice-field"><label for="shiftTrips">Shift Trips</label><input type="number" id="shiftTrips" step="0.01"></div>
+<div class="invoice-field"><label for="bookings">Bookings</label><input type="number" id="bookings" step="0.01"></div>
+<div class="invoice-field"><label for="km">Kilometers Hired</label><input type="number" id="km" step="0.01"></div>
+<div class="invoice-field"><label for="careemDiscount">Careem Discount</label><input type="number" id="careemDiscount" step="0.01"></div>
+<div class="invoice-field"><label for="paidCareem">Paid in Careem</label><input type="number" id="paidCareem" step="0.01"></div>
+<div class="invoice-field"><label for="halaJunior">Hala Juniors</label><input type="number" id="halaJunior" step="0.01"></div>
+<div class="invoice-field"><label for="halaPeak">Hala Peak</label><input type="number" id="halaPeak" step="0.01"></div>
+<div class="invoice-field"><label for="peak">Peak</label><input type="number" id="peak" step="0.01"></div>
+<div class="invoice-field"><label for="extraCharges">Extra Charges</label><input type="number" id="extraCharges" step="0.01"></div>
+</div>
 <div class="result" id="invoicePreview">Total: 0.00 AED · Deductions: 0.00 AED · Net: 0.00 AED</div>
 <button class="primary" id="saveInvoiceBtn" onclick="saveInvoice()">Save Invoice</button>
 <div class="status" id="invoiceStatus"></div>
