@@ -334,26 +334,30 @@ input:focus{border-color:#ed166a}
 }
 
 /* ===== Charge Setup ===== */
-.charge-day-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.charge-day-row{display:grid;grid-template-columns:1.15fr .85fr;gap:10px}
 .charge-field select{width:100%;padding:14px;border:1px solid #d7d9df;border-radius:13px;font-size:16px;outline:none;background:#fff;min-height:50px}
-.charge-field select:focus{border-color:#ed166a}
-.charge-cycle{border:1px solid #e5e7eb;border-radius:16px;padding:14px;margin-top:14px;background:#fafbfc}
-.charge-cycle h3{margin:0 0 10px;font-size:16px}
-.charge-range{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.charge-range label{margin-top:4px}
-.charge-saved-title{font-size:17px;font-weight:900;margin:18px 0 8px}
+.charge-field input[type="date"]{width:100%;padding:14px;border:1px solid #d7d9df;border-radius:13px;font-size:16px;outline:none;background:#fff;min-height:50px}
+.charge-field select:focus,.charge-field input[type="date"]:focus{border-color:#ed166a}
+.charge-cycle{border:1px solid #e5e7eb;border-radius:18px;padding:15px;margin-top:14px;background:#fafbfc}
+.charge-cycle h3{margin:0 0 12px;font-size:17px}
+.charge-range-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.charge-range-box{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:11px}
+.charge-range-box .range-title{font-size:12px;font-weight:900;color:#737783;margin-bottom:7px}
+.charge-range{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.charge-range label{margin:2px 0 5px}
+.charge-cycle2{display:none}
+.saved-charge-title{font-size:17px;font-weight:900;margin:18px 0 8px}
 .saved-charge-item{background:#fff;border-radius:18px;padding:15px;margin-bottom:10px;border:1px solid #e8eaf0}
 .saved-charge-top{display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:900}
 .saved-charge-day{font-size:17px}
-.saved-charge-cycles{font-size:12px;color:#737783;font-weight:700;margin-top:5px;line-height:1.45}
+.saved-charge-cycles{font-size:12px;color:#737783;font-weight:700;margin-top:5px;line-height:1.55}
 .saved-charge-values{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .saved-charge-value{background:#f5f6fa;border-radius:11px;padding:10px 7px;text-align:center}
 .saved-charge-value small{display:block;color:#737783;font-size:10px;font-weight:800;margin-bottom:3px}
 .saved-charge-value strong{font-size:14px}
 .saved-charge-update{width:100%;border:0;border-radius:11px;padding:11px;margin-top:10px;background:#eef0f5;font-weight:800;cursor:pointer}
 .charge-empty{background:#fff;border-radius:16px;padding:14px;color:#737783;font-size:13px;text-align:center}
-@media(max-width:390px){.charge-day-row,.charge-range{grid-template-columns:1fr}.charge-field select{padding:12px;font-size:16px;min-height:47px}.saved-charge-values{gap:5px}.saved-charge-value{padding:9px 4px}.saved-charge-value strong{font-size:13px}}
-
+@media(max-width:390px){.charge-day-row,.charge-range-grid{grid-template-columns:1fr}.charge-range{grid-template-columns:1fr 1fr}.charge-field select,.charge-field input[type="date"]{padding:12px;font-size:16px;min-height:47px}.saved-charge-values{gap:5px}.saved-charge-value{padding:9px 4px}.saved-charge-value strong{font-size:13px}}
 </style>
 </head>
 <body>
@@ -466,35 +470,52 @@ input:focus{border-color:#ed166a}
 <button class="back" onclick="showPage('dashboardPage')">← Back</button>
 <div class="form-card">
 <h2>Charge Setup</h2>
-<div class="small">Day is only 1–31. Month and year are not used.</div>
+<div class="small">Complete Date select karein, phir Cycle 1 ya Cycle 2 choose karein.</div>
 
 <div class="charge-day-row">
 <div class="charge-field">
-<label>Select Day</label>
-<select id="chargeDay" onchange="loadChargeDay(this.value)"></select>
+<label>Select Date</label>
+<input type="date" id="chargeDate" onchange="loadChargeDate(this.value)">
 </div>
 <div class="charge-field">
-<label>Number of Cycles</label>
-<select id="chargeCycleCount" onchange="setChargeCycleUI()">
-<option value="1">1 Cycle</option>
-<option value="2">2 Cycles</option>
+<label>Select Number of Cycle</label>
+<select id="chargeCycleType" onchange="setChargeCycleUI()">
+<option value="1">Cycle 1</option>
+<option value="2">Cycle 2</option>
 </select>
 </div>
 </div>
 
-<div class="charge-cycle">
-<h3>Cycle 1</h3>
+<div class="charge-cycle" id="cycle1Box">
+<h3>Cycle 1 — 1 Range</h3>
+<div class="charge-range-grid">
+<div class="charge-range-box">
+<div class="range-title">Range</div>
 <div class="charge-range">
 <div class="charge-field"><label>From Day</label><select id="chargeFrom1"></select></div>
 <div class="charge-field"><label>To Day</label><select id="chargeTo1"></select></div>
 </div>
 </div>
+</div>
+</div>
 
-<div class="charge-cycle" id="chargeCycle2" style="display:none">
-<h3>Cycle 2</h3>
+<div class="charge-cycle charge-cycle2" id="chargeCycle2">
+<h3>Cycle 2 — 2 Ranges</h3>
+<div class="charge-range-grid">
+<div class="charge-range-box">
+<div class="range-title">Range 1</div>
 <div class="charge-range">
 <div class="charge-field"><label>From Day</label><select id="chargeFrom2"></select></div>
 <div class="charge-field"><label>To Day</label><select id="chargeTo2"></select></div>
+</div>
+</div>
+<div class="charge-range-box">
+<div class="range-title">Range 2</div>
+<div class="charge-range">
+<div class="charge-field"><label>From Day</label><select id="chargeFrom3"></select></div>
+<div class="charge-field"><label>To Day</label><select id="chargeTo3"></select></div>
+</div>
+</div>
 </div>
 </div>
 
@@ -506,7 +527,7 @@ input:focus{border-color:#ed166a}
 <div class="status" id="chargeSetupStatus"></div>
 </div>
 
-<div class="charge-saved-title">Saved Charge Setups</div>
+<div class="saved-charge-title">Saved Charge Setups</div>
 <div id="savedChargeList"></div>
 </section>
 
@@ -644,7 +665,7 @@ measurementId:"G-0HWWENTGX6"
 const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
-let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDay=null;
+let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
 const n=id=>Number(document.getElementById(id)?.value||0);
@@ -679,7 +700,7 @@ window.logout=async()=>{
   try{ if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;} }catch(e){}
   try{ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;} }catch(e){}
   savedTargetRecords=[];
-  savedChargeRecords=[]; editingChargeDay=null;
+  savedChargeRecords=[]; editingChargeDate=null;
   try{ await signOut(auth); }catch(e){}
   showAuth();
 };
@@ -938,15 +959,15 @@ box.innerHTML=[...invoices].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).
 }
 
 const CHARGE_DAYS=Array.from({length:31},(_,i)=>i+1);
-function chargeDayOptions(selected=""){return CHARGE_DAYS.map(day=>`<option value="${day}" ${String(day)===String(selected)?"selected":""}>${day}</option>`).join("")}
+function chargeDayOptions(selected=""){const placeholder=`<option value="" ${selected===""||selected==null?"selected":""} disabled>Select Day</option>`;return placeholder+CHARGE_DAYS.map(day=>`<option value="${day}" ${String(day)===String(selected)?"selected":""}>${day}</option>`).join("")}
 function chargeStatus(message,type=""){const el=document.getElementById("chargeSetupStatus");if(!el)return;el.className="status"+(type?" "+type:"");el.textContent=message}
-function setChargeCycleUI(){const count=Number(document.getElementById("chargeCycleCount")?.value||1);const second=document.getElementById("chargeCycle2");if(second)second.style.display=count===2?"block":"none"}
-function initChargeSelectors(day=1){const dayEl=document.getElementById("chargeDay");if(dayEl)dayEl.innerHTML=chargeDayOptions(day);["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=chargeDayOptions(1)})}
-function resetChargeSetup(){const day=new Date().getDate();editingChargeDay=null;initChargeSelectors(day);document.getElementById("chargeCycleCount").value="1";document.getElementById("chargeFrom1").value="1";document.getElementById("chargeTo1").value="1";document.getElementById("chargeFrom2").value="1";document.getElementById("chargeTo2").value="1";document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save / Update";chargeStatus("")}
-window.loadChargeDay=day=>{const r=savedChargeRecords.find(x=>String(x.day)===String(day));if(!r){resetChargeSetup();document.getElementById("chargeDay").value=String(day);return}editingChargeDay=Number(r.day);document.getElementById("chargeDay").value=String(r.day);document.getElementById("chargeCycleCount").value=String(r.cycleCount||1);const c=r.cycles||[];document.getElementById("chargeFrom1").value=String(c[0]?.from||1);document.getElementById("chargeTo1").value=String(c[0]?.to||1);document.getElementById("chargeFrom2").value=String(c[1]?.from||1);document.getElementById("chargeTo2").value=String(c[1]?.to||1);document.getElementById("fuelCharges").value=r.fuelCharges??"";document.getElementById("rtaCharges").value=r.rtaCharges??"";document.getElementById("bookingCharges").value=r.bookingCharges??"";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Record loaded. Changes karke Update Record dabayein.","success")}
-window.saveChargeSetup=async()=>{if(!currentUser){chargeStatus("Please login first.","error");return}const day=Number(document.getElementById("chargeDay").value),cycleCount=Number(document.getElementById("chargeCycleCount").value);const fuelRaw=document.getElementById("fuelCharges").value.trim(),rtaRaw=document.getElementById("rtaCharges").value.trim(),bookingRaw=document.getElementById("bookingCharges").value.trim();if(!Number.isInteger(day)||day<1||day>31){chargeStatus("Please select a valid day (1–31).","error");return}const f1=Number(document.getElementById("chargeFrom1").value),t1=Number(document.getElementById("chargeTo1").value),f2=Number(document.getElementById("chargeFrom2").value),t2=Number(document.getElementById("chargeTo2").value);const valid=v=>Number.isInteger(v)&&v>=1&&v<=31;if(!valid(f1)||!valid(t1)||(cycleCount===2&&(!valid(f2)||!valid(t2)))){chargeStatus("Please select valid cycle date ranges.","error");return}if(fuelRaw===""||rtaRaw===""||bookingRaw===""){chargeStatus("Please enter Fuel, RTA and Booking Charges.","error");return}const fuelCharges=Number(fuelRaw),rtaCharges=Number(rtaRaw),bookingCharges=Number(bookingRaw);if(![fuelCharges,rtaCharges,bookingCharges].every(v=>Number.isFinite(v)&&v>=0)){chargeStatus("Charges must be valid AED amounts (0 or more).","error");return}const record={day,cycleCount,cycles:[{from:f1,to:t1},...(cycleCount===2?[{from:f2,to:t2}]:[])],fuelCharges,rtaCharges,bookingCharges,updatedAt:new Date().toISOString()};try{const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{},chargeSetupsByDay={...(existing.chargeSetupsByDay||{}),[String(day)]:record};await setDoc(ref,{chargeSetupsByDay},{merge:true});driverData={...driverData,chargeSetupsByDay};editingChargeDay=day;const i=savedChargeRecords.findIndex(x=>String(x.day)===String(day));const saved={...record,id:String(day)};if(i>=0)savedChargeRecords[i]=saved;else savedChargeRecords.push(saved);const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Charge setup saved successfully.","success");renderSavedCharges()}catch(e){console.error("Charge setup save error:",e);chargeStatus("Error: "+(e.message||"Unable to save record"),"error")}}
-function renderSavedCharges(){const box=document.getElementById("savedChargeList");if(!box)return;if(!savedChargeRecords.length){box.innerHTML='<div class="charge-empty">Abhi koi charge setup save nahi hua.</div>';return}box.innerHTML=[...savedChargeRecords].sort((a,b)=>Number(a.day)-Number(b.day)).map(r=>{const c=r.cycles||[];const ct=c.map((x,i)=>`Cycle ${i+1}: Day ${x.from} se Day ${x.to}`).join(" · ");return `<div class="saved-charge-item"><div class="saved-charge-top"><span class="saved-charge-day">Day ${r.day}</span><span>${r.cycleCount||1} Cycle${Number(r.cycleCount||1)===1?"":"s"}</span></div><div class="saved-charge-cycles">${ct}</div><div class="saved-charge-values"><div class="saved-charge-value"><small>Fuel</small><strong>${money(r.fuelCharges)} AED</strong></div><div class="saved-charge-value"><small>RTA</small><strong>${money(r.rtaCharges)} AED</strong></div><div class="saved-charge-value"><small>Booking</small><strong>${money(r.bookingCharges)} AED</strong></div></div><button class="saved-charge-update" onclick="loadChargeDay(${Number(r.day)})">✏️ Update</button></div>`}).join("")}
-initChargeSelectors(new Date().getDate());setChargeCycleUI();
+function setChargeCycleUI(){const type=Number(document.getElementById("chargeCycleType")?.value||1);const second=document.getElementById("chargeCycle2");if(second)second.style.display=type===2?"block":"none"}
+function initChargeSelectors(){["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=chargeDayOptions("")})}
+function resetChargeSetup(date=""){editingChargeDate=null;document.getElementById("chargeDate").value=date||new Date().toISOString().slice(0,10);document.getElementById("chargeCycleType").value="1";["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>document.getElementById(id).value="");document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save / Update";chargeStatus("")}
+window.loadChargeDate=date=>{const r=savedChargeRecords.find(x=>String(x.date)===String(date));if(!r){resetChargeSetup(date);return}editingChargeDate=r.date;document.getElementById("chargeDate").value=r.date;document.getElementById("chargeCycleType").value=String(r.cycleType||1);const c=r.ranges||[];document.getElementById("chargeFrom1").value=String(c[0]?.from||1);document.getElementById("chargeTo1").value=String(c[0]?.to||1);document.getElementById("chargeFrom2").value=String(c[0]?.from||1);document.getElementById("chargeTo2").value=String(c[0]?.to||1);document.getElementById("chargeFrom3").value=String(c[1]?.from||1);document.getElementById("chargeTo3").value=String(c[1]?.to||1);document.getElementById("fuelCharges").value=r.fuelCharges??"";document.getElementById("rtaCharges").value=r.rtaCharges??"";document.getElementById("bookingCharges").value=r.bookingCharges??"";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Record loaded. Changes karke Update Record dabayein.","success")}
+window.saveChargeSetup=async()=>{if(!currentUser){chargeStatus("Please login first.","error");return}const date=document.getElementById("chargeDate").value,cycleType=Number(document.getElementById("chargeCycleType").value);const fuelRaw=document.getElementById("fuelCharges").value.trim(),rtaRaw=document.getElementById("rtaCharges").value.trim(),bookingRaw=document.getElementById("bookingCharges").value.trim();if(!date){chargeStatus("Please select a complete date.","error");return}const f1=Number(document.getElementById("chargeFrom1").value),t1=Number(document.getElementById("chargeTo1").value),f2=Number(document.getElementById("chargeFrom2").value),t2=Number(document.getElementById("chargeTo2").value),f3=Number(document.getElementById("chargeFrom3").value),t3=Number(document.getElementById("chargeTo3").value);const valid=v=>Number.isInteger(v)&&v>=1&&v<=31;if(!valid(f1)||!valid(t1)||(cycleType===2&&(!valid(f2)||!valid(t2)||!valid(f3)||!valid(t3)))){chargeStatus("Kindly please select all Day numbers for the selected range(s).","error");return}if(fuelRaw===""||rtaRaw===""||bookingRaw===""){chargeStatus("Kindly please enter all Fuel, RTA and Booking Charge numbers before saving/updating.","error");return}const fuelCharges=Number(fuelRaw),rtaCharges=Number(rtaRaw),bookingCharges=Number(bookingRaw);if(![fuelCharges,rtaCharges,bookingCharges].every(v=>Number.isFinite(v)&&v>=0)){chargeStatus("Charges must be valid AED amounts (0 or more).","error");return}const ranges=[{from:f1,to:t1},...(cycleType===2?[{from:f2,to:t2},{from:f3,to:t3}]:[])];const record={date,cycleType,ranges,fuelCharges,rtaCharges,bookingCharges,updatedAt:new Date().toISOString()};try{const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{},chargeSetupsByDate={...(existing.chargeSetupsByDate||{}),[date]:record};await setDoc(ref,{chargeSetupsByDate},{merge:true});driverData={...driverData,chargeSetupsByDate};editingChargeDate=date;const i=savedChargeRecords.findIndex(x=>String(x.date)===String(date));const saved={...record,id:date};if(i>=0)savedChargeRecords[i]=saved;else savedChargeRecords.push(saved);const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Charge setup saved successfully.","success");renderSavedCharges()}catch(e){console.error("Charge setup save error:",e);chargeStatus("Error: "+(e.message||"Unable to save record"),"error")}}
+function renderSavedCharges(){const box=document.getElementById("savedChargeList");if(!box)return;if(!savedChargeRecords.length){box.innerHTML='<div class="charge-empty">Abhi koi charge setup save nahi hua.</div>';return}box.innerHTML=[...savedChargeRecords].sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(r=>{const c=r.ranges||[];const ct=(r.cycleType===2?`Range 1: Day ${c[0]?.from} se Day ${c[0]?.to} · Range 2: Day ${c[1]?.from} se Day ${c[1]?.to}`:`Range: Day ${c[0]?.from} se Day ${c[0]?.to}`);return `<div class="saved-charge-item"><div class="saved-charge-top"><span class="saved-charge-day">${r.date||""}</span><span>Cycle ${r.cycleType||1}</span></div><div class="saved-charge-cycles">${ct}</div><div class="saved-charge-values"><div class="saved-charge-value"><small>Fuel</small><strong>${money(r.fuelCharges)} AED</strong></div><div class="saved-charge-value"><small>RTA</small><strong>${money(r.rtaCharges)} AED</strong></div><div class="saved-charge-value"><small>Booking</small><strong>${money(r.bookingCharges)} AED</strong></div></div><button class="saved-charge-update" onclick="loadChargeDate('${r.date}')">✏️ Update</button></div>`}).join("")}
+initChargeSelectors();resetChargeSetup(new Date().toISOString().slice(0,10));
 
 const TARGET_PERCENTAGES=[5,10,15,20,25,30,35,37.5,40,42.5,45];
 const DEFAULT_TARGET_AMOUNTS=TARGET_PERCENTAGES.map(()=>"");
@@ -1194,7 +1215,7 @@ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
 // Target records are stored in the existing driver document to match the
 // Firebase permissions used by this app.
 savedTargetRecords=Object.values(driverData.targetRangesByDate||{}).map(r=>({...r,id:r.date}));
-savedChargeRecords=Object.values(driverData.chargeSetupsByDay||{}).map(r=>({...r,id:String(r.day)}));
+savedChargeRecords=Object.values(driverData.chargeSetupsByDate||{}).map(r=>({...r,id:r.date}));
 renderSavedCharges();
 resetChargeSetup();
 renderSavedTargets();
