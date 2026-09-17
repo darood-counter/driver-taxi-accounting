@@ -892,7 +892,7 @@ function nId(id){return Number(document.getElementById(id).value||0)}
 
 
 const TARGET_PERCENTAGES=[5,10,15,20,25,30,35,37.5,40,42.5,45];
-const DEFAULT_TARGET_AMOUNTS=TARGET_PERCENTAGES.map(()=>0);
+const DEFAULT_TARGET_AMOUNTS=TARGET_PERCENTAGES.map(()=>"");
 const TARGET_MAX_AMOUNT=3000;
 
 function targetDateValue(){
@@ -905,7 +905,7 @@ function buildTargetRows(amounts=DEFAULT_TARGET_AMOUNTS){
   const body=document.getElementById("targetRows");
   if(!body)return;
   body.innerHTML=TARGET_PERCENTAGES.map((pct,i)=>{
-    const amount=amounts[i] ?? "";
+    const amount=(amounts[i]===undefined || amounts[i]===null || Number(amounts[i])===0) ? "" : amounts[i];
     return `<tr>
       <td><span class="target-percent-pill">${pct}%</span></td>
       <td>
@@ -977,19 +977,20 @@ window.resetTargetTable=()=>{
 window.loadTargetDate=async(date)=>{
   if(!currentUser||!date)return;
   try{
-    const snap=await getDoc(doc(db,"drivers",currentUser.uid,"targetRanges",date));
+    const snap=await getDoc(doc(db,"drivers",currentUser.uid));
+    const driver=snap.exists()?snap.data():{};
+    const records=driver.targetRangesByDate||{};
+    const data=records[date]||null;
     const d=document.getElementById("targetDate");
     if(d)d.value=date;
     editingTargetDate=date;
     const btn=document.getElementById("saveTargetTableBtn");
-    if(btn)btn.textContent="Update Record";
-    if(snap.exists()){
-      const data=snap.data();
-      buildTargetRows(Array.isArray(data.amounts)?data.amounts:DEFAULT_TARGET_AMOUNTS);
+    if(btn)btn.textContent=data?"Update Record":"Save / Update";
+    buildTargetRows(data&&Array.isArray(data.amounts)?data.amounts:DEFAULT_TARGET_AMOUNTS);
+    if(data){
       setTargetStatus("Record loaded. AED Amounts update karke Update Record dabayein.","success");
       showTargetToast("Record loaded for update","success");
     }else{
-      buildTargetRows();
       setTargetStatus("New date record. AED Amounts enter karein.");
     }
     document.getElementById("targetPage")?.scrollIntoView({behavior:"smooth",block:"start"});
@@ -1006,10 +1007,10 @@ window.saveTargetTable=async()=>{
 
   if(!date){setTargetStatus("Please select a date.","error");return}
   if(amounts.length!==TARGET_PERCENTAGES.length || amounts.some(v=>!Number.isFinite(v)||v<0)){
-    setTargetStatus("Please enter valid AED Amounts.","error");return
+    setTargetStatus("Please enter valid AED Amounts.","error");return;
   }
   if(!amounts.some(v=>v>0)){
-    setTargetStatus("Kam az kam ek AED Amount enter karein.","error");return
+    setTargetStatus("Kam az kam ek AED Amount enter karein.","error");return;
   }
 
   const record={
@@ -1017,11 +1018,19 @@ window.saveTargetTable=async()=>{
     percentages:TARGET_PERCENTAGES,
     amounts,
     maxAmount:TARGET_MAX_AMOUNT,
-    updatedAt:serverTimestamp()
+    updatedAt:new Date().toISOString()
   };
 
   try{
-    await setDoc(doc(db,"drivers",currentUser.uid,"targetRanges",date),record,{merge:true});
+    // Save inside the driver's existing document because the app's Firebase rules
+    // allow the logged-in driver to update their own driver document, while the
+    // separate targetRanges subcollection may not be writable by those rules.
+    const driverRef=doc(db,"drivers",currentUser.uid);
+    const driverSnap=await getDoc(driverRef);
+    const existing=driverSnap.exists()?driverSnap.data():{};
+    const targetRangesByDate={...(existing.targetRangesByDate||{}),[date]:record};
+    await setDoc(driverRef,{targetRangesByDate},{merge:true});
+
     editingTargetDate=date;
     const savedRecord={...record,id:date};
     const existingIndex=savedTargetRecords.findIndex(r=>r.date===date);
@@ -1051,7 +1060,7 @@ function renderSavedTargets(){
     amounts.forEach((v,i)=>{const n=Number(v||0); if(n>0) filled.push({index:i,amount:n});});
     const cells=TARGET_PERCENTAGES.map((pct,i)=>{
       const amount=Number(amounts[i]||0);
-      if(!(amount>0)) return `<td><span class="saved-target-amount">0.00 د.إ</span><span class="saved-target-range">—</span></td>`;
+      if(!(amount>0)) return `<td><span class="saved-target-amount">—</span><span class="saved-target-range">—</span></td>`;
       const pos=filled.findIndex(x=>x.index===i);
       const start=pos===0?0.01:amount;
       const end=pos<filled.length-1?filled[pos+1].amount-0.01:TARGET_MAX_AMOUNT;
@@ -1124,11 +1133,11 @@ unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap
 invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();
 },error=>{console.error("Invoice listener error:",error);document.getElementById("authError").textContent="Unable to load invoices: "+(error.message||"Firebase error");});
 
-if(unsubscribeTargets)unsubscribeTargets();
-unsubscribeTargets=onSnapshot(collection(db,"drivers",user.uid,"targetRanges"),snap=>{
-  savedTargetRecords=snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderSavedTargets();
-},error=>{console.error("Target listener error:",error);});
+if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
+// Target records are stored in the existing driver document to match the
+// Firebase permissions used by this app.
+savedTargetRecords=Object.values(driverData.targetRangesByDate||{}).map(r=>({...r,id:r.date}));
+renderSavedTargets();
 
 const today=new Date().toISOString().slice(0,10);
 document.getElementById("targetDate").value=today;
