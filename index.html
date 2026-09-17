@@ -378,7 +378,7 @@ input:focus{border-color:#ed166a}
 <header class="topbar" id="mainTopbar">
 <button class="icon-btn topbar-left" id="topbarLeftBtn" onclick="toggleMenu()">☰</button>
 <div class="brand" id="topbarBrand">Driver's</div>
-<button class="icon-btn bell" id="topbarBell" onclick="showPage('dashboardPage')">Back</button>
+<button class="icon-btn bell" id="topbarBell" onclick="showPage('dashboardPage')">🔔</button>
 </header>
 
 <main>
@@ -610,12 +610,12 @@ const isProfile=pageId==="profilePage";
 const isTarget=pageId==="targetPage";
 if(topbar&&leftBtn&&brand&&bell){
   topbar.classList.toggle("profile-mode",isProfile||isTarget);
-  leftBtn.textContent=isProfile?"←":"☰";
-  leftBtn.onclick=isProfile?()=>showPage("dashboardPage"):()=>toggleMenu();
+  leftBtn.textContent=(isProfile||isTarget)?"←":"☰";
+  leftBtn.onclick=(isProfile||isTarget)?()=>showPage("dashboardPage"):()=>toggleMenu();
   brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":"Driver's");
-  bell.style.display=isTarget?"block":(isProfile?"none":"block");
-  bell.textContent=isTarget?"←":"♧";
-  bell.onclick=isTarget?()=>showPage("dashboardPage"):null;
+  bell.style.display=isProfile?"none":"block";
+  bell.textContent="🔔";
+  bell.onclick=null;
 }
 if(pageId==="historyPage")renderHistory();
 };
