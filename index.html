@@ -567,7 +567,7 @@ input:focus{border-color:#ed166a}
 </div>
 
 
-<div class="saved-targets-title">Saved Targets</div>
+<div class="saved-targets-title">Saved Records</div>
 <div id="savedTargetList"></div>
 </section>
 
@@ -1098,25 +1098,22 @@ window.resetTargetTable=()=>{
   buildTargetRows();
 };
 
-window.loadTargetDate=async(date)=>{
-  if(!currentUser||!date)return;
+window.loadTargetDate=async(id)=>{
+  if(!currentUser||!id)return;
   try{
     const snap=await getDoc(doc(db,"drivers",currentUser.uid));
     const driver=snap.exists()?snap.data():{};
-    const records=driver.targetRangesByDate||{};
-    const data=records[date]||null;
+    const records=Array.isArray(driver.targetRecords)?driver.targetRecords:[];
+    const data=records.find(r=>String(r.id)===String(id))||null;
+    if(!data){setTargetStatus("Record not found.","error");return}
     const d=document.getElementById("targetDate");
-    if(d)d.value=date;
-    editingTargetDate=date;
+    if(d)d.value=data.date||"";
+    editingTargetDate=data.id;
     const btn=document.getElementById("saveTargetTableBtn");
-    if(btn)btn.textContent=data?"Update Record":"Save / Update";
-    buildTargetRows(data&&Array.isArray(data.amounts)?data.amounts:DEFAULT_TARGET_AMOUNTS);
-    if(data){
-      setTargetStatus("Record loaded. AED Amounts update karke Update Record dabayein.","success");
-      showTargetToast("Record loaded for update","success");
-    }else{
-      setTargetStatus("New date record. AED Amounts enter karein.");
-    }
+    if(btn)btn.textContent="Update Record";
+    buildTargetRows(Array.isArray(data.amounts)?data.amounts:DEFAULT_TARGET_AMOUNTS);
+    setTargetStatus("Record loaded. AED Amounts update karke Update Record dabayein.","success");
+    showTargetToast("Record loaded for update","success");
     document.getElementById("targetPage")?.scrollIntoView({behavior:"smooth",block:"start"});
   }catch(e){
     console.error("Target load error:",e);
@@ -1128,7 +1125,6 @@ window.saveTargetTable=async()=>{
   if(!currentUser){setTargetStatus("Please login first.","error");return}
   const date=targetDateValue();
   const amounts=getTargetAmounts();
-
   if(!date){setTargetStatus("Please select a date.","error");return}
   if(amounts.length!==TARGET_PERCENTAGES.length || amounts.some(v=>!Number.isFinite(v)||v<0)){
     setTargetStatus("Please enter valid AED Amounts.","error");return;
@@ -1138,6 +1134,7 @@ window.saveTargetTable=async()=>{
   }
 
   const record={
+    id: editingTargetDate || (crypto.randomUUID?crypto.randomUUID():"target_"+Date.now()+"_"+Math.random().toString(36).slice(2)),
     date,
     percentages:TARGET_PERCENTAGES,
     amounts,
@@ -1146,23 +1143,32 @@ window.saveTargetTable=async()=>{
   };
 
   try{
-    // Save inside the driver's existing document because the app's Firebase rules
-    // allow the logged-in driver to update their own driver document, while the
-    // separate targetRanges subcollection may not be writable by those rules.
     const driverRef=doc(db,"drivers",currentUser.uid);
     const driverSnap=await getDoc(driverRef);
     const existing=driverSnap.exists()?driverSnap.data():{};
-    const targetRangesByDate={...(existing.targetRangesByDate||{}),[date]:record};
-    await setDoc(driverRef,{targetRangesByDate},{merge:true});
+    let records=Array.isArray(existing.targetRecords)?[...existing.targetRecords]:[];
 
-    editingTargetDate=date;
-    const savedRecord={...record,id:date};
-    const existingIndex=savedTargetRecords.findIndex(r=>r.date===date);
-    if(existingIndex>=0) savedTargetRecords[existingIndex]=savedRecord;
-    else savedTargetRecords.push(savedRecord);
-    document.getElementById("saveTargetTableBtn").textContent="Update Record";
-    setTargetStatus("Target record updated successfully.","success");
-    showTargetToast("Target updated successfully ✓","success");
+    // Keep older date-based records visible, but new records are stored with unique IDs
+    // so saving another record on the same date never overwrites the previous one.
+    if(!records.length && existing.targetRangesByDate){
+      records=Object.values(existing.targetRangesByDate).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
+    }
+
+    const idx=editingTargetDate?records.findIndex(r=>String(r.id)===String(editingTargetDate)):-1;
+    if(idx>=0) records[idx]=record;
+    else records.push(record);
+
+    await setDoc(driverRef,{targetRecords:records},{merge:true});
+    driverData={...driverData,targetRecords:records};
+    savedTargetRecords=records.map(r=>({...r}));
+
+    // After a successful SAVE, clear the form so the next entry is a new record.
+    editingTargetDate=null;
+    document.getElementById("saveTargetTableBtn").textContent="Save Record";
+    buildTargetRows();
+    document.getElementById("targetDate").value=new Date().toISOString().slice(0,10);
+    setTargetStatus("Target record saved successfully. New record ke liye form ready hai.","success");
+    showTargetToast("Record saved successfully ✓","success");
     renderSavedTargets();
   }catch(e){
     console.error("Target save error:",e);
@@ -1174,10 +1180,14 @@ function renderSavedTargets(){
   const box=document.getElementById("savedTargetList");
   if(!box)return;
   if(!savedTargetRecords.length){
-    box.innerHTML='<div class="target-empty">Abhi koi date record save nahi hua.</div>';
+    box.innerHTML='<div class="target-empty">Abhi koi record save nahi hua.</div>';
     return;
   }
-  const sorted=[...savedTargetRecords].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const sorted=[...savedTargetRecords].sort((a,b)=>{
+    const da=String(a.date||""); const db=String(b.date||"");
+    if(da!==db)return da.localeCompare(db);
+    return String(a.updatedAt||"").localeCompare(String(b.updatedAt||""));
+  });
   const rows=sorted.map((r,recordIndex)=>{
     const amounts=Array.isArray(r.amounts)?r.amounts:DEFAULT_TARGET_AMOUNTS;
     const filled=[];
@@ -1190,11 +1200,12 @@ function renderSavedTargets(){
       const end=pos<filled.length-1?filled[pos+1].amount-0.01:TARGET_MAX_AMOUNT;
       return `<td><span class="saved-target-amount">${money2(amount)} د.إ</span><span class="saved-target-range">${money2(start)}–${money2(end)} د.إ</span></td>`;
     }).join("");
+    const safeId=String(r.id||"").replace(/'/g,"\\'");
     return `<tr>
       <td class="no-cell">${recordIndex+1}</td>
       <td class="date-cell">${r.date||"—"}</td>
       ${cells}
-      <td><button class="saved-target-update" onclick="loadTargetDate('${r.date}')">Update</button></td>
+      <td><button class="saved-target-update" onclick="loadTargetDate('${safeId}')">Update</button></td>
     </tr>`;
   }).join("");
   box.innerHTML=`<div class="saved-target-table-wrap">
@@ -1260,7 +1271,7 @@ invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();if(document
 if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
 // Target records are stored in the existing driver document to match the
 // Firebase permissions used by this app.
-savedTargetRecords=Object.values(driverData.targetRangesByDate||{}).map(r=>({...r,id:r.date}));
+savedTargetRecords=Array.isArray(driverData.targetRecords)?driverData.targetRecords.map(r=>({...r})):Object.values(driverData.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
 savedChargeRecords=Object.values(driverData.chargeSetupsByDate||{}).map(r=>({...r,id:r.date}));
 renderSavedCharges();
 resetChargeSetup();
