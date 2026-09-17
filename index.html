@@ -1671,7 +1671,6 @@ function renderSavedTargets(){
   // Show about 10 records at once; older records remain available by vertical scroll.
   const rows=sorted.map((r,recordIndex)=>{
     const displaySerial=sorted.length-recordIndex;
-    const displaySerial=sorted.length-recordIndex;
     const amounts=Array.isArray(r.amounts)?r.amounts:DEFAULT_TARGET_AMOUNTS;
     const filled=[];
     amounts.forEach((v,i)=>{const n=Number(v||0); if(n>0) filled.push({index:i,amount:n});});
@@ -1688,7 +1687,7 @@ function renderSavedTargets(){
       ? `<button class="saved-target-update" onclick="loadTargetDate('${safeId}')">Update</button>`
       : "—";
     return `<tr>
-      <td class="no-cell">${recordIndex+1}</td>
+      <td class="no-cell">${displaySerial}</td>
       <td class="date-cell">${r.date||"—"}</td>
       ${cells}
       <td>${updateButton}</td>
