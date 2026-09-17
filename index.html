@@ -70,6 +70,8 @@ input:focus{border-color:#ed166a}
 .auth-error{color:#b0003a;font-size:14px;font-weight:700;margin-top:12px;min-height:22px;line-height:1.4}
 .auth-success{color:#137333;font-size:14px;margin-top:12px;min-height:18px}
 .auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}.password-wrap{position:relative}.password-wrap input{padding-right:72px}.show-pass{position:absolute;right:8px;top:7px;border:0;background:#eef0f5;border-radius:9px;padding:9px 10px;font-weight:700;color:#444;cursor:pointer}
+
+.forgot-password{display:block;width:100%;border:0;background:transparent;color:#2457a6;font-weight:700;margin:12px 0 4px;padding:8px;cursor:pointer}.reset-box{margin-top:10px;padding:12px;border:1px solid #e1e5ea;border-radius:14px;background:#f8f9fb}.reset-box label{display:block;margin-bottom:6px}.reset-box input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:8px}.reset-box .primary{margin-top:0}
 </style>
 
 <style>
@@ -97,6 +99,12 @@ input:focus{border-color:#ed166a}
         <button type="button" class="show-pass" onclick="togglePassword('loginPassword',this)">Show</button>
       </div>
       <button class="primary" onclick="loginUser()">Login</button>
+      <button type="button" class="forgot-password" onclick="resetPassword()">Forgot / Reset Password?</button>
+      <div id="resetBox" class="reset-box" style="display:none">
+        <label>Driver ID / Email</label>
+        <input type="text" id="resetIdentifier" placeholder="Enter Driver ID or Email" autocomplete="email">
+        <button type="button" class="primary" onclick="sendResetEmail()">Send Reset Email</button>
+      </div>
     </div>
 
     <div id="signupForm" style="display:none">
@@ -231,7 +239,7 @@ input:focus{border-color:#ed166a}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,updatePassword,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -312,6 +320,40 @@ window.togglePassword=(id,btn)=>{
   input.type=showing?"password":"text";
   btn.textContent=showing?"Show":"Hide";
 };
+window.resetPassword=()=>{
+  const box=document.getElementById("resetBox");
+  if(box) box.style.display=box.style.display==="none"?"block":"none";
+  const input=document.getElementById("resetIdentifier");
+  if(input) input.focus();
+};
+window.sendResetEmail=async()=>{
+  const identifier=document.getElementById("resetIdentifier").value.trim();
+  const err=document.getElementById("authError"), ok=document.getElementById("authSuccess");
+  err.textContent=""; ok.textContent="";
+  if(!identifier){err.textContent="Please enter your Driver ID or Email.";return}
+  try{
+    let email=identifier;
+    if(!identifier.includes("@")){
+      const mapSnap=await getDoc(doc(db,"driverLogin",normalizeDriverId(identifier)));
+      if(!mapSnap.exists()){err.textContent="Driver ID not found.";return}
+      email=String(mapSnap.data().email||"").trim();
+      if(!email){err.textContent="This Driver ID has no email linked to it.";return}
+    }
+    await sendPasswordResetEmail(auth,email,{url:window.location.href,handleCodeInApp:false});
+    ok.textContent="Password reset email sent. Check your email (including Spam/Junk).";
+  }catch(e){
+    console.error(e);
+    const code=e?.code||"";
+    const messages={
+      "auth/invalid-email":"The email address is invalid.",
+      "auth/user-not-found":"No Firebase account was found for this email.",
+      "auth/too-many-requests":"Too many reset attempts. Please try again later.",
+      "auth/network-request-failed":"Please check your internet connection."
+    };
+    err.textContent=messages[code]||"Unable to send reset email. Please try again.";
+  }
+};
+
 window.loginUser=async()=>{
   const identifier=document.getElementById("loginIdentifier").value.trim();
   const password=document.getElementById("loginPassword").value;
