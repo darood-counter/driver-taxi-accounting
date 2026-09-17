@@ -286,12 +286,12 @@ input:focus{border-color:#ed166a}
 .auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}.password-wrap{position:relative}.password-wrap input{padding-right:72px}.show-pass{position:absolute;right:8px;top:7px;border:0;background:#eef0f5;border-radius:9px;padding:9px 10px;font-weight:700;color:#444;cursor:pointer}
 
 /* ===== Date-based AED Target Slabs ===== */
-.target-help{font-size:13px;color:#737783;line-height:1.5;margin:-6px 0 16px}
-.target-date-row{display:flex;gap:9px;align-items:end;margin-bottom:14px}
+.target-help{display:none}
+.target-date-row{display:flex;gap:8px;align-items:end;margin:2px 0 10px}
 .target-date-row>div{flex:1}
 .target-date-row label{margin-top:0}
 .target-date-row input{margin:0}
-.target-table-wrap{overflow:hidden;border:1px solid #e5e7eb;border-radius:17px;background:#fff}
+.target-table-wrap{overflow:hidden;border:1px solid #e5e7eb;border-radius:14px;background:#fff}
 .target-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
 .target-table th{background:#eef0f5;color:#4b5563;font-size:12px;font-weight:800;padding:11px 7px;text-align:center}
 .target-table th:first-child{width:20%}
@@ -305,10 +305,10 @@ input:focus{border-color:#ed166a}
 .aed-symbol{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:900;color:#6b7280;pointer-events:none}
 .target-range{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;font-size:12px}
 .target-range .range-aed{font-size:10px;color:#6b7280;font-weight:800}
-.target-actions{display:flex;gap:8px;margin-top:14px}
+.target-actions{display:flex;gap:8px;margin-top:10px}
 .target-actions .primary{margin-top:0;flex:1}
 .target-actions .secondary{flex:0 0 auto}
- .saved-targets-title{font-size:18px;font-weight:900;margin:23px 0 11px}
+ .saved-targets-title{font-size:17px;font-weight:900;margin:14px 0 8px}
 .saved-target-table-wrap{overflow-x:auto;overflow-y:hidden;border:1px solid #e5e7eb;border-radius:17px;background:#fff;-webkit-overflow-scrolling:touch}
 .saved-target-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}
 .saved-target-table th{background:#eef0f5;color:#4b5563;font-size:11px;font-weight:900;padding:11px 7px;text-align:center;white-space:nowrap;border-right:1px solid #e5e7eb}
@@ -457,11 +457,8 @@ input:focus{border-color:#ed166a}
 </section>
 
 <section id="targetPage" class="page">
-<button class="back" onclick="showPage('dashboardPage')">← Back</button>
-
-<div class="form-card">
+<div class="form-card target-card">
 <h2>Target Setup</h2>
-<div class="target-help">Date select karein aur sirf AED Amount column update karein. Aap sirf AED Amount update karein. Range 0.01 se automatically start hogi aur aglay entered Amount se 0.01 pehle tak chalegi. Jahan agla percentage na ho, range 3000.00 AED tak hogi.</div>
 
 <div class="target-date-row">
   <div>
@@ -487,7 +484,7 @@ input:focus{border-color:#ed166a}
 </div>
 
 
-<div class="saved-targets-title">Saved Date Records</div>
+<div class="saved-targets-title">Saved Targets</div>
 <div id="savedTargetList"></div>
 </section>
 
@@ -611,12 +608,15 @@ const leftBtn=document.getElementById("topbarLeftBtn");
 const brand=document.getElementById("topbarBrand");
 const bell=document.getElementById("topbarBell");
 const isProfile=pageId==="profilePage";
+const isTarget=pageId==="targetPage";
 if(topbar&&leftBtn&&brand&&bell){
-  topbar.classList.toggle("profile-mode",isProfile);
+  topbar.classList.toggle("profile-mode",isProfile||isTarget);
   leftBtn.textContent=isProfile?"←":"☰";
   leftBtn.onclick=isProfile?()=>showPage("dashboardPage"):()=>toggleMenu();
-  brand.textContent=isProfile?"Driver Profile":"Driver's";
-  bell.style.display=isProfile?"none":"block";
+  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":"Driver's");
+  bell.style.display=isTarget?"block":(isProfile?"none":"block");
+  bell.textContent=isTarget?"←":"♧";
+  bell.onclick=isTarget?()=>showPage("dashboardPage"):null;
 }
 if(pageId==="historyPage")renderHistory();
 };
