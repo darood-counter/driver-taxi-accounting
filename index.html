@@ -284,6 +284,55 @@ input:focus{border-color:#ed166a}
 .auth-error{color:#b0003a;font-size:14px;font-weight:700;margin-top:12px;min-height:22px;line-height:1.4}
 .auth-success{color:#137333;font-size:14px;margin-top:12px;min-height:18px}
 .auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}.password-wrap{position:relative}.password-wrap input{padding-right:72px}.show-pass{position:absolute;right:8px;top:7px;border:0;background:#eef0f5;border-radius:9px;padding:9px 10px;font-weight:700;color:#444;cursor:pointer}
+
+/* ===== Date-based AED Target Slabs ===== */
+.target-help{font-size:13px;color:#737783;line-height:1.5;margin:-6px 0 16px}
+.target-date-row{display:flex;gap:9px;align-items:end;margin-bottom:14px}
+.target-date-row>div{flex:1}
+.target-date-row label{margin-top:0}
+.target-date-row input{margin:0}
+.target-table-wrap{overflow:hidden;border:1px solid #e5e7eb;border-radius:17px;background:#fff}
+.target-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
+.target-table th{background:#eef0f5;color:#4b5563;font-size:12px;font-weight:800;padding:11px 7px;text-align:center}
+.target-table th:first-child{width:20%}
+.target-table th:nth-child(2){width:37%}
+.target-table th:nth-child(3){width:43%}
+.target-table td{padding:7px 6px;text-align:center;border-top:1px solid #eef0f3;font-size:14px;font-weight:800;vertical-align:middle}
+.target-table tr:first-child td{border-top:0}
+.target-percent-pill{display:inline-flex;min-width:44px;justify-content:center;padding:7px 5px;border-radius:10px;background:#f5f6fa}
+.aed-input-wrap{position:relative}
+.aed-input-wrap input{padding:10px 42px 10px 9px;text-align:right;font-weight:800;min-height:42px}
+.aed-symbol{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:900;color:#6b7280;pointer-events:none}
+.target-range{display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;font-size:12px}
+.target-range .range-aed{font-size:10px;color:#6b7280;font-weight:800}
+.target-actions{display:flex;gap:8px;margin-top:14px}
+.target-actions .primary{margin-top:0;flex:1}
+.target-actions .secondary{flex:0 0 auto}
+ .saved-targets-title{font-size:18px;font-weight:900;margin:23px 0 11px}
+.saved-target-table-wrap{overflow-x:auto;overflow-y:hidden;border:1px solid #e5e7eb;border-radius:17px;background:#fff;-webkit-overflow-scrolling:touch}
+.saved-target-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}
+.saved-target-table th{background:#eef0f5;color:#4b5563;font-size:11px;font-weight:900;padding:11px 7px;text-align:center;white-space:nowrap;border-right:1px solid #e5e7eb}
+.saved-target-table th:last-child{border-right:0}
+.saved-target-table th:nth-child(1){width:48px}.saved-target-table th:nth-child(2){width:105px}
+.saved-target-table th:nth-child(n+3):nth-child(-n+13){width:88px}.saved-target-table th:nth-child(14){width:82px}
+.saved-target-table td{padding:9px 5px;text-align:center;border-top:1px solid #eef0f3;border-right:1px solid #eef0f3;font-size:12px;font-weight:800;vertical-align:middle;white-space:nowrap}
+.saved-target-table td:last-child{border-right:0}
+.saved-target-table .date-cell{font-weight:900}.saved-target-table .no-cell{font-size:13px;font-weight:900}
+.saved-target-amount{display:block;font-size:13px;font-weight:900;line-height:1.2}
+.saved-target-range{display:block;margin-top:4px;font-size:9px;color:#737783;font-weight:700;line-height:1.2}
+.saved-target-update{border:0;border-radius:9px;padding:8px 9px;background:#eef0f5;font-weight:900;cursor:pointer;white-space:nowrap}
+.target-empty{background:#fff;border-radius:16px;padding:14px;color:#737783;font-size:13px;text-align:center}
+.target-toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#111827;color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;font-weight:800;box-shadow:0 8px 25px rgba(0,0,0,.18);opacity:0;pointer-events:none;z-index:100;transition:all .25s ease;white-space:nowrap}.target-toast.show{opacity:1;transform:translate(-50%,0)}.target-toast.success{background:#137333}.target-toast.error{background:#b0003a}
+@media(max-width:390px){.saved-target-table{min-width:520px}.saved-target-table th{padding:9px 4px;font-size:10px}.saved-target-table td{padding:8px 4px;font-size:11px}.saved-target-table .range-cell{font-size:10px}.saved-target-update{padding:7px 8px;font-size:11px}}
+@media(max-width:390px){
+  .target-table th{padding:10px 4px;font-size:11px}
+  .target-table td{padding:6px 3px;font-size:13px}
+  .aed-input-wrap input{padding:9px 36px 9px 6px;font-size:14px}
+  .aed-symbol{right:6px;font-size:10px}
+  .target-range{font-size:11px;gap:2px}
+  .target-range .range-aed{font-size:9px}
+}
+
 </style>
 </head>
 <body>
@@ -409,8 +458,37 @@ input:focus{border-color:#ed166a}
 
 <section id="targetPage" class="page">
 <button class="back" onclick="showPage('dashboardPage')">← Back</button>
+
 <div class="form-card">
 <h2>Target Setup</h2>
+<div class="target-help">Date select karein aur sirf AED Amount column update karein. Aap sirf AED Amount update karein. Range 0.01 se automatically start hogi aur aglay entered Amount se 0.01 pehle tak chalegi. Jahan agla percentage na ho, range 3000.00 AED tak hogi.</div>
+
+<div class="target-date-row">
+  <div>
+    <label>Date</label>
+    <input type="date" id="targetDate">
+  </div>
+</div>
+
+<div class="target-table-wrap">
+<table class="target-table">
+<thead>
+<tr><th>%</th><th>Amount</th><th>Range</th></tr>
+</thead>
+<tbody id="targetRows"></tbody>
+</table>
+</div>
+
+<div class="target-actions">
+  <button class="primary" id="saveTargetTableBtn" onclick="saveTargetTable()">Save / Update</button>
+  <button class="secondary" onclick="resetTargetTable()">Reset</button>
+</div>
+<div class="status" id="targetTableStatus"></div>
+</div>
+
+<div class="form-card">
+<h2>Other Target Settings</h2>
+<div class="target-help">Ye existing settings hain; inko sirf tab change karein jab aapki calculation rates change hon.</div>
 <label>Target Percentage</label><input type="number" min="0" max="100" step="0.5" id="targetPercent" placeholder="e.g. 40">
 <label>Shift Trips Rate</label><input type="number" step="0.01" id="targetTripRate">
 <label>Booking Price</label><input type="number" step="0.01" id="targetBookingRate">
@@ -418,6 +496,9 @@ input:focus{border-color:#ed166a}
 <button class="primary" onclick="saveTarget()">Save Target Settings</button>
 <div class="status" id="targetStatus"></div>
 </div>
+
+<div class="saved-targets-title">Saved Date Records</div>
+<div id="savedTargetList"></div>
 </section>
 
 <section id="profilePage" class="page">
@@ -490,6 +571,7 @@ input:focus{border-color:#ed166a}
 </section>
 </main>
 </div>
+<div class="target-toast" id="targetToast"></div>
 
 <div class="drawer" id="drawer" onclick="toggleMenu()">
 <nav class="menu" onclick="event.stopPropagation()">
@@ -522,7 +604,7 @@ measurementId:"G-0HWWENTGX6"
 const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
-let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null;
+let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
 const n=id=>Number(document.getElementById(id)?.value||0);
@@ -551,6 +633,8 @@ if(pageId==="historyPage")renderHistory();
 
 window.logout=async()=>{
   try{ if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;} }catch(e){}
+  try{ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;} }catch(e){}
+  savedTargetRecords=[];
   try{ await signOut(auth); }catch(e){}
   showAuth();
 };
@@ -816,6 +900,192 @@ document.getElementById("calcResult").textContent=`Shift Trips: ${money(a)} AED 
 };
 function nId(id){return Number(document.getElementById(id).value||0)}
 
+
+const TARGET_PERCENTAGES=[5,10,15,20,25,30,35,37.5,40,42.5,45];
+const DEFAULT_TARGET_AMOUNTS=[1,260,285,310,335,360,410,435,485,535,584];
+const TARGET_MAX_AMOUNT=3000;
+
+function targetDateValue(){
+  return document.getElementById("targetDate")?.value || new Date().toISOString().slice(0,10);
+}
+
+function money2(v){return (Number(v)||0).toFixed(2)}
+
+function buildTargetRows(amounts=DEFAULT_TARGET_AMOUNTS){
+  const body=document.getElementById("targetRows");
+  if(!body)return;
+  body.innerHTML=TARGET_PERCENTAGES.map((pct,i)=>{
+    const amount=amounts[i] ?? "";
+    return `<tr>
+      <td><span class="target-percent-pill">${pct}%</span></td>
+      <td>
+        <div class="aed-input-wrap">
+          <input type="number" min="0" step="0.01" class="target-amount" data-index="${i}" value="${amount}" oninput="updateTargetRanges()">
+          <span class="aed-symbol">د.إ</span>
+        </div>
+      </td>
+      <td><span class="target-range" id="targetRange${i}">—</span></td>
+    </tr>`;
+  }).join("");
+  updateTargetRanges();
+}
+
+function getTargetAmounts(){
+  return [...document.querySelectorAll(".target-amount")].map(x=>Number(x.value||0));
+}
+
+function updateTargetRanges(){
+  const amounts=getTargetAmounts();
+  let lastFilled=-1;
+  amounts.forEach((v,i)=>{ if(Number.isFinite(v) && v>0) lastFilled=i; });
+
+  amounts.forEach((amount,i)=>{
+    const el=document.getElementById("targetRange"+i);
+    if(!el)return;
+    if(!Number.isFinite(amount) || amount<=0){
+      el.textContent="—";
+      return;
+    }
+
+    const start=i===0 ? 0.01 : amount;
+    const nextIndex=i+1;
+    const next=nextIndex<amounts.length ? Number(amounts[nextIndex]||0) : 0;
+    let end=TARGET_MAX_AMOUNT;
+    if(next>0) end=next-0.01;
+
+    el.innerHTML=`<span>${money2(start)}</span><span>–</span><span>${money2(end)}</span><span class="range-aed">د.إ</span>`;
+  });
+}
+function showTargetToast(message,type="success") {
+  const el=document.getElementById("targetToast");
+  if(!el)return;
+  el.textContent=message;
+  el.className="target-toast "+type+" show";
+  clearTimeout(window.__targetToastTimer);
+  window.__targetToastTimer=setTimeout(()=>{el.classList.remove("show")},2800);
+}
+
+function setTargetStatus(message,type=""){
+  const el=document.getElementById("targetTableStatus");
+  if(!el)return;
+  el.className="status"+(type?" "+type:"");
+  el.textContent=message;
+}
+
+window.resetTargetTable=()=>{
+  editingTargetDate=null;
+  const d=document.getElementById("targetDate");
+  if(d)d.value=new Date().toISOString().slice(0,10);
+  const btn=document.getElementById("saveTargetTableBtn");
+  if(btn)btn.textContent="Save / Update";
+  setTargetStatus("");
+  buildTargetRows();
+};
+
+window.loadTargetDate=async(date)=>{
+  if(!currentUser||!date)return;
+  try{
+    const snap=await getDoc(doc(db,"drivers",currentUser.uid,"targetRanges",date));
+    const d=document.getElementById("targetDate");
+    if(d)d.value=date;
+    editingTargetDate=date;
+    const btn=document.getElementById("saveTargetTableBtn");
+    if(btn)btn.textContent="Update Record";
+    if(snap.exists()){
+      const data=snap.data();
+      buildTargetRows(Array.isArray(data.amounts)?data.amounts:DEFAULT_TARGET_AMOUNTS);
+      setTargetStatus("Record loaded. AED Amounts update karke Update Record dabayein.","success");
+      showTargetToast("Record loaded for update","success");
+    }else{
+      buildTargetRows();
+      setTargetStatus("New date record. AED Amounts enter karein.");
+    }
+    document.getElementById("targetPage")?.scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(e){
+    console.error("Target load error:",e);
+    setTargetStatus("Unable to load target record: "+(e.message||"Error"),"error");
+  }
+};
+
+window.saveTargetTable=async()=>{
+  if(!currentUser){setTargetStatus("Please login first.","error");return}
+  const date=targetDateValue();
+  const amounts=getTargetAmounts();
+
+  if(!date){setTargetStatus("Please select a date.","error");return}
+  if(amounts.length!==TARGET_PERCENTAGES.length || amounts.some(v=>!Number.isFinite(v)||v<0)){
+    setTargetStatus("Please enter valid AED Amounts.","error");return
+  }
+  let gapFound=false;
+  for(let i=0;i<amounts.length;i++){
+    if(amounts[i]===0) gapFound=true;
+    else if(gapFound){
+      setTargetStatus("Percentages ko order mein fill karein. Beech mein blank amount na rakhein.","error");return
+    }
+  }
+  for(let i=1;i<amounts.length;i++){
+    if(amounts[i]>0 && amounts[i-1]>0 && amounts[i] < amounts[i-1]){
+      setTargetStatus("Har next percentage ka Amount pichlay Amount se kam nahi hona chahiye.","error");return
+    }
+  }
+  if(!amounts.some(v=>v>0)){
+    setTargetStatus("Kam az kam ek AED Amount enter karein.","error");return
+  }
+
+  const record={
+    date,
+    percentages:TARGET_PERCENTAGES,
+    amounts,
+    maxAmount:TARGET_MAX_AMOUNT,
+    updatedAt:serverTimestamp()
+  };
+
+  try{
+    await setDoc(doc(db,"drivers",currentUser.uid,"targetRanges",date),record,{merge:true});
+    editingTargetDate=date;
+    document.getElementById("saveTargetTableBtn").textContent="Update Record";
+    setTargetStatus("Target record updated successfully.","success");
+    showTargetToast("Target updated successfully ✓","success");
+    renderSavedTargets();
+  }catch(e){
+    console.error("Target save error:",e);
+    setTargetStatus("Error: "+(e.message||"Unable to save record"),"error");
+  }
+};
+
+function renderSavedTargets(){
+  const box=document.getElementById("savedTargetList");
+  if(!box)return;
+  if(!savedTargetRecords.length){
+    box.innerHTML='<div class="target-empty">Abhi koi date record save nahi hua.</div>';
+    return;
+  }
+  const sorted=[...savedTargetRecords].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const rows=sorted.map((r,recordIndex)=>{
+    const amounts=Array.isArray(r.amounts)?r.amounts:DEFAULT_TARGET_AMOUNTS;
+    const cells=TARGET_PERCENTAGES.map((pct,i)=>{
+      const amount=Number(amounts[i]||0);
+      if(!(amount>0)) return `<td><span class="saved-target-amount">—</span><span class="saved-target-range">—</span></td>`;
+      const start=i===0?0.01:amount;
+      const next=Number(amounts[i+1]||0);
+      const end=next>0?next-0.01:TARGET_MAX_AMOUNT;
+      return `<td><span class="saved-target-amount">${money2(amount)} د.إ</span><span class="saved-target-range">${money2(start)}–${money2(end)} د.إ</span></td>`;
+    }).join("");
+    return `<tr>
+      <td class="no-cell">${recordIndex+1}</td>
+      <td class="date-cell">${r.date||"—"}</td>
+      ${cells}
+      <td><button class="saved-target-update" onclick="loadTargetDate('${r.date}')">Update</button></td>
+    </tr>`;
+  }).join("");
+  box.innerHTML=`<div class="saved-target-table-wrap">
+    <table class="saved-target-table">
+      <thead><tr><th>No.</th><th>Date</th>${TARGET_PERCENTAGES.map(p=>`<th>${p}%</th>`).join("")}<th>Update</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
 window.saveTarget=async()=>{
 if(!currentUser)return;
 const target=Number(document.getElementById("targetPercent").value||0);
@@ -854,7 +1124,13 @@ arr.forEach(x=>{const bar=document.createElement("div");bar.className="bar";bar.
 
 onAuthStateChanged(auth,async user=>{
 try{
-if(!user){currentUser=null;showAuth();return}
+if(!user){
+  currentUser=null;
+  try{if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}}catch(e){}
+  savedTargetRecords=[];
+  showAuth();
+  return
+}
 currentUser=user;hideAuth();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
@@ -876,6 +1152,19 @@ if(unsubscribeInvoices)unsubscribeInvoices();
 unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
 invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();
 },error=>{console.error("Invoice listener error:",error);document.getElementById("authError").textContent="Unable to load invoices: "+(error.message||"Firebase error");});
+
+if(unsubscribeTargets)unsubscribeTargets();
+unsubscribeTargets=onSnapshot(collection(db,"drivers",user.uid,"targetRanges"),snap=>{
+  savedTargetRecords=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderSavedTargets();
+},error=>{console.error("Target listener error:",error);});
+
+const today=new Date().toISOString().slice(0,10);
+document.getElementById("targetDate").value=today;
+editingTargetDate=null;
+document.getElementById("saveTargetTableBtn").textContent="Save / Update";
+buildTargetRows();
+renderSavedTargets();
 clearInvoice();
 }catch(error){
 console.error("Firebase startup error:",error);
