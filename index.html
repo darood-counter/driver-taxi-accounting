@@ -486,16 +486,6 @@ input:focus{border-color:#ed166a}
 <div class="status" id="targetTableStatus"></div>
 </div>
 
-<div class="form-card">
-<h2>Other Target Settings</h2>
-<div class="target-help">Ye existing settings hain; inko sirf tab change karein jab aapki calculation rates change hon.</div>
-<label>Target Percentage</label><input type="number" min="0" max="100" step="0.5" id="targetPercent" placeholder="e.g. 40">
-<label>Shift Trips Rate</label><input type="number" step="0.01" id="targetTripRate">
-<label>Booking Price</label><input type="number" step="0.01" id="targetBookingRate">
-<label>KM Rate</label><input type="number" step="0.01" id="targetKmRate">
-<button class="primary" onclick="saveTarget()">Save Target Settings</button>
-<div class="status" id="targetStatus"></div>
-</div>
 
 <div class="saved-targets-title">Saved Date Records</div>
 <div id="savedTargetList"></div>
@@ -902,7 +892,7 @@ function nId(id){return Number(document.getElementById(id).value||0)}
 
 
 const TARGET_PERCENTAGES=[5,10,15,20,25,30,35,37.5,40,42.5,45];
-const DEFAULT_TARGET_AMOUNTS=[1,260,285,310,335,360,410,435,485,535,584];
+const DEFAULT_TARGET_AMOUNTS=TARGET_PERCENTAGES.map(()=>0);
 const TARGET_MAX_AMOUNT=3000;
 
 function targetDateValue(){
@@ -936,26 +926,28 @@ function getTargetAmounts(){
 
 function updateTargetRanges(){
   const amounts=getTargetAmounts();
-  let lastFilled=-1;
-  amounts.forEach((v,i)=>{ if(Number.isFinite(v) && v>0) lastFilled=i; });
+  const filled=[];
+  amounts.forEach((v,i)=>{
+    const n=Number(v);
+    if(Number.isFinite(n) && n>0) filled.push({index:i,amount:n});
+  });
 
   amounts.forEach((amount,i)=>{
     const el=document.getElementById("targetRange"+i);
     if(!el)return;
-    if(!Number.isFinite(amount) || amount<=0){
+    const n=Number(amount);
+    if(!Number.isFinite(n) || n<=0){
       el.textContent="—";
       return;
     }
 
-    const start=i===0 ? 0.01 : amount;
-    const nextIndex=i+1;
-    const next=nextIndex<amounts.length ? Number(amounts[nextIndex]||0) : 0;
-    let end=TARGET_MAX_AMOUNT;
-    if(next>0) end=next-0.01;
-
+    const pos=filled.findIndex(x=>x.index===i);
+    const start=pos===0 ? 0.01 : n;
+    const end=pos<filled.length-1 ? filled[pos+1].amount-0.01 : TARGET_MAX_AMOUNT;
     el.innerHTML=`<span>${money2(start)}</span><span>–</span><span>${money2(end)}</span><span class="range-aed">د.إ</span>`;
   });
 }
+
 function showTargetToast(message,type="success") {
   const el=document.getElementById("targetToast");
   if(!el)return;
@@ -1016,18 +1008,6 @@ window.saveTargetTable=async()=>{
   if(amounts.length!==TARGET_PERCENTAGES.length || amounts.some(v=>!Number.isFinite(v)||v<0)){
     setTargetStatus("Please enter valid AED Amounts.","error");return
   }
-  let gapFound=false;
-  for(let i=0;i<amounts.length;i++){
-    if(amounts[i]===0) gapFound=true;
-    else if(gapFound){
-      setTargetStatus("Percentages ko order mein fill karein. Beech mein blank amount na rakhein.","error");return
-    }
-  }
-  for(let i=1;i<amounts.length;i++){
-    if(amounts[i]>0 && amounts[i-1]>0 && amounts[i] < amounts[i-1]){
-      setTargetStatus("Har next percentage ka Amount pichlay Amount se kam nahi hona chahiye.","error");return
-    }
-  }
   if(!amounts.some(v=>v>0)){
     setTargetStatus("Kam az kam ek AED Amount enter karein.","error");return
   }
@@ -1043,6 +1023,10 @@ window.saveTargetTable=async()=>{
   try{
     await setDoc(doc(db,"drivers",currentUser.uid,"targetRanges",date),record,{merge:true});
     editingTargetDate=date;
+    const savedRecord={...record,id:date};
+    const existingIndex=savedTargetRecords.findIndex(r=>r.date===date);
+    if(existingIndex>=0) savedTargetRecords[existingIndex]=savedRecord;
+    else savedTargetRecords.push(savedRecord);
     document.getElementById("saveTargetTableBtn").textContent="Update Record";
     setTargetStatus("Target record updated successfully.","success");
     showTargetToast("Target updated successfully ✓","success");
@@ -1063,12 +1047,14 @@ function renderSavedTargets(){
   const sorted=[...savedTargetRecords].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
   const rows=sorted.map((r,recordIndex)=>{
     const amounts=Array.isArray(r.amounts)?r.amounts:DEFAULT_TARGET_AMOUNTS;
+    const filled=[];
+    amounts.forEach((v,i)=>{const n=Number(v||0); if(n>0) filled.push({index:i,amount:n});});
     const cells=TARGET_PERCENTAGES.map((pct,i)=>{
       const amount=Number(amounts[i]||0);
-      if(!(amount>0)) return `<td><span class="saved-target-amount">—</span><span class="saved-target-range">—</span></td>`;
-      const start=i===0?0.01:amount;
-      const next=Number(amounts[i+1]||0);
-      const end=next>0?next-0.01:TARGET_MAX_AMOUNT;
+      if(!(amount>0)) return `<td><span class="saved-target-amount">0.00 د.إ</span><span class="saved-target-range">—</span></td>`;
+      const pos=filled.findIndex(x=>x.index===i);
+      const start=pos===0?0.01:amount;
+      const end=pos<filled.length-1?filled[pos+1].amount-0.01:TARGET_MAX_AMOUNT;
       return `<td><span class="saved-target-amount">${money2(amount)} د.إ</span><span class="saved-target-range">${money2(start)}–${money2(end)} د.إ</span></td>`;
     }).join("");
     return `<tr>
@@ -1086,17 +1072,6 @@ function renderSavedTargets(){
   </div>`;
 }
 
-window.saveTarget=async()=>{
-if(!currentUser)return;
-const target=Number(document.getElementById("targetPercent").value||0);
-const tripRate=Number(document.getElementById("targetTripRate").value||0);
-const bookingRate=Number(document.getElementById("targetBookingRate").value||0);
-const kmRate=Number(document.getElementById("targetKmRate").value||0);
-await setDoc(doc(db,"drivers",currentUser.uid),{targetPercent:target,shiftTripsRate:tripRate,bookingPrice:bookingRate,kmRate,updatedAt:serverTimestamp()},{merge:true});
-driverData={...driverData,targetPercent:target,shiftTripsRate:tripRate,bookingPrice:bookingRate,kmRate};
-document.getElementById("targetStatus").textContent="Target settings saved.";
-updateDashboard();
-};
 
 function updateDashboard(){
 const total=invoices.reduce((s,x)=>s+(Number(x.net)||0),0);
@@ -1144,10 +1119,6 @@ document.getElementById("profileEmail").textContent=driverData.email||user.email
 const profileName=driverData.name||"Driver";
 document.getElementById("profileHeroName").textContent=profileName;
 document.getElementById("profileAvatar").textContent=(profileName.trim().charAt(0)||"D").toUpperCase();
-document.getElementById("targetPercent").value=driverData.targetPercent??"";
-document.getElementById("targetTripRate").value=driverData.shiftTripsRate??"";
-document.getElementById("targetBookingRate").value=driverData.bookingPrice??"";
-document.getElementById("targetKmRate").value=driverData.kmRate??"";
 if(unsubscribeInvoices)unsubscribeInvoices();
 unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
 invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();
