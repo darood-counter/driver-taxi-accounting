@@ -59,7 +59,147 @@ input:focus{border-color:#ed166a}
 .edit-btn{background:#eef0f5}.delete-btn{background:#ffe7ef;color:#a3003f}
 .user-box{background:#fff;border-radius:20px;padding:18px;margin-bottom:20px}
 .small{font-size:13px;color:#737783}
-@media(max-width:390px){.hello{font-size:34px}.total{font-size:35px}.brand{font-size:30px}main{padding:0 16px}.topbar{padding:0 16px}}
+/* ===== Mobile-first responsive layout ===== */
+@media(max-width:600px){
+  html,body{width:100%;overflow-x:hidden}
+  body{font-size:15px}
+  .app{width:100%;max-width:none;padding-bottom:24px}
+  .topbar{
+    height:64px;
+    padding:0 14px;
+  }
+  .icon-btn{font-size:26px;padding:4px}
+  .brand{font-size:26px;letter-spacing:-1px}
+  .bell{font-size:23px}
+  main{padding:0 14px}
+  .hello{
+    font-size:31px;
+    line-height:1.15;
+    margin:18px 0 28px;
+    letter-spacing:-1px;
+  }
+  .section-title{
+    font-size:19px;
+    margin-bottom:12px;
+  }
+  .notice{
+    border-width:1.5px;
+    border-radius:20px;
+    padding:12px;
+    gap:9px;
+    margin-bottom:28px;
+  }
+  .notice-icon{
+    width:44px;height:44px;
+    font-size:22px;
+    flex:0 0 44px;
+  }
+  .notice-text{font-size:14px;line-height:1.25}
+  .badge{padding:9px 10px;border-radius:9px;font-size:13px}
+  .card{
+    border-radius:21px;
+    padding:18px 15px;
+    margin-bottom:25px;
+  }
+  .period{font-size:14px;margin-bottom:14px}
+  .total{font-size:32px;letter-spacing:-1px}
+  .currency{font-size:16px}
+  .money-icon{
+    width:58px;height:58px;
+    font-size:25px;
+  }
+  .chart{
+    height:180px;
+    gap:5px;
+    padding:14px 0 4px;
+  }
+  .bar{min-width:7px;border-radius:5px 5px 0 0}
+  .days{gap:3px;font-size:9px;padding-top:6px}
+  .avg{margin-top:25px;border-left-width:4px;padding-left:10px}
+  .avg-label{font-size:13px;margin-bottom:5px}
+  .avg-value{font-size:25px}
+  .quick-grid{gap:8px;margin-bottom:25px}
+  .quick{
+    border-radius:16px;
+    padding:13px 5px;
+    font-size:12px;
+    min-height:84px;
+  }
+  .quick span{font-size:23px;margin-bottom:6px}
+  .summary-grid{gap:8px}
+  .summary{border-radius:16px;padding:14px 12px}
+  .summary small{font-size:12px;margin-bottom:5px}
+  .summary strong{font-size:20px}
+  .back{
+    padding:10px 13px;
+    border-radius:12px;
+    margin-bottom:14px
+  }
+  .form-card{
+    border-radius:19px;
+    padding:17px 14px;
+    margin-bottom:16px
+  }
+  .form-card h2{font-size:21px;margin-bottom:14px}
+  label{font-size:13px;margin:11px 0 6px}
+  input{
+    padding:13px 12px;
+    min-height:47px;
+    border-radius:11px;
+    font-size:16px;
+  }
+  .primary{
+    border-radius:12px;
+    padding:14px;
+    font-size:15px;
+    margin-top:15px
+  }
+  .result{
+    border-radius:12px;
+    padding:12px;
+    font-size:13px;
+    line-height:1.5
+  }
+  .history-item{
+    border-radius:16px;
+    padding:14px;
+    margin-bottom:9px
+  }
+  .history-top{font-size:13px}
+  .history-net{font-size:21px;margin:7px 0}
+  .history-actions{gap:6px}
+  .history-actions button{padding:10px 7px;font-size:13px}
+  .user-box{border-radius:16px;padding:15px}
+  .menu{
+    width:min(86%,330px);
+    padding:24px 17px;
+    border-radius:0 22px 22px 0
+  }
+  .menu h2{font-size:23px;margin-bottom:20px}
+  .menu button{padding:14px 7px;font-size:16px}
+  .auth-screen{padding:14px}
+  .auth-card{
+    max-width:none;
+    border-radius:21px;
+    padding:20px 16px;
+  }
+  .auth-card h1{font-size:26px}
+  .auth-tabs{margin-bottom:15px}
+}
+
+@media(max-width:390px){
+  .topbar{height:60px;padding:0 12px}
+  .brand{font-size:24px}
+  main{padding:0 12px}
+  .hello{font-size:28px;margin:16px 0 24px}
+  .section-title{font-size:18px}
+  .notice-text{font-size:13px}
+  .total{font-size:29px}
+  .money-icon{width:52px;height:52px}
+  .chart{height:160px}
+  .quick{min-height:80px;font-size:11px}
+  .summary strong{font-size:18px}
+}
 
 .auth-screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:24px;background:#f5f5f5}
 .auth-card{width:100%;max-width:520px;background:#fff;border-radius:28px;padding:26px 22px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
@@ -70,11 +210,6 @@ input:focus{border-color:#ed166a}
 .auth-error{color:#b0003a;font-size:14px;font-weight:700;margin-top:12px;min-height:22px;line-height:1.4}
 .auth-success{color:#137333;font-size:14px;margin-top:12px;min-height:18px}
 .auth-note{font-size:12px;color:#737783;margin-top:15px;line-height:1.45}.password-wrap{position:relative}.password-wrap input{padding-right:72px}.show-pass{position:absolute;right:8px;top:7px;border:0;background:#eef0f5;border-radius:9px;padding:9px 10px;font-weight:700;color:#444;cursor:pointer}
-</style>
-
-<style>
-.profile-mobile{max-width:520px;margin:0 auto;background:#f5f7fa;border-radius:22px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.08)}.profile-hero{background:#10233f;color:white;padding:16px 18px 28px;text-align:center}.profile-nav{display:flex;align-items:center;justify-content:space-between;font-size:18px}.profile-nav button{background:rgba(255,255,255,.12);border:0;color:white;border-radius:10px;width:38px;height:38px;font-size:20px}.avatar{width:86px;height:86px;border-radius:50%;background:#fff;color:#10233f;display:flex;align-items:center;justify-content:center;margin:22px auto 10px;font-size:34px;font-weight:800}.profile-hero h2{margin:0;font-size:23px}.hero-id{opacity:.75;margin-top:5px}.profile-body{padding:20px 16px 26px}.profile-body h3{font-size:16px;margin:4px 4px 10px}.profile-card,.security-card{background:white;border-radius:16px;padding:6px 14px;margin-bottom:20px;box-shadow:0 3px 12px rgba(0,0,0,.05)}.p-row{display:flex;justify-content:space-between;gap:10px;padding:15px 2px;border-bottom:1px solid #edf0f3;font-size:14px}.p-row:last-child{border-bottom:0}.p-row span{color:#667085}.p-row b{color:#172033;text-align:left;word-break:break-word}.security-card{padding:16px}.security-card h4{margin:0 0 6px;font-size:17px}.security-card p{font-size:12px;color:#667085;line-height:1.5;margin:0 0 12px}.pw-box{display:flex;background:#f6f7f9;border:1px solid #e1e5ea;border-radius:11px;margin:9px 0;overflow:hidden}.pw-box input{width:100%;border:0;background:transparent;padding:13px;outline:0}.pw-box button{border:0;background:transparent;padding:0 12px;color:#2457a6;font-weight:700}.change-pw,.profile-logout{width:100%;border:0;border-radius:11px;padding:13px;font-weight:700;font-size:15px}.change-pw{background:#10233f;color:#fff;margin-top:6px}.profile-logout{background:#fff;color:#c0392b;border:1px solid #f0d5d1}.pw-status{font-size:12px;text-align:center;margin-top:9px;min-height:18px}
-@media(max-width:600px){body{margin:0!important;padding:0!important}.app,.container,.main,.page{width:100%!important;max-width:none!important}.profile-mobile{min-height:100vh;border-radius:0;box-shadow:none}.profile-body{padding-bottom:90px}.profile-nav{padding-top:4px}.p-row{font-size:13px}}
 </style>
 </head>
 <body>
@@ -212,7 +347,15 @@ input:focus{border-color:#ed166a}
 </section>
 
 <section id="profilePage" class="page">
-<div class="profile-mobile"><div class="profile-hero"><div class="profile-nav"><button onclick="showPage('dashboardPage')">←</button><b>Driver Profile</b><button type="button">?</button></div><div class="avatar" id="profileAvatar">D</div><h2 id="profileName">Driver</h2><div class="hero-id" id="profileDriverId">—</div></div><div class="profile-body"><h3>Contact Details</h3><div class="profile-card"><div class="p-row"><span>👤 Name</span><b id="profileName2">—</b></div><div class="p-row"><span>✉ Email</span><b id="profileEmail">—</b></div><div class="p-row"><span>📱 Phone Number</span><b id="profileMobile">—</b></div><div class="p-row"><span>🪪 Driver ID</span><b id="profileDriverId2">—</b></div></div><h3>Account Security</h3><div class="security-card"><h4>Change Password</h4><p>Enter a new password. After changing it successfully, you will be logged out automatically.</p><div class="pw-box"><input id="newProfilePassword" type="password" placeholder="New Password"><button type="button" onclick="toggleProfilePassword('newProfilePassword',this)">Show</button></div><div class="pw-box"><input id="confirmProfilePassword" type="password" placeholder="Confirm Password"><button type="button" onclick="toggleProfilePassword('confirmProfilePassword',this)">Show</button></div><button class="change-pw" id="changePasswordBtn" onclick="changeProfilePassword()">Change Password</button><div id="passwordStatus" class="pw-status"></div></div><button class="profile-logout" onclick="logout()">↪ Logout</button></div></div></section>
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="user-box">
+<h2>Driver Profile</h2>
+<div><b>Name:</b> <span id="profileName">—</span></div>
+<div><b>Driver ID:</b> <span id="profileDriverId">—</span></div>
+<div><b>Mobile:</b> <span id="profileMobile">—</span></div>
+
+</div>
+</section>
 </main>
 </div>
 
@@ -231,7 +374,7 @@ input:focus{border-color:#ed166a}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -508,10 +651,6 @@ document.getElementById("helloText").textContent="Hi, "+(driverData.name||"Drive
 document.getElementById("profileName").textContent=driverData.name||"—";
 document.getElementById("profileDriverId").textContent=driverData.driverId||"—";
 document.getElementById("profileMobile").textContent=driverData.mobile||"—";
-document.getElementById("profileEmail").textContent=driverData.email||user.email||"—";
-document.getElementById("profileName2").textContent=driverData.name||"—";
-document.getElementById("profileDriverId2").textContent=driverData.driverId||"—";
-document.getElementById("profileAvatar").textContent=(driverData.name||"D").trim().charAt(0).toUpperCase()||"D";
 document.getElementById("targetPercent").value=driverData.targetPercent??"";
 document.getElementById("targetTripRate").value=driverData.shiftTripsRate??"";
 document.getElementById("targetBookingRate").value=driverData.bookingPrice??"";
@@ -533,9 +672,6 @@ document.getElementById("authError").textContent="Firebase error: "+(error.messa
 <script>
 window.addEventListener("error",e=>{console.error(e.error||e.message);const x=document.getElementById("authError");if(x&&e.message)x.textContent="Page error: "+e.message;});
 window.addEventListener("unhandledrejection",e=>{console.error(e.reason);const x=document.getElementById("authError");if(x&&e.reason)x.textContent="App error: "+(e.reason.message||String(e.reason));});
-
-window.toggleProfilePassword=(id,btn)=>{const input=document.getElementById(id);if(!input)return;const show=input.type==='password';input.type=show?'text':'password';btn.textContent=show?'Hide':'Show'};
-window.changeProfilePassword=async()=>{const np=document.getElementById('newProfilePassword').value;const cp=document.getElementById('confirmProfilePassword').value;const st=document.getElementById('passwordStatus');const btn=document.getElementById('changePasswordBtn');if(!currentUser){st.textContent='Please login first.';return}if(np.length<6){st.textContent='Password must be at least 6 characters.';return}if(np!==cp){st.textContent='Passwords do not match.';return}btn.disabled=true;btn.textContent='Changing...';try{await updatePassword(currentUser,np);st.textContent='Password changed successfully. Logging out...';setTimeout(async()=>{try{await signOut(auth)}catch(e){}showAuth();showAuthMode('login')},900)}catch(e){st.textContent=e?.code==='auth/requires-recent-login'?'For security, please logout and login again, then change the password.':(typeof authMsg==='function'?authMsg(e):'Password change failed.');btn.disabled=false;btn.textContent='Change Password'}};
 </script>
 </body>
 </html>
