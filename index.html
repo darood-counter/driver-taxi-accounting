@@ -467,6 +467,9 @@ input:focus{border-color:#ed166a}
 <button class="primary" id="saveInvoiceBtn" onclick="saveInvoice()">Save Invoice</button>
 <div class="status" id="invoiceStatus"></div>
 </div>
+
+<div class="saved-invoice-title">Saved Records</div>
+<div id="savedInvoiceList"></div>
 </section>
 
 <section id="historyPage" class="page">
@@ -949,6 +952,41 @@ if(!confirm("Delete this invoice? This cannot be undone."))return;
 await deleteDoc(doc(db,"drivers",currentUser.uid,"invoices",id));
 };
 
+
+function renderSavedInvoices(){
+  const box=document.getElementById("savedInvoiceList");
+  if(!box)return;
+  if(!invoices.length){box.innerHTML='<div class="invoice-empty">No invoice records saved yet.</div>';return}
+  const rows=[...invoices].sort((a,b)=>{
+    const ca=Number(a.createdAt?.seconds||0), cb=Number(b.createdAt?.seconds||0);
+    return ca-cb;
+  }).map((x,index)=>{
+    const v=k=>money(x[k]);
+    const safeId=String(x.id||"").replace(/'/g,"\\'");
+    return `<tr>
+      <td class="invoice-no-cell">${index+1}</td>
+      <td class="invoice-date-cell">${x.date||"—"}</td>
+      <td>${x.invoiceNumber||"—"}</td>
+      <td>${v("creditCard")}</td><td>${v("app")}</td><td>${v("cash")}</td><td>${v("tips")}</td>
+      <td>${v("tolls")}</td><td>${v("shiftDiscount")}</td><td>${v("shiftTrips")}</td><td>${v("bookings")}</td>
+      <td>${v("km")}</td><td>${v("careemDiscount")}</td><td>${v("paidCareem")}</td><td>${v("halaJunior")}</td>
+      <td>${v("halaPeak")}</td><td>${v("peak")}</td><td>${v("extraCharges")}</td>
+      <td>${v("total")}</td><td>${v("deductions")}</td><td class="net-cell">${v("net")}</td>
+      <td><button class="saved-invoice-update" onclick="editInvoice('${safeId}')">✏️ Update</button></td>
+    </tr>`;
+  }).join("");
+  box.innerHTML=`<div class="saved-invoice-table-wrap">
+    <table class="saved-invoice-table">
+      <thead><tr>
+        <th>No.</th><th>Date</th><th>Invoice No.</th><th>Credit Card</th><th>App</th><th>Cash</th><th>Tips</th>
+        <th>Tollways</th><th>Shift Discount</th><th>Shift Trips</th><th>Bookings</th><th>Kilometers Hired</th>
+        <th>Careem Discount</th><th>Paid in Careem</th><th>Hala Juniors</th><th>Hala Peak</th><th>Peak</th><th>Extra Charges</th>
+        <th>Total</th><th>Deductions</th><th>Net</th><th>Update</th>
+      </tr></thead><tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
 function renderHistory(){
 const box=document.getElementById("historyList");
 if(!invoices.length){box.innerHTML='<div class="form-card">No invoices saved yet.</div>';return}
@@ -1261,7 +1299,7 @@ document.getElementById("profileHeroName").textContent=profileName;
 document.getElementById("profileAvatar").textContent=(profileName.trim().charAt(0)||"D").toUpperCase();
 if(unsubscribeInvoices)unsubscribeInvoices();
 unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
-invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();
+invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();renderSavedInvoices();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();
 },error=>{console.error("Invoice listener error:",error);document.getElementById("authError").textContent="Unable to load invoices: "+(error.message||"Firebase error");});
 
 if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
