@@ -85,6 +85,13 @@ input:focus{border-color:#ed166a}
 .profile-status{font-size:14px;min-height:18px;margin-top:10px;line-height:1.4}
 .profile-status.error{color:#b0003a;font-weight:700}
 .profile-status.success{color:#137333;font-weight:700}
+/* Profile-specific top bar: compact and friendly on mobile */
+.topbar.profile-mode{justify-content:center;position:sticky;top:0}
+.topbar.profile-mode .topbar-left{position:absolute;left:14px}
+.topbar.profile-mode .brand{font-size:25px;letter-spacing:-.5px}
+.topbar.profile-mode .bell{display:none}
+.profile-page-title{display:none}
+.profile-hero{margin-top:4px}
 /* ===== Mobile-first responsive layout ===== */
 @media(max-width:600px){
   html,body{width:100%;overflow-x:hidden}
@@ -217,6 +224,16 @@ input:focus{border-color:#ed166a}
   }
   .profile-detail{min-height:66px;gap:12px}
   .profile-detail-icon{width:42px;height:42px;flex-basis:42px;font-size:20px}
+  .topbar.profile-mode{height:58px;padding:0 14px}
+  .topbar.profile-mode .brand{font-size:22px}
+  .topbar.profile-mode .topbar-left{font-size:27px;left:10px}
+  .profile-hero{border-radius:22px;padding:24px 18px 21px;margin-top:2px;margin-bottom:14px}
+  .profile-avatar{width:86px;height:86px;font-size:32px;margin-bottom:10px}
+  .profile-hero h2{font-size:26px;margin-bottom:4px}
+  .profile-sub{font-size:14px}
+  .profile-section-title{font-size:18px;margin:14px 2px 8px}
+  .profile-detail-card{border-radius:20px;padding:5px 14px;margin-bottom:14px}
+  .profile-detail{min-height:68px;gap:11px}
   .profile-detail-label{font-size:12px;margin-bottom:3px}
   .profile-detail-value{font-size:16px}
   .profile-password-card{
@@ -309,10 +326,10 @@ input:focus{border-color:#ed166a}
   </div>
 </div>
 <div class="app" id="appShell" style="display:none">
-<header class="topbar">
-<button class="icon-btn" onclick="toggleMenu()">☰</button>
-<div class="brand">Driver's</div>
-<button class="icon-btn bell">♧</button>
+<header class="topbar" id="mainTopbar">
+<button class="icon-btn topbar-left" id="topbarLeftBtn" onclick="toggleMenu()">☰</button>
+<div class="brand" id="topbarBrand">Driver's</div>
+<button class="icon-btn bell" id="topbarBell">♧</button>
 </header>
 
 <main>
@@ -404,7 +421,6 @@ input:focus{border-color:#ed166a}
 </section>
 
 <section id="profilePage" class="page">
-<button class="back" onclick="showPage('dashboardPage')">← Back</button>
 <h2 class="profile-page-title">Driver Profile</h2>
 
 <div class="profile-hero">
@@ -517,6 +533,19 @@ window.toggleMenu=()=>document.getElementById("drawer").classList.toggle("open")
 window.showPage=pageId=>{
 document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
 document.getElementById(pageId).classList.add("active");
+
+const topbar=document.getElementById("mainTopbar");
+const leftBtn=document.getElementById("topbarLeftBtn");
+const brand=document.getElementById("topbarBrand");
+const bell=document.getElementById("topbarBell");
+const isProfile=pageId==="profilePage";
+if(topbar&&leftBtn&&brand&&bell){
+  topbar.classList.toggle("profile-mode",isProfile);
+  leftBtn.textContent=isProfile?"←":"☰";
+  leftBtn.onclick=isProfile?()=>showPage("dashboardPage"):()=>toggleMenu();
+  brand.textContent=isProfile?"Driver Profile":"Driver's";
+  bell.style.display=isProfile?"none":"block";
+}
 if(pageId==="historyPage")renderHistory();
 };
 
