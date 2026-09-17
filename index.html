@@ -347,17 +347,21 @@ input:focus{border-color:#ed166a}
 .charge-range label{margin:2px 0 5px}
 .charge-cycle2{display:none}
 .saved-charge-title{font-size:17px;font-weight:900;margin:18px 0 8px}
-.saved-charge-item{background:#fff;border-radius:18px;padding:15px;margin-bottom:10px;border:1px solid #e8eaf0}
-.saved-charge-top{display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:900}
-.saved-charge-day{font-size:17px}
-.saved-charge-cycles{font-size:12px;color:#737783;font-weight:700;margin-top:5px;line-height:1.55}
-.saved-charge-values{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.saved-charge-value{background:#f5f6fa;border-radius:11px;padding:10px 7px;text-align:center}
-.saved-charge-value small{display:block;color:#737783;font-size:10px;font-weight:800;margin-bottom:3px}
-.saved-charge-value strong{font-size:14px}
-.saved-charge-update{width:100%;border:0;border-radius:11px;padding:11px;margin-top:10px;background:#eef0f5;font-weight:800;cursor:pointer}
+.saved-charge-table-wrap{overflow-x:auto;overflow-y:hidden;border:1px solid #e5e7eb;border-radius:17px;background:#fff;-webkit-overflow-scrolling:touch}
+.saved-charge-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}
+.saved-charge-table th{background:#eef0f5;color:#4b5563;font-size:11px;font-weight:900;padding:11px 7px;text-align:center;white-space:nowrap;border-right:1px solid #e5e7eb}
+.saved-charge-table th:last-child{border-right:0}
+.saved-charge-table th:nth-child(1){width:48px}.saved-charge-table th:nth-child(2){width:105px}.saved-charge-table th:nth-child(3){width:72px}
+.saved-charge-table th:nth-child(4),.saved-charge-table th:nth-child(5){width:145px}
+.saved-charge-table th:nth-child(6),.saved-charge-table th:nth-child(7),.saved-charge-table th:nth-child(8){width:105px}
+.saved-charge-table th:nth-child(9){width:82px}
+.saved-charge-table td{padding:9px 6px;text-align:center;border-top:1px solid #eef0f3;border-right:1px solid #eef0f3;font-size:12px;font-weight:800;vertical-align:middle;white-space:nowrap}
+.saved-charge-table td:last-child{border-right:0}
+.saved-charge-table .no-cell{font-size:13px;font-weight:900}.saved-charge-table .date-cell{font-weight:900}
+.saved-charge-table .range-cell{font-size:11px;line-height:1.35}.saved-charge-table .charge-cell{font-size:12px;font-weight:900}
+.saved-charge-update{border:0;border-radius:9px;padding:8px 9px;background:#eef0f5;font-weight:900;cursor:pointer;white-space:nowrap}
 .charge-empty{background:#fff;border-radius:16px;padding:14px;color:#737783;font-size:13px;text-align:center}
-@media(max-width:390px){.charge-day-row,.charge-range-grid{grid-template-columns:1fr}.charge-range{grid-template-columns:1fr 1fr}.charge-field select,.charge-field input[type="date"]{padding:12px;font-size:16px;min-height:47px}.saved-charge-values{gap:5px}.saved-charge-value{padding:9px 4px}.saved-charge-value strong{font-size:13px}}
+@media(max-width:390px){.charge-day-row,.charge-range-grid{grid-template-columns:1fr}.charge-range{grid-template-columns:1fr 1fr}.charge-field select,.charge-field input[type="date"]{padding:12px;font-size:16px;min-height:47px}}
 </style>
 </head>
 <body>
@@ -966,7 +970,23 @@ function initChargeSelectors(){["chargeFrom1","chargeTo1","chargeFrom2","chargeT
 function resetChargeSetup(date=""){editingChargeDate=null;document.getElementById("chargeDate").value=date||new Date().toISOString().slice(0,10);document.getElementById("chargeCycleType").value="1";["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>document.getElementById(id).value="");document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save / Update";chargeStatus("")}
 window.loadChargeDate=date=>{const r=savedChargeRecords.find(x=>String(x.date)===String(date));if(!r){resetChargeSetup(date);return}editingChargeDate=r.date;document.getElementById("chargeDate").value=r.date;document.getElementById("chargeCycleType").value=String(r.cycleType||1);const c=r.ranges||[];document.getElementById("chargeFrom1").value=String(c[0]?.from||1);document.getElementById("chargeTo1").value=String(c[0]?.to||1);document.getElementById("chargeFrom2").value=String(c[0]?.from||1);document.getElementById("chargeTo2").value=String(c[0]?.to||1);document.getElementById("chargeFrom3").value=String(c[1]?.from||1);document.getElementById("chargeTo3").value=String(c[1]?.to||1);document.getElementById("fuelCharges").value=r.fuelCharges??"";document.getElementById("rtaCharges").value=r.rtaCharges??"";document.getElementById("bookingCharges").value=r.bookingCharges??"";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Record loaded. Changes karke Update Record dabayein.","success")}
 window.saveChargeSetup=async()=>{if(!currentUser){chargeStatus("Please login first.","error");return}const date=document.getElementById("chargeDate").value,cycleType=Number(document.getElementById("chargeCycleType").value);const fuelRaw=document.getElementById("fuelCharges").value.trim(),rtaRaw=document.getElementById("rtaCharges").value.trim(),bookingRaw=document.getElementById("bookingCharges").value.trim();if(!date){chargeStatus("Please select a complete date.","error");return}const f1=Number(document.getElementById("chargeFrom1").value),t1=Number(document.getElementById("chargeTo1").value),f2=Number(document.getElementById("chargeFrom2").value),t2=Number(document.getElementById("chargeTo2").value),f3=Number(document.getElementById("chargeFrom3").value),t3=Number(document.getElementById("chargeTo3").value);const valid=v=>Number.isInteger(v)&&v>=1&&v<=31;if(!valid(f1)||!valid(t1)||(cycleType===2&&(!valid(f2)||!valid(t2)||!valid(f3)||!valid(t3)))){chargeStatus("Kindly please select all Day numbers for the selected range(s).","error");return}if(fuelRaw===""||rtaRaw===""||bookingRaw===""){chargeStatus("Kindly please enter all Fuel, RTA and Booking Charge numbers before saving/updating.","error");return}const fuelCharges=Number(fuelRaw),rtaCharges=Number(rtaRaw),bookingCharges=Number(bookingRaw);if(![fuelCharges,rtaCharges,bookingCharges].every(v=>Number.isFinite(v)&&v>=0)){chargeStatus("Charges must be valid AED amounts (0 or more).","error");return}const ranges=[{from:f1,to:t1},...(cycleType===2?[{from:f2,to:t2},{from:f3,to:t3}]:[])];const record={date,cycleType,ranges,fuelCharges,rtaCharges,bookingCharges,updatedAt:new Date().toISOString()};try{const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{},chargeSetupsByDate={...(existing.chargeSetupsByDate||{}),[date]:record};await setDoc(ref,{chargeSetupsByDate},{merge:true});driverData={...driverData,chargeSetupsByDate};editingChargeDate=date;const i=savedChargeRecords.findIndex(x=>String(x.date)===String(date));const saved={...record,id:date};if(i>=0)savedChargeRecords[i]=saved;else savedChargeRecords.push(saved);const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Charge setup saved successfully.","success");renderSavedCharges()}catch(e){console.error("Charge setup save error:",e);chargeStatus("Error: "+(e.message||"Unable to save record"),"error")}}
-function renderSavedCharges(){const box=document.getElementById("savedChargeList");if(!box)return;if(!savedChargeRecords.length){box.innerHTML='<div class="charge-empty">Abhi koi charge setup save nahi hua.</div>';return}box.innerHTML=[...savedChargeRecords].sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(r=>{const c=r.ranges||[];const ct=(r.cycleType===2?`Range 1: Day ${c[0]?.from} se Day ${c[0]?.to} · Range 2: Day ${c[1]?.from} se Day ${c[1]?.to}`:`Range: Day ${c[0]?.from} se Day ${c[0]?.to}`);return `<div class="saved-charge-item"><div class="saved-charge-top"><span class="saved-charge-day">${r.date||""}</span><span>Cycle ${r.cycleType||1}</span></div><div class="saved-charge-cycles">${ct}</div><div class="saved-charge-values"><div class="saved-charge-value"><small>Fuel</small><strong>${money(r.fuelCharges)} AED</strong></div><div class="saved-charge-value"><small>RTA</small><strong>${money(r.rtaCharges)} AED</strong></div><div class="saved-charge-value"><small>Booking</small><strong>${money(r.bookingCharges)} AED</strong></div></div><button class="saved-charge-update" onclick="loadChargeDate('${r.date}')">✏️ Update</button></div>`}).join("")}
+function renderSavedCharges(){
+  const box=document.getElementById("savedChargeList");
+  if(!box)return;
+  if(!savedChargeRecords.length){
+    box.innerHTML='<div class="charge-empty">Abhi koi charge setup save nahi hua.</div>';
+    return;
+  }
+  const sorted=[...savedChargeRecords].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const rows=sorted.map((r,recordIndex)=>{
+    const ranges=Array.isArray(r.ranges)?r.ranges:[];
+    const range1=ranges[0]?`Day ${ranges[0].from} → Day ${ranges[0].to}`:"—";
+    const range2=(r.cycleType===2 && ranges[1])?`Day ${ranges[1].from} → Day ${ranges[1].to}`:"—";
+    return `<tr><td class="no-cell">${recordIndex+1}</td><td class="date-cell">${r.date||"—"}</td><td>Cycle ${r.cycleType||1}</td><td class="range-cell">${range1}</td><td class="range-cell">${range2}</td><td class="charge-cell">${money(r.fuelCharges)} AED</td><td class="charge-cell">${money(r.rtaCharges)} AED</td><td class="charge-cell">${money(r.bookingCharges)} AED</td><td><button class="saved-charge-update" onclick="loadChargeDate('${r.date}')">Update</button></td></tr>`;
+  }).join("");
+  box.innerHTML=`<div class="saved-charge-table-wrap"><table class="saved-charge-table"><thead><tr><th>No.</th><th>Date</th><th>Cycle</th><th>Range 1</th><th>Range 2</th><th>Fuel Charges</th><th>RTA Charges</th><th>Booking Charges</th><th>Update</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
 initChargeSelectors();document.getElementById("chargeCycleType")?.addEventListener("change",setChargeCycleUI);resetChargeSetup(new Date().toISOString().slice(0,10));setChargeCycleUI();
 
 const TARGET_PERCENTAGES=[5,10,15,20,25,30,35,37.5,40,42.5,45];
