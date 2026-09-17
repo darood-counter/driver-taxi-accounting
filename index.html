@@ -351,17 +351,22 @@ input:focus{border-color:#ed166a}
 .saved-charge-table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:fixed}
 .saved-charge-table th{background:#eef0f5;color:#4b5563;font-size:11px;font-weight:900;padding:11px 7px;text-align:center;white-space:nowrap;border-right:1px solid #e5e7eb}
 .saved-charge-table th:last-child{border-right:0}
-.saved-charge-table th:nth-child(1){width:48px}.saved-charge-table th:nth-child(2){width:105px}.saved-charge-table th:nth-child(3){width:72px}
-.saved-charge-table th:nth-child(4),.saved-charge-table th:nth-child(5){width:145px}
-.saved-charge-table th:nth-child(6),.saved-charge-table th:nth-child(7),.saved-charge-table th:nth-child(8){width:105px}
-.saved-charge-table th:nth-child(9){width:82px}
+.saved-charge-table th:nth-child(1){width:48px}.saved-charge-table th:nth-child(2){width:105px}.saved-charge-table th:nth-child(3){width:72px}.saved-charge-table th:nth-child(4),.saved-charge-table th:nth-child(5){width:125px}.saved-charge-table th:nth-child(6),.saved-charge-table th:nth-child(7),.saved-charge-table th:nth-child(8){width:105px}.saved-charge-table th:nth-child(9){width:92px}
 .saved-charge-table td{padding:9px 6px;text-align:center;border-top:1px solid #eef0f3;border-right:1px solid #eef0f3;font-size:12px;font-weight:800;vertical-align:middle;white-space:nowrap}
 .saved-charge-table td:last-child{border-right:0}
-.saved-charge-table .no-cell{font-size:13px;font-weight:900}.saved-charge-table .date-cell{font-weight:900}
-.saved-charge-table .range-cell{font-size:11px;line-height:1.35}.saved-charge-table .charge-cell{font-size:12px;font-weight:900}
-.saved-charge-update{border:0;border-radius:9px;padding:8px 9px;background:#eef0f5;font-weight:900;cursor:pointer;white-space:nowrap}
+.saved-charge-table .charge-no-cell{font-size:13px;font-weight:900}.saved-charge-table .charge-date-cell{font-weight:900}.saved-charge-table .charge-cycle-cell{font-weight:900}.saved-charge-table .charge-range-cell{font-size:11px}
+.saved-charge-table .saved-charge-update{width:auto;margin-top:0;padding:8px 9px}
+.saved-charge-item{background:#fff;border-radius:18px;padding:15px;margin-bottom:10px;border:1px solid #e8eaf0}
+.saved-charge-top{display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:900}
+.saved-charge-day{font-size:17px}
+.saved-charge-cycles{font-size:12px;color:#737783;font-weight:700;margin-top:5px;line-height:1.55}
+.saved-charge-values{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.saved-charge-value{background:#f5f6fa;border-radius:11px;padding:10px 7px;text-align:center}
+.saved-charge-value small{display:block;color:#737783;font-size:10px;font-weight:800;margin-bottom:3px}
+.saved-charge-value strong{font-size:14px}
+.saved-charge-update{width:100%;border:0;border-radius:11px;padding:11px;margin-top:10px;background:#eef0f5;font-weight:800;cursor:pointer}
 .charge-empty{background:#fff;border-radius:16px;padding:14px;color:#737783;font-size:13px;text-align:center}
-@media(max-width:390px){.charge-day-row,.charge-range-grid{grid-template-columns:1fr}.charge-range{grid-template-columns:1fr 1fr}.charge-field select,.charge-field input[type="date"]{padding:12px;font-size:16px;min-height:47px}}
+@media(max-width:390px){.charge-day-row,.charge-range-grid{grid-template-columns:1fr}.charge-range{grid-template-columns:1fr 1fr}.charge-field select,.charge-field input[type="date"]{padding:12px;font-size:16px;min-height:47px}.saved-charge-values{gap:5px}.saved-charge-value{padding:9px 4px}.saved-charge-value strong{font-size:13px}.saved-charge-table th{padding:9px 5px;font-size:10px}.saved-charge-table td{padding:8px 4px;font-size:11px}.saved-charge-table .charge-range-cell{font-size:10px}.saved-charge-table .saved-charge-update{padding:7px 8px;font-size:11px}}
 </style>
 </head>
 <body>
@@ -531,7 +536,7 @@ input:focus{border-color:#ed166a}
 <div class="status" id="chargeSetupStatus"></div>
 </div>
 
-<div class="saved-charge-title">Saved Charge Setups</div>
+<div class="saved-charge-title">Saved Records</div>
 <div id="savedChargeList"></div>
 </section>
 
@@ -974,19 +979,39 @@ function renderSavedCharges(){
   const box=document.getElementById("savedChargeList");
   if(!box)return;
   if(!savedChargeRecords.length){
-    box.innerHTML='<div class="charge-empty">Abhi koi charge setup save nahi hua.</div>';
+    box.innerHTML='<div class="charge-empty">Abhi koi charge record save nahi hua.</div>';
     return;
   }
-  const sorted=[...savedChargeRecords].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-  const rows=sorted.map((r,recordIndex)=>{
-    const ranges=Array.isArray(r.ranges)?r.ranges:[];
-    const range1=ranges[0]?`Day ${ranges[0].from} → Day ${ranges[0].to}`:"—";
-    const range2=(r.cycleType===2 && ranges[1])?`Day ${ranges[1].from} → Day ${ranges[1].to}`:"—";
-    return `<tr><td class="no-cell">${recordIndex+1}</td><td class="date-cell">${r.date||"—"}</td><td>Cycle ${r.cycleType||1}</td><td class="range-cell">${range1}</td><td class="range-cell">${range2}</td><td class="charge-cell">${money(r.fuelCharges)} AED</td><td class="charge-cell">${money(r.rtaCharges)} AED</td><td class="charge-cell">${money(r.bookingCharges)} AED</td><td><button class="saved-charge-update" onclick="loadChargeDate('${r.date}')">Update</button></td></tr>`;
-  }).join("");
-  box.innerHTML=`<div class="saved-charge-table-wrap"><table class="saved-charge-table"><thead><tr><th>No.</th><th>Date</th><th>Cycle</th><th>Range 1</th><th>Range 2</th><th>Fuel Charges</th><th>RTA Charges</th><th>Booking Charges</th><th>Update</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-}
 
+  // Records stay in save order: first saved = No. 1, next = No. 2, etc.
+  const rows=[...savedChargeRecords].map((r,recordIndex)=>{
+    const c=Array.isArray(r.ranges)?r.ranges:[];
+    const range1=c[0] ? `Day ${c[0].from} → Day ${c[0].to}` : "—";
+    const range2=r.cycleType===2 && c[1] ? `Day ${c[1].from} → Day ${c[1].to}` : "—";
+    const cycle=`Cycle ${r.cycleType||1}`;
+    return `<tr>
+      <td class="charge-no-cell">${recordIndex+1}</td>
+      <td class="charge-date-cell">${r.date||"—"}</td>
+      <td class="charge-cycle-cell">${cycle}</td>
+      <td class="charge-range-cell">${range1}</td>
+      <td class="charge-range-cell">${range2}</td>
+      <td>${money(r.fuelCharges)} AED</td>
+      <td>${money(r.rtaCharges)} AED</td>
+      <td>${money(r.bookingCharges)} AED</td>
+      <td><button class="saved-charge-update" onclick="loadChargeDate('${r.date}')">✏️ Update</button></td>
+    </tr>`;
+  }).join("");
+
+  box.innerHTML=`<div class="saved-charge-table-wrap">
+    <table class="saved-charge-table">
+      <thead><tr>
+        <th>No.</th><th>Date</th><th>Cycle</th><th>Range 1</th><th>Range 2</th>
+        <th>Fuel Charges</th><th>RTA Charges</th><th>Booking Charges</th><th>Update</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
 initChargeSelectors();document.getElementById("chargeCycleType")?.addEventListener("change",setChargeCycleUI);resetChargeSetup(new Date().toISOString().slice(0,10));setChargeCycleUI();
 
 const TARGET_PERCENTAGES=[5,10,15,20,25,30,35,37.5,40,42.5,45];
