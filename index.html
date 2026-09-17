@@ -613,7 +613,7 @@ if(topbar&&leftBtn&&brand&&bell){
   leftBtn.textContent=(isProfile||isTarget)?"←":"☰";
   leftBtn.onclick=(isProfile||isTarget)?()=>showPage("dashboardPage"):()=>toggleMenu();
   brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":"Driver's");
-  bell.style.display=isProfile?"none":"block";
+  bell.style.display=(isProfile||isTarget)?"none":"block";
   bell.textContent="🔔";
   bell.onclick=null;
 }
