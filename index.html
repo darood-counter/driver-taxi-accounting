@@ -489,6 +489,20 @@ input:focus{border-color:#ed166a}
 }
 @media(max-width:600px){.invoice-fields{grid-template-columns:1fr;gap:6px}.invoice-field label{font-size:12px;flex-basis:42%}.invoice-field input{width:58%;min-height:40px;font-size:13px}.saved-invoice-title{font-size:18px;margin-top:14px}.saved-invoice-table{font-size:11px}.saved-invoice-table th,.saved-invoice-table td{padding:8px 7px}.saved-invoice-update{padding:7px 9px;font-size:11px}}
 @media(max-width:350px){.invoice-fields{gap:4px}.invoice-field{gap:5px}.invoice-field label{font-size:11px}.invoice-field input{font-size:12px;min-height:38px}}
+
+.invoice-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.scan-invoice-btn{border:0;border-radius:12px;padding:10px 13px;font-weight:700;cursor:pointer;background:#111827;color:#fff}
+.invoice-scanner-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;padding:14px;overflow:auto}
+.invoice-scanner-modal.show{display:flex;align-items:center;justify-content:center}
+.invoice-scanner-card{width:min(100%,520px);background:#fff;border-radius:18px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.invoice-scanner-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;margin-bottom:8px}
+.scanner-close{border:0;background:#eee;border-radius:10px;width:36px;height:36px;font-size:18px;cursor:pointer}
+.scanner-help{font-size:13px;line-height:1.45;margin:8px 0 12px}
+.invoice-camera-preview{width:100%;min-height:220px;max-height:55vh;object-fit:cover;border-radius:14px;background:#111;display:block}
+.scanner-actions{display:flex;gap:8px;margin-top:10px}
+.scanner-actions button{flex:1}
+@media(max-width:480px){.invoice-title-row{align-items:stretch}.scan-invoice-btn{width:100%}.scanner-actions{flex-direction:column}}
+
 </style>
 </head>
 <body>
@@ -564,10 +578,26 @@ input:focus{border-color:#ed166a}
 </div>
 </section>
 
+
+<div class="invoice-scanner-modal" id="invoiceScannerModal">
+  <div class="invoice-scanner-card">
+    <div class="invoice-scanner-head"><strong>📷 Scan Invoice</strong><button type="button" class="scanner-close" onclick="closeInvoiceScanner()">✕</button></div>
+    <p class="scanner-help">Take a clear photo of the taxi invoice. The system will read matching values and fill the invoice fields. Please check them before saving.</p>
+    <video id="invoiceCameraPreview" class="invoice-camera-preview" autoplay playsinline></video>
+    <canvas id="invoiceCameraCanvas" hidden></canvas>
+    <input id="invoiceCameraInput" type="file" accept="image/*" capture="environment" hidden>
+    <div class="scanner-actions">
+      <button type="button" class="primary" onclick="captureInvoicePhoto()">📸 Take Photo</button>
+      <button type="button" class="secondary" onclick="chooseInvoicePhoto()">🖼️ Choose Photo</button>
+    </div>
+    <div id="invoiceScanStatus" class="status"></div>
+  </div>
+</div>
+
 <section id="invoicePage" class="page">
 <button class="back" onclick="showPage('dashboardPage')">← Back</button>
 <div class="form-card">
-<h2 id="invoiceTitle">New Invoice</h2>
+<div class="invoice-title-row"><h2 id="invoiceTitle">New Invoice</h2><button type="button" class="scan-invoice-btn" id="scanInvoiceBtn" onclick="openInvoiceScanner()">📷 Scan Invoice</button></div>
 <div class="small">Invoice Number is automatic. You can edit any saved invoice later.</div>
 
 <div class="invoice-rate-card" id="invoiceRateCard">
@@ -1814,6 +1844,121 @@ document.getElementById("authError").textContent="Firebase error: "+(error.messa
 <script>
 window.addEventListener("error",e=>{console.error(e.error||e.message);const x=document.getElementById("authError");if(x&&e.message)x.textContent="Page error: "+e.message;});
 window.addEventListener("unhandledrejection",e=>{console.error(e.reason);const x=document.getElementById("authError");if(x&&e.reason)x.textContent="App error: "+(e.reason.message||String(e.reason));});
+
+let invoiceCameraStream=null;
+let invoiceOcrScriptPromise=null;
+
+function loadInvoiceOCR(){
+  if(window.Tesseract)return Promise.resolve(window.Tesseract);
+  if(invoiceOcrScriptPromise)return invoiceOcrScriptPromise;
+  invoiceOcrScriptPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    s.onload=()=>resolve(window.Tesseract);
+    s.onerror=()=>reject(new Error("OCR library could not be loaded."));
+    document.head.appendChild(s);
+  });
+  return invoiceOcrScriptPromise;
+}
+
+async function openInvoiceScanner(){
+  const modal=document.getElementById("invoiceScannerModal");
+  const video=document.getElementById("invoiceCameraPreview");
+  const status=document.getElementById("invoiceScanStatus");
+  modal.classList.add("show");
+  status.textContent="Opening camera...";
+  try{
+    if(navigator.mediaDevices?.getUserMedia){
+      invoiceCameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+      video.srcObject=invoiceCameraStream;
+      status.textContent="Camera ready. Keep the invoice clear, then tap Take Photo.";
+    }else status.textContent="Camera preview is not supported. You can choose a photo instead.";
+  }catch(e){
+    console.warn(e);
+    status.textContent="Camera permission was not available. You can choose a photo instead.";
+  }
+}
+function closeInvoiceScanner(){
+  const modal=document.getElementById("invoiceScannerModal"), video=document.getElementById("invoiceCameraPreview");
+  if(invoiceCameraStream){invoiceCameraStream.getTracks().forEach(t=>t.stop());invoiceCameraStream=null;}
+  if(video)video.srcObject=null;
+  if(modal)modal.classList.remove("show");
+}
+function chooseInvoicePhoto(){document.getElementById("invoiceCameraInput")?.click();}
+function captureInvoicePhoto(){
+  const v=document.getElementById("invoiceCameraPreview"), c=document.getElementById("invoiceCameraCanvas"), s=document.getElementById("invoiceScanStatus");
+  if(!v?.videoWidth){s.textContent="Camera is not ready. Please use Choose Photo.";return;}
+  c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+  c.toBlob(b=>{if(b)processInvoiceScan(b)},"image/jpeg",.92);
+}
+document.getElementById("invoiceCameraInput")?.addEventListener("change",e=>{
+  const f=e.target.files?.[0]; if(f)processInvoiceScan(f); e.target.value="";
+});
+async function processInvoiceScan(file){
+  const s=document.getElementById("invoiceScanStatus");
+  s.textContent="Reading invoice... Please wait.";
+  try{
+    const T=await loadInvoiceOCR();
+    const worker=await T.createWorker("eng");
+    const r=await worker.recognize(file);
+    const text=r?.data?.text||"";
+    await worker.terminate();
+    const filled=parseInvoiceOCRText(text);
+    let count=0;
+    Object.entries(filled).forEach(([id,val])=>{
+      const el=document.getElementById(id);
+      if(el&&Number.isFinite(val)){el.value=String(val);count++;}
+    });
+    updatePreview();
+    closeInvoiceScanner();
+    const st=document.getElementById("invoiceStatus");
+    st.textContent=count?`${count} field(s) auto-filled from the photo. Please check before saving.`:"No matching fields found. Please enter values manually.";
+  }catch(e){
+    console.error("Invoice OCR error:",e);
+    s.textContent="Could not read the invoice. Try a clearer, well-lit photo.";
+  }
+}
+function invoiceFindValue(text,labels){
+  const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const re=new RegExp("(?: "+labels.join("|")+")","i");
+  for(let i=0;i<lines.length;i++){
+    const labelRe=new RegExp("(?:^|\\s)(?:"+labels.join("|")+")(?=\\s|:|$)","i");
+    if(!labelRe.test(lines[i]))continue;
+    const same=lines[i].replace(labelRe," ").match(/(-?\d[\d,]*(?:\.\d{1,2})?)/);
+    if(same)return Number(same[1].replace(/,/g,""));
+    for(let j=i+1;j<Math.min(i+3,lines.length);j++){
+      const m=lines[j].match(/(-?\d[\d,]*(?:\.\d{1,2})?)/);
+      if(m)return Number(m[1].replace(/,/g,""));
+    }
+  }
+  return null;
+}
+function parseInvoiceOCRText(text){
+  const fields={
+    creditCard:["credit\\s*card","card"],
+    app:["\\bapp\\b","application"],
+    cash:["\\bcash\\b"],
+    tips:["\\btips?\\b","gratuity"],
+    tolls:["tollways?","tolls?","salik"],
+    shiftDiscount:["shift\\s*discount","discount"],
+    shiftTrips:["shift\\s*trips?","trips?"],
+    bookings:["bookings?","booking"],
+    km:["kilometers?\\s*hired","kilomet(?:er|re)s?","\\bkm\\b"],
+    careemDiscount:["careem\\s*discount"],
+    paidCareem:["paid\\s*(?:in\\s*)?careem","careem\\s*paid"],
+    halaJunior:["hala\\s*juniors?","hala\\s*junior"],
+    halaPeak:["hala\\s*peak"],
+    peak:["\\bpeak\\b"],
+    extraCharges:["extra\\s*charges?"]
+  };
+  const out={};
+  for(const [id,labels] of Object.entries(fields)){
+    const v=invoiceFindValue(text,labels);
+    if(v!==null&&Number.isFinite(v))out[id]=v;
+  }
+  return out;
+}
+
 </script>
 </body>
 </html>
