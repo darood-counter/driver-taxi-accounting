@@ -25,19 +25,19 @@ main{padding:0 22px}
 .total-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .total{font-size:42px;font-weight:800;letter-spacing:-1.5px}
 .currency{font-size:20px;font-weight:700}
-.cycle-date-badge{width:58px;height:58px;border:0;border-radius:50%;background:#0d1033;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;box-shadow:0 4px 10px rgba(13,16,51,.16);position:relative;cursor:pointer;padding:0;overflow:hidden;transform:translateY(-14px);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
-.cycle-date-badge:hover{background:#0d1033;box-shadow:0 5px 12px rgba(13,16,51,.20)}.cycle-date-badge:active{transform:translateY(-14px) scale(.97)}
-.cycle-badge-day{font-size:26px;font-weight:800;letter-spacing:-.8px}
-.cycle-badge-month{font-size:10px;font-weight:800;text-transform:uppercase;margin-top:5px;color:#fff;letter-spacing:.3px}
+.cycle-date-badge{width:44px;height:44px;border:0;border-radius:50%;background:#0d1033;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;box-shadow:0 4px 10px rgba(13,16,51,.16);position:relative;cursor:pointer;padding:0;overflow:hidden;transform:translateY(-10px);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+.cycle-date-badge:hover{background:#0d1033;box-shadow:0 5px 12px rgba(13,16,51,.20)}.cycle-date-badge:active{transform:translateY(-10px) scale(.97)}
+.cycle-badge-day{font-size:18px;font-weight:800;letter-spacing:-.8px}
+.cycle-badge-month{font-size:8px;font-weight:800;text-transform:uppercase;margin-top:5px;color:#fff;letter-spacing:.3px}
 .cycle-date-badge input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:0}
 .chart-area{position:relative;width:100%}
 .chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding-bottom:3px;scrollbar-width:thin}
 .chart{height:276px;display:flex;align-items:flex-end;gap:10px;padding:28px 62px 8px 8px;border-bottom:2px solid #171717;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 67px,rgba(130,134,145,.20) 68px,transparent 69px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#777;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:58px}
 .chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2}
-.chart-value{display:none}
+.chart-value{display:block;font-size:10px;font-weight:900;color:#3155c8;white-space:nowrap;line-height:1.1;cursor:pointer;min-height:11px}
 .bar-wrap{height:205px;width:100%;display:flex;align-items:flex-end;justify-content:center}
-.bar{width:40px;background:#cfd5f5;border-radius:7px 7px 0 0;min-height:3px;transition:height .2s ease,background .2s ease}
-.chart-col.selected .bar{background:#bfc7ef}
+.bar{width:40px;background:#dfe3ea;border-radius:7px 7px 0 0;min-height:3px;transition:height .2s ease,background .2s ease}
+.chart-col.selected .bar{background:#2563eb}.chart-col.has-sales .bar{background:#2563eb}.chart-col.has-sales .chart-date{color:#3155c8;font-weight:900}.chart-col.has-sales{cursor:pointer}.chart-col.has-sales:hover .bar{background:#1d4ed8}
 .chart-col.selected .chart-date{color:#d62970;font-weight:900}
 .chart-date{font-size:11px;color:#555;white-space:nowrap}
 .chart-average-line{position:absolute;height:3px;background:#111827;left:8px;right:8px;z-index:1;border-radius:2px;pointer-events:none}
@@ -45,6 +45,8 @@ main{padding:0 22px}
 .chart-average-overlay{position:absolute;inset:0;z-index:20;pointer-events:none;display:none}
 .chart-average-overlay .chart-average-line{position:absolute;left:8px;right:58px;height:3px;background:#e11d48;border-radius:2px}
 .chart-average-overlay .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#e11d48;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;white-space:nowrap}
+.chart-col.active-click .bar{transform:scaleY(.94);transform-origin:bottom;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
+.chart-col.active-click .chart-value{font-size:11px}
 .chart-selected-value{position:absolute;transform:translate(-50%,-100%);background:#fff;border:2px solid #3155c8;color:#3155c8;border-radius:7px;padding:6px 8px;font-size:12px;font-weight:900;white-space:nowrap;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .dashboard-cycle-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .dashboard-cycle-controls .period{margin:0;flex:1;min-width:0}
@@ -2635,6 +2637,15 @@ function updateDashboard(){
   renderChart(cycle);
 }
 
+function openDashboardDateInvoices(dateKey){
+  if(!dateKey)return;
+  const col=document.querySelector('.chart-col[data-date="'+dateKey+'"]');
+  if(!col)return;
+  col.classList.add("active-click");
+  setTimeout(()=>col.classList.remove("active-click"),350);
+}
+
+
 function renderChart(cycle=getCurrentDashboardCycle()){
   const chart=document.getElementById("chart");
   if(!chart)return;
@@ -2661,8 +2672,10 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   const arr=[];
   for(let d=new Date(start);d<=visibleEnd;d.setDate(d.getDate()+1)){
     const key=dateKeyLocal(d);
-    const value=invoices.filter(x=>String(x.date||"")===key).reduce((sum,x)=>sum+(Number(x.net)||0),0);
-    arr.push({key,value,date:new Date(d)});
+    const dayInvoices=invoices.filter(x=>String(x.date||"")===key);
+    const value=dayInvoices.reduce((sum,x)=>sum+(Number(x.net)||0),0);
+    const hasSales=dayInvoices.length>0;
+    arr.push({key,value,hasSales,date:new Date(d)});
   }
   const max=Math.max(...arr.map(x=>x.value),1);
   const activeDays=arr.filter(x=>x.value>0).length;
@@ -2707,9 +2720,10 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     col.className="chart-col";
     col.dataset.date=x.key;
     if(dashboardSelectedDate===x.key)col.classList.add("selected");
+    if(x.hasSales)col.classList.add("has-sales");
     const value=document.createElement("div");
     value.className="chart-value";
-    value.textContent=money(x.value)+" AED";
+    value.textContent=x.hasSales?money(x.value)+" AED":"";
     const wrap=document.createElement("div");
     wrap.className="bar-wrap";
     const bar=document.createElement("div");
@@ -2722,6 +2736,11 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     date.textContent=x.date.toLocaleDateString("en-GB",{day:"2-digit",month:"short"});
     col.append(value,wrap,date);
     chart.appendChild(col);
+    if(x.hasSales){
+      col.addEventListener("click",()=>openDashboardDateInvoices(x.key));
+      value.title="View sales for "+x.date.toLocaleDateString("en-GB");
+      bar.title="View sales for "+x.date.toLocaleDateString("en-GB")+": "+money(x.value)+" AED";
+    }
     if(dashboardSelectedDate===x.key){
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
