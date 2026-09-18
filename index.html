@@ -2104,7 +2104,7 @@ async function processInvoiceScan(file){
     let r=await worker.recognize(prepared);
     let text=r?.data?.text||"";
     console.log("RTA OCR text (PSM 6):",text);
-    let filled=parseInvoiceOCRText(text);
+    let filled={...parseInvoiceOCRText(text),...parseInvoiceOCRData(r?.data)};
 
     // If the first layout pass missed fields, retry with sparse-text mode and a
     // full-frame enhancement. This is slower only when the first pass fails.
@@ -2115,7 +2115,7 @@ async function processInvoiceScan(file){
       r=await worker.recognize(prepared2);
       text+=("\n"+(r?.data?.text||""));
       console.log("RTA OCR text (PSM 11):",r?.data?.text||"");
-      const second=parseInvoiceOCRText(text);
+      const second={...parseInvoiceOCRText(r?.data?.text||""),...parseInvoiceOCRData(r?.data)};
       filled={...second,...filled};
     }
 
@@ -2225,6 +2225,106 @@ function invoiceFindValue(text,labels){
     }
   }
   return null;
+}
+
+
+function cleanOCRToken(s){
+  return String(s||"").toLowerCase()
+    .replace(/[^a-z0-9]+/g," ")
+    .replace(/\b[aed]\b/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function numericFromWords(words,startIndex){
+  for(let k=startIndex;k<words.length;k++){
+    const raw=String(words[k]?.text||"").replace(/,/g,"");
+    const m=raw.match(/-?\d+(?:\.\d+)?/);
+    if(m){const n=Number(m[0]);if(Number.isFinite(n))return n;}
+  }
+  return null;
+}
+function levenshteinOCR(a,b){
+  a=String(a||"");b=String(b||"");
+  const prev=Array(b.length+1).fill(0),cur=Array(b.length+1).fill(0);
+  for(let j=0;j<=b.length;j++)prev[j]=j;
+  for(let i=1;i<=a.length;i++){
+    cur[0]=i;
+    for(let j=1;j<=b.length;j++)cur[j]=a[i-1]===b[j-1]?prev[j-1]:Math.min(prev[j-1]+1,prev[j]+1,cur[j-1]+1);
+    for(let j=0;j<=b.length;j++)prev[j]=cur[j];
+  }
+  return prev[b.length];
+}
+function labelMatchesOCR(line,variants){
+  const x=cleanOCRToken(line);
+  for(const v of variants){
+    const y=cleanOCRToken(v);
+    if(x.includes(y))return true;
+    // Allow one small OCR typo in a short label.
+    const compact=x.replace(/ /g,"");
+    const yc=y.replace(/ /g,"");
+    if(yc.length>=5 && compact.length<=yc.length+4){
+      const d=levenshteinOCR(compact,yc);
+      if(d<=Math.max(1,Math.floor(yc.length*.14)))return true;
+    }
+  }
+  return false;
+}
+function parseInvoiceOCRData(data){
+  const out={};
+  const words=Array.isArray(data?.words)?data.words.filter(w=>String(w?.text||"").trim()&&w?.bbox):[];
+  if(!words.length)return out;
+  // Group OCR words into visual rows. Tesseract can change line breaks from
+  // photo to photo, so use the word coordinates and then parse each row.
+  const rows=[];
+  for(const w of words){
+    const top=Number(w.bbox.top||0),left=Number(w.bbox.left||0);
+    let row=rows.find(r=>Math.abs(r.top-top)<=16);
+    if(!row){row={top,words:[]};rows.push(row);}
+    row.words.push({...w,left,top});
+  }
+  rows.sort((a,b)=>a.top-b.top);
+  rows.forEach(r=>r.words.sort((a,b)=>a.left-b.left));
+  const fields={
+    creditCard:["credit cards","credit card"],
+    app:["app","in app","in-app"],
+    cash:["cash"],
+    tips:["tips","tip"],
+    tolls:["total tollways","total tollway","tollways"],
+    shiftDiscount:["shift discount"],
+    shiftTrips:["shift trips"],
+    bookings:["bookings","booking"],
+    km:["kilometers hired","kilometer hired"],
+    careemDiscount:["careem discount"],
+    paidCareem:["paid in careem","paid careem"],
+    halaJunior:["hala juniors","hala junior"],
+    halaPeak:["hala peak"],
+    peak:["peak"]
+  };
+  const normalizeLine=v=>String(v||"").toLowerCase().replace(/[|]/g,"i").replace(/[—–]/g,"-").replace(/\s+/g," ").trim();
+  for(const [id,variants] of Object.entries(fields)){
+    for(const row of rows){
+      const line=normalizeLine(row.words.map(w=>w.text).join(" "));
+      if(!line)continue;
+      if(id==="peak" && /hala\s+peak/i.test(line))continue;
+      let matched=null;
+      for(const v of variants){
+        const vv=normalizeLine(v);
+        const re=new RegExp("(?:^|\\s)"+vv.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\$&")+"(?:\\s|$)","i");
+        if(re.test(line)||line.includes(vv)){matched=vv;break;}
+      }
+      if(!matched)continue;
+      // Read the first numeric value after the matched label. AED may be
+      // between the label and value, and OCR may omit the colon.
+      const pos=line.indexOf(matched);
+      const rest=line.slice(pos+matched.length).replace(/^[^0-9-]*/,"");
+      const m=rest.match(/-?\d+(?:\.\d+)?/);
+      if(m){
+        const n=Number(m[0]);
+        if(Number.isFinite(n)){out[id]=n;break;}
+      }
+    }
+  }
+  return out;
 }
 
 function parseInvoiceOCRText(text){
