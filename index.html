@@ -2046,7 +2046,7 @@ async function openInvoiceCropper(file){
     invoiceCropObjectUrl=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.96,aspectRatio:0.3525,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false});
+        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.985,aspectRatio:0.352459,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false});
         status.textContent="Receipt ko crop box ke andar adjust karein.";
       }catch(e){status.textContent="Crop tool error. You can use Full Photo.";}
     };
@@ -2357,76 +2357,102 @@ function rtaOCRExtractAfterLabel(words,variant){
   const m=rtaExactLabelInRow(words,[variant]);
   return rtaNumberAfterLabelSameRow(words,m);
 }
-// Fixed RTA Shift Summary layout. Values are read only from the expected
-// horizontal band for each label. This prevents one row's number from being
-// assigned to another row. The crop tool uses the same 860:2440 ratio.
-const RTA_LAYOUT_ROWS={
-  creditCard:0.287,      // Credit Cards
-  app:0.339,              // APP
-  cash:0.392,             // Cash
-  tips:0.413,             // Tips
-  tolls:0.462,            // Total Tollways
-  shiftDiscount:0.503,   // Shift Discount
-  shiftTrips:0.529,      // Shift Trips
-  bookings:0.565,        // Bookings
-  km:0.602,               // Kilometers Hired
-  careemDiscount:0.644,  // Careem Discount
-  paidCareem:0.663,      // Paid in Careem
-  halaJunior:0.704,      // Hala Juniors
-  halaPeak:0.725,        // Hala Peak
-  peak:0.746             // Peak
+// RTA SHIFT SUMMARY TEMPLATE DIAGRAM (saved from the supplied receipt layout).
+// The scanner intentionally does NOT decide a field from the label text.
+// It first anchors the receipt to the full-page template, then reads ONLY the
+// numeric value zone for the exact numbered row. This prevents one row's value
+// from being assigned to a neighbouring field even when OCR misreads words.
+//
+// Template is based on the supplied 860 x 2440 RTA Shift Summary crop.
+// Row 0 starts at "Waiting Charges" immediately below "Shift Completed".
+// Required rows are numbered exactly as they appear in that fixed diagram:
+//  2 Credit Cards       5 APP                 8 Cash
+// 10 Tips              13 Total Tollways     16 Shift Discount
+// 18 Shift Trips        20 Bookings           22 Kilometers Hired
+// 25 Careem Discount    26 Paid in Careem     28 Hala Juniors
+// 29 Hala Peak          30 Peak
+// Non-required rows (In-App, E-Payments, Alipay, QR Code, etc.) are ignored.
+const RTA_TEMPLATE={
+  sourceWidth:860, sourceHeight:2440,
+  // normalized vertical centers measured from the complete receipt page
+  rows:{
+    creditCard:{no:2,label:"Credit Cards",y:.35615},
+    app:{no:5,label:"APP",y:.44262},
+    cash:{no:8,label:"Cash",y:.45984},
+    tips:{no:10,label:"Tips",y:.49426},
+    tolls:{no:13,label:"Total Tollways",y:.54467},
+    shiftDiscount:{no:16,label:"Shift Discount",y:.59549},
+    shiftTrips:{no:18,label:"Shift Trips",y:.63156},
+    bookings:{no:20,label:"Bookings",y:.66189},
+    km:{no:22,label:"Kilometers Hired",y:.70082},
+    careemDiscount:{no:25,label:"Careem Discount",y:.74877},
+    paidCareem:{no:26,label:"Paid in Careem",y:.76393},
+    halaJunior:{no:28,label:"Hala Juniors",y:.79344},
+    halaPeak:{no:29,label:"Hala Peak",y:.80984},
+    peak:{no:30,label:"Peak",y:.82705}
+  }
 };
 
 function rtaRowsFromWords(data){
   const words=Array.isArray(data?.words)?data.words.filter(w=>String(w?.text||'').trim()&&w?.bbox):[];
-  if(!words.length)return [];
+  if(!words.length)return null;
   const maxBottom=Math.max(...words.map(w=>Number(w.bbox?.bottom||0)));
   const maxRight=Math.max(...words.map(w=>Number(w.bbox?.right||0)));
-  const H=Math.max(Number(data?.height)||maxBottom,1), W=Math.max(Number(data?.width)||maxRight,1);
+  const H=Math.max(Number(data?.height)||maxBottom,1);
+  const W=Math.max(Number(data?.width)||maxRight,1);
   return {words,H,W};
 }
 
-function rtaStrictRowValue(data,id,variants){
-  const pack=rtaRowsFromWords(data); if(!pack.words)return null;
-  const {words,H}=pack;
-  const center=RTA_LAYOUT_ROWS[id];
-  // ±1.35% of receipt height is deliberately narrow: adjacent rows are not
-  // allowed to contribute a value.
-  const half=0.0135;
+function rtaStrictTemplateValue(data,id){
+  const pack=rtaRowsFromWords(data); if(!pack)return null;
+  const {words,H,W}=pack;
+  const row=RTA_TEMPLATE.rows[id]; if(!row)return null;
+  const targetY=row.y*H;
+
+  // The RTA rows are close together, so use a deliberately narrow vertical
+  // band. We never search above/below the assigned row.
+  const bandHalf=Math.max(11,Math.min(21,H*.0072));
   const band=words.filter(w=>{
-    const top=Number(w.bbox.top||0), bottom=Number(w.bbox.bottom||top);
-    const cy=((top+bottom)/2)/H;
-    return Math.abs(cy-center)<=half;
-  }).sort((a,b)=>Number(a.bbox.left||0)-Number(b.bbox.left||0));
+    const top=Number(w.bbox?.top||0), bottom=Number(w.bbox?.bottom||top);
+    const cy=(top+bottom)/2;
+    return Math.abs(cy-targetY)<=bandHalf;
+  });
   if(!band.length)return null;
-  const normalized=band.map(w=>cleanOCRToken(w.text));
-  for(const variant of variants){
-    const target=cleanOCRToken(variant); if(!target)continue;
-    for(let i=0;i<normalized.length;i++){
-      let joined='';
-      for(let n=1;n<=Math.min(4,normalized.length-i);n++){
-        joined+=normalized[i+n-1];
-        if(joined===target){
-          const labelEnd=Number(band[i+n-1].bbox.right||0);
-          // Only take the first numeric token to the right, within the same
-          // horizontal row and a reasonable distance. Never look downward.
-          const candidates=band.slice(i+n).filter(w=>Number(w.bbox.left||0)>=labelEnd-3);
-          for(const w of candidates){
-            const raw=String(w.text||'').replace(/,/g,'');
-            const m=raw.match(/-?\d+(?:\.\d+)?/);
-            if(m){const num=Number(m[0]); if(Number.isFinite(num))return num;}
-          }
-        }
-      }
+
+  // Values are on the right side of the receipt. AED is around x=.55 and the
+  // numeric amount starts around x=.65 on the supplied template. Restricting
+  // the search to this zone prevents numbers in the left labels from leaking in.
+  const valueWords=band.filter(w=>{
+    const left=Number(w.bbox?.left||0), right=Number(w.bbox?.right||left);
+    const cx=(left+right)/2;
+    return cx>=W*.60;
+  }).sort((a,b)=>Number(a.bbox?.left||0)-Number(b.bbox?.left||0));
+
+  // Prefer a decimal/integer token that is clearly in the value column.
+  // Only the first numeric token in this row is accepted.
+  for(const w of valueWords){
+    const raw=String(w.text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
+    const m=raw.match(/^-?\d+(?:[\.,]\d+)?$/);
+    if(m){
+      const n=Number(m[0].replace(',','.'));
+      if(Number.isFinite(n))return n;
     }
+  }
+  // Some Tesseract versions split a value into two adjacent words (e.g. 421 .00).
+  for(let i=0;i<valueWords.length-1;i++){
+    const a=String(valueWords[i].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
+    const b=String(valueWords[i+1].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
+    const m=(a+b).match(/^-?\d+\.\d+$/);
+    if(m){const n=Number(m[0]);if(Number.isFinite(n))return n;}
   }
   return null;
 }
 
 function parseInvoiceOCRData(data){
   const out=blankRTAOCRFields();
-  for(const [id,variants] of Object.entries(RTA_OCR_LABELS)){
-    const n=rtaStrictRowValue(data,id,variants);
+  // Primary method: fixed row-number diagram + right-side numeric column.
+  for(const id of REQUIRED_RTA_OCR_FIELDS){
+    const n=rtaStrictTemplateValue(data,id);
     if(n!==null)out[id]=n;
   }
   return out;
