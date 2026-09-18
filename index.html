@@ -513,7 +513,6 @@ input:focus{border-color:#ed166a}
 .crop-image-wrap{width:100%;max-height:68vh;overflow:hidden;background:#111;border-radius:12px}
 #invoiceCropImage{display:block;max-width:100%;width:100%}
 .crop-actions{display:flex;gap:8px;margin-top:10px}
-.rta-guide-lines{position:absolute;inset:0;pointer-events:none}.rta-guide-lines span{position:absolute;left:4%;right:4%;border-top:1px dashed rgba(255,0,80,.75);height:0}.crop-image-wrap{position:relative}
 .crop-actions button{flex:1}
 @media(max-width:480px){.scanner-camera-controls{flex-direction:row}.crop-actions{flex-direction:column}}
 @media(max-width:480px){.invoice-title-row{align-items:stretch}.scan-invoice-btn{width:100%}.scanner-actions{flex-direction:column}}
@@ -619,15 +618,9 @@ input:focus{border-color:#ed166a}
       <div class="crop-title">✂️ Crop Receipt</div>
       <button type="button" class="scanner-close" onclick="closeInvoiceCropper()">✕</button>
     </div>
-    <div class="small" style="margin-bottom:8px">Receipt ko box mein seedha fit karein. Red lines required RTA rows ko guide karti hain. Koi required row crop se bahar na ho.</div>
+    <div class="small" style="margin-bottom:8px">Receipt ko box mein seedha fit karein. Puri Shift Summary receipt ko box ke andar rakhein.</div>
     <div class="crop-image-wrap">
       <img id="invoiceCropImage" alt="Receipt crop">
-      <div class="rta-guide-lines" aria-hidden="true">
-        <span style="top:28.7%"></span><span style="top:33.9%"></span><span style="top:39.2%"></span><span style="top:41.3%"></span>
-        <span style="top:46.2%"></span><span style="top:50.3%"></span><span style="top:52.9%"></span><span style="top:56.5%"></span>
-        <span style="top:60.2%"></span><span style="top:64.4%"></span><span style="top:66.3%"></span><span style="top:70.4%"></span>
-        <span style="top:72.5%"></span><span style="top:74.6%"></span>
-      </div>
     </div>
     <div class="crop-actions">
       <button type="button" class="primary" onclick="applyInvoiceCrop()">✂️ Use Crop</button>
@@ -2440,46 +2433,91 @@ function rtaNumericToken(text){
   return Number.isFinite(n)?n:null;
 }
 
-function rtaStrictTemplateValue(data,id){
+function rtaFindShiftCompletedY(words,H){
+  const shifts=[], completes=[];
+  for(const w of words){
+    const t=cleanOCRToken(w?.text);
+    const cy=(Number(w?.bbox?.top||0)+Number(w?.bbox?.bottom||0))/2;
+    if(t==='shift')shifts.push(cy);
+    if(t==='completed')completes.push(cy);
+  }
+  let best=null,bestDiff=Infinity;
+  for(const a of shifts)for(const b of completes){
+    const d=Math.abs(a-b);
+    if(d<Math.max(24,H*0.012) && d<bestDiff){best=(a+b)/2;bestDiff=d;}
+  }
+  return best;
+}
+
+// The supplied RTA Shift Summary has a stable vertical row sequence. We anchor
+// the diagram to the actual OCR position of the words "Shift Completed", then
+// number the physical rows underneath it. This avoids the old bug where a
+// later label such as "Shift Kilometers" was mistaken for the heading.
+const RTA_ROW_OFFSETS_PX=[
+  45,87,130,171,213,255,296,338,380,421,463,504,546,587,629,671,713,755,
+  798,841,884,925,967,1008,1050,1091,1133,1175,1217,1258,1300,1342,1384,
+  1425,1467,1509,1551,1593
+];
+
+function rtaBuildNumberedRows(data){
   const pack=rtaRowsFromWords(data); if(!pack)return null;
   const {words,H,W}=pack;
-  const entry=RTA_ROW_DIAGRAM.find(r=>r.field===id);
-  if(!entry)return null;
-  const targetY=RTA_TEMPLATE.rowCenters[entry.no-1]*H;
-  // One receipt row is about 40px on the reference image.  Keep the band
-  // narrower than half the row spacing so neighbouring rows are excluded.
-  const bandHalf=Math.max(10,Math.min(18,H*0.0068));
-  const rowWords=words.filter(w=>{
-    const top=Number(w.bbox?.top||0),bottom=Number(w.bbox?.bottom||top);
-    const cy=(top+bottom)/2;
-    return Math.abs(cy-targetY)<=bandHalf;
+  const shiftY=rtaFindShiftCompletedY(words,H);
+  if(shiftY===null)return null;
+
+  // Build 38 numbered row bands from the heading. Coordinates scale with the
+  // OCR image height, so camera/crop resolution does not matter.
+  const scale=H/2440;
+  const rows=RTA_ROW_OFFSETS_PX.map((off,i)=>({
+    no:i+1,
+    cy:shiftY+off*scale,
+    words:[]
+  }));
+  const detail=words.filter(w=>{
+    const cy=(Number(w.bbox?.top||0)+Number(w.bbox?.bottom||0))/2;
+    return cy>shiftY+20*scale && cy<shiftY+1625*scale;
   });
-  if(!rowWords.length)return null;
 
-  // The receipt's value column is on the right. AED is around x=0.55 and the
-  // actual number is farther right, so ignore everything left of 58% width.
-  const nums=[];
-  for(const w of rowWords){
-    const left=Number(w.bbox?.left||0),right=Number(w.bbox?.right||left);
-    const cx=(left+right)/2;
-    if(cx<W*0.58)continue;
-    const n=rtaNumericToken(w.text);
-    if(n!==null)nums.push({n,cx,cy:(Number(w.bbox?.top||0)+Number(w.bbox?.bottom||0))/2});
+  // Assign every OCR word to its nearest numbered row, but only when it is
+  // close enough to that row. No word can belong to two rows.
+  for(const w of detail){
+    const cy=(Number(w.bbox?.top||0)+Number(w.bbox?.bottom||0))/2;
+    let best=null,bestD=Infinity;
+    for(const row of rows){
+      const d=Math.abs(cy-row.cy);
+      if(d<bestD){bestD=d;best=row;}
+    }
+    if(best && bestD<=Math.max(17,H*0.007))best.words.push(w);
   }
-  if(nums.length){
-    nums.sort((a,b)=>Math.abs(a.cy-targetY)-Math.abs(b.cy-targetY));
-    return nums[0].n;
-  }
+  return {groups:rows,H,W,shiftY};
+}
 
-  // Handle a split number such as "421" + ".00" without looking outside
-  // this exact numbered row.
+function rtaValueFromNumberedRow(group,W){
+  if(!group)return null;
+  const rowWords=[...group.words];
   const candidates=rowWords.filter(w=>{
-    const left=Number(w.bbox?.left||0),right=Number(w.bbox?.right||left);
-    return ((left+right)/2)>=W*0.58;
-  }).sort((a,b)=>Number(a.bbox?.left||0)-Number(b.bbox?.left||0));
-  for(let i=0;i<candidates.length-1;i++){
-    const a=String(candidates[i].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
-    const b=String(candidates[i+1].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
+    const l=Number(w.bbox?.left||0),r=Number(w.bbox?.right||l);
+    const cx=(l+r)/2;
+    return cx>=W*0.52;
+  });
+  // Choose the numeric token closest to the row center. This prevents a
+  // neighbouring row's amount from being selected even when OCR boxes overlap.
+  const nums=[];
+  for(const w of candidates){
+    const n=rtaNumericToken(w.text);
+    if(n!==null){
+      const cy=(Number(w.bbox?.top||0)+Number(w.bbox?.bottom||0))/2;
+      nums.push({n,d:Math.abs(cy-group.cy),x:Number(w.bbox?.left||0)});
+    }
+  }
+  nums.sort((a,b)=>a.d-b.d || b.x-a.x);
+  if(nums.length)return nums[0].n;
+
+  // Split decimal tokens are handled only inside this exact numbered row.
+  const sorted=candidates.slice().sort((a,b)=>Number(a.bbox?.left||0)-Number(b.bbox?.left||0));
+  for(let i=0;i<sorted.length-1;i++){
+    const a=String(sorted[i].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
+    const b=String(sorted[i+1].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
     const joined=(a+b).replace(/^\./,'0.');
     if(/^\d+\.\d+$/.test(joined))return Number(joined);
   }
@@ -2488,11 +2526,13 @@ function rtaStrictTemplateValue(data,id){
 
 function parseInvoiceOCRData(data){
   const out=blankRTAOCRFields();
-  // ONLY the saved row-number diagram is allowed to map values to fields.
-  // If a row is not read, its field stays zero; no neighbouring row is used.
-  for(const id of REQUIRED_RTA_OCR_FIELDS){
-    const n=rtaStrictTemplateValue(data,id);
-    if(n!==null && Number.isFinite(n))out[id]=n;
+  const pack=rtaBuildNumberedRows(data);
+  if(!pack)return out;
+  for(const entry of RTA_ROW_DIAGRAM){
+    if(!entry.field)continue;
+    const group=pack.groups[entry.no-1];
+    const n=rtaValueFromNumberedRow(group,pack.W);
+    if(n!==null && Number.isFinite(n))out[entry.field]=n;
   }
   return out;
 }
