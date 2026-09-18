@@ -2091,60 +2091,100 @@ function skipInvoiceCrop(){
   closeInvoiceCropper();
   if(file)processInvoiceScan(file);
 }
-async function autoPrepareRTAReceiptBlob(sourceCanvas){
-  // RTA Shift Summary is a tall receipt. Normalize the camera frame to portrait,
-  // then take a clean centered crop using the same aspect ratio as the RTA receipt.
-  const SW=sourceCanvas.width, SH=sourceCanvas.height;
-  if(!SW || !SH) throw new Error("Empty camera image");
+async function autoPrepareRTAReceiptBlob(sourceFile){
+  // Native-camera capture: automatically find the tall receipt area instead
+  // of assuming that the receipt is already centred in the camera frame.
+  // The OCR reader expects the final image to have the same 860:2440 ratio.
+  const img=new Image();
+  const url=URL.createObjectURL(sourceFile);
+  await new Promise((resolve,reject)=>{
+    img.onload=resolve;
+    img.onerror=()=>reject(new Error("Captured photo could not be opened"));
+    img.src=url;
+  });
 
-  let portrait=sourceCanvas;
-  if(SW>SH){
-    const rot=document.createElement("canvas");
-    rot.width=SH; rot.height=SW;
-    const rctx=rot.getContext("2d");
-    rctx.translate(rot.width/2,rot.height/2);
-    rctx.rotate(Math.PI/2);
-    rctx.drawImage(sourceCanvas,-SW/2,-SH/2);
-    portrait=rot;
-  }
+  const MAX_SIDE=2200;
+  const scale=Math.min(1,MAX_SIDE/Math.max(img.naturalWidth,img.naturalHeight));
+  const W=Math.max(1,Math.round(img.naturalWidth*scale));
+  const H=Math.max(1,Math.round(img.naturalHeight*scale));
+  const src=document.createElement('canvas');src.width=W;src.height=H;
+  const ctx=src.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0,W,H);
+  URL.revokeObjectURL(url);
 
-  const W=portrait.width, H=portrait.height;
-  const RTA_RATIO=860/2440;
-  // Keep a little margin around the receipt so the last rows are not clipped.
-  let cropH=Math.round(H*0.96);
-  let cropW=Math.round(cropH*RTA_RATIO);
-  if(cropW>W*0.96){
-    cropW=Math.round(W*0.96);
-    cropH=Math.round(cropW/RTA_RATIO);
-  }
-  cropH=Math.min(cropH,H); cropW=Math.min(cropW,W);
-  const sx=Math.max(0,Math.round((W-cropW)/2));
-  const sy=Math.max(0,Math.round((H-cropH)/2));
-
-  const out=document.createElement("canvas");
-  const targetH=Math.min(3200,cropH);
-  const scale=targetH/cropH;
-  out.width=Math.max(860,Math.round(cropW*scale));
-  out.height=Math.round(cropH*scale);
-  const octx=out.getContext("2d",{willReadFrequently:false});
-  octx.imageSmoothingEnabled=true;
-  octx.imageSmoothingQuality="high";
-  octx.drawImage(portrait,sx,sy,cropW,cropH,0,0,out.width,out.height);
-
-  // Mild cleanup for OCR: grayscale + slight contrast, without destroying decimals.
+  // Detect the receipt as the largest tall, bright rectangle. We sample the
+  // image first so this remains fast on a mobile phone.
+  let left=Math.round(W*.02), right=Math.round(W*.98), top=Math.round(H*.02), bottom=Math.round(H*.98);
   try{
-    const img=octx.getImageData(0,0,out.width,out.height);
-    const d=img.data;
+    const sampleW=Math.min(420,W), sampleH=Math.min(900,H);
+    const sm=document.createElement('canvas');sm.width=sampleW;sm.height=sampleH;
+    const sx=sm.getContext('2d',{willReadFrequently:true});
+    sx.drawImage(src,0,0,W,H,0,0,sampleW,sampleH);
+    const data=sx.getImageData(0,0,sampleW,sampleH).data;
+    const col=[],row=[];
+    for(let x=0;x<sampleW;x++)col[x]=0;
+    for(let y=0;y<sampleH;y++)row[y]=0;
+    // Receipt paper is normally much brighter than the surrounding table/wall.
+    for(let y=0;y<sampleH;y++){
+      for(let x=0;x<sampleW;x++){
+        const i=(y*sampleW+x)*4;
+        const g=data[i]*.299+data[i+1]*.587+data[i+2]*.114;
+        if(g>178){ col[x]++; row[y]++; }
+      }
+    }
+    const colFrac=col.map(v=>v/sampleH), rowFrac=row.map(v=>v/sampleW);
+    // Find the longest contiguous region with strong paper presence.
+    function longest(arr,threshold,minLen){
+      let best=[0,arr.length-1],st=-1;
+      for(let i=0;i<arr.length;i++){
+        if(arr[i]>=threshold){ if(st<0)st=i; }
+        else if(st>=0){
+          if(i-st>best[1]-best[0])best=[st,i-1]; st=-1;
+        }
+      }
+      if(st>=0 && arr.length-st>best[1]-best[0])best=[st,arr.length-1];
+      return (best[1]-best[0]+1)>=minLen?best:null;
+    }
+    const cb=longest(colFrac,.55,Math.round(sampleW*.18));
+    const rb=longest(rowFrac,.35,Math.round(sampleH*.25));
+    if(cb){left=Math.round(cb[0]*W/sampleW);right=Math.round((cb[1]+1)*W/sampleW);}
+    if(rb){top=Math.round(rb[0]*H/sampleH);bottom=Math.round((rb[1]+1)*H/sampleH);}
+  }catch(e){console.warn('Receipt boundary detection skipped',e);}
+
+  // Force the crop to the RTA receipt aspect ratio while preserving the
+  // detected receipt centre. Add only a small margin so no bottom rows clip.
+  const RTA_RATIO=860/2440;
+  let cropW=Math.max(1,right-left), cropH=Math.max(1,bottom-top);
+  const detectedRatio=cropW/cropH;
+  if(detectedRatio>RTA_RATIO){ cropW=Math.round(cropH*RTA_RATIO); }
+  else { cropH=Math.round(cropW/RTA_RATIO); }
+  cropW=Math.min(cropW,W);cropH=Math.min(cropH,H);
+  const cx=(left+right)/2, cy=(top+bottom)/2;
+  let sx=Math.round(cx-cropW/2), sy=Math.round(cy-cropH/2);
+  sx=Math.max(0,Math.min(W-cropW,sx));
+  sy=Math.max(0,Math.min(H-cropH,sy));
+
+  const outH=Math.min(3200,Math.max(2440,cropH));
+  const outW=Math.round(outH*RTA_RATIO);
+  const out=document.createElement('canvas');out.width=outW;out.height=outH;
+  const octx=out.getContext('2d',{willReadFrequently:true});
+  octx.imageSmoothingEnabled=true;octx.imageSmoothingQuality='high';
+  octx.fillStyle='#fff';octx.fillRect(0,0,outW,outH);
+  octx.drawImage(src,sx,sy,cropW,cropH,0,0,outW,outH);
+
+  // Mild grayscale/contrast cleanup only; preserve decimal points and small digits.
+  try{
+    const px=octx.getImageData(0,0,outW,outH),d=px.data;
     for(let i=0;i<d.length;i+=4){
-      const g=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114);
-      const v=Math.max(0,Math.min(255,(g-128)*1.10+128));
+      const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
+      const v=Math.max(0,Math.min(255,(g-128)*1.12+128));
       d[i]=d[i+1]=d[i+2]=v;
     }
-    octx.putImageData(img,0,0);
-  }catch(e){console.warn("Image cleanup skipped",e);}
+    octx.putImageData(px,0,0);
+  }catch(e){console.warn('Image cleanup skipped',e);}
 
   return await new Promise((resolve,reject)=>{
-    out.toBlob(b=>b?resolve(b):reject(new Error("Photo could not be prepared")),"image/jpeg",.94);
+    out.toBlob(b=>b?resolve(b):reject(new Error('Auto-cropped photo could not be created')),'image/jpeg',.95);
   });
 }
 
