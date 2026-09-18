@@ -26,9 +26,21 @@ main{padding:0 22px}
 .total{font-size:42px;font-weight:800;letter-spacing:-1.5px}
 .currency{font-size:20px;font-weight:700}
 .money-icon{width:75px;height:75px;border-radius:50%;background:#0d1033;color:#fff;display:grid;place-items:center;font-size:32px}
-.chart{height:250px;display:flex;align-items:flex-end;gap:9px;padding:18px 0 5px;border-bottom:2px solid #171717}
-.bar{flex:1;background:#cfd5f5;border-radius:7px 7px 0 0;min-width:10px}
-.days{display:flex;gap:9px;font-size:11px;color:#555;justify-content:space-between;padding-top:8px}
+.chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding-bottom:3px}
+.chart{height:250px;display:flex;align-items:flex-end;gap:10px;padding:18px 8px 5px;border-bottom:2px solid #171717;min-width:max-content}
+.chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+.chart-value{font-size:9px;font-weight:900;white-space:nowrap;line-height:1}
+.bar-wrap{height:205px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.bar{width:28px;background:#cfd5f5;border-radius:7px 7px 0 0;min-height:3px}
+.chart-date{font-size:10px;color:#555;white-space:nowrap}
+.dashboard-cycle-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.dashboard-cycle-controls .period{margin:0;flex:1;min-width:0}
+.dashboard-date-picker{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.dashboard-date-picker label{font-size:10px;color:#737783;font-weight:800;white-space:nowrap}
+.dashboard-date-picker input{width:132px;padding:8px 7px;border:1px solid #e1e3e9;border-radius:10px;background:#fff;font-size:11px;min-height:36px}
+.dashboard-date-picker input:focus{outline:none;border-color:#ed166a}
+@media(max-width:390px){.dashboard-cycle-controls{align-items:flex-start;flex-direction:column;gap:7px}.dashboard-date-picker{width:100%;justify-content:space-between}.dashboard-date-picker input{width:150px}}
+.days{display:none}
 .avg{margin-top:42px;border-left:6px solid #ed166a;padding-left:14px}
 .avg-label{font-size:15px;margin-bottom:8px}.avg-value{font-size:32px;font-weight:800}
 .quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:34px}
@@ -730,9 +742,15 @@ input:focus{border-color:#ed166a}
 <div class="notice"><div class="notice-icon">▣</div><div class="notice-text">Accounting notifications</div><div class="badge" id="invoiceBadge">0 ›</div></div>
 <h2 class="section-title">My Collections</h2>
 <section class="card">
-<div class="period">Collections - Current Cycle</div>
+<div class="dashboard-cycle-controls">
+  <div class="period" id="dashboardCycleLabel">Collections - Current Cycle</div>
+  <div class="dashboard-date-picker">
+    <label for="dashboardDateSelect">Select Date</label>
+    <input type="date" id="dashboardDateSelect" onchange="selectDashboardDate(this.value)">
+  </div>
+</div>
 <div class="total-row"><div><span class="total" id="totalAmount">0.00</span> <span class="currency">AED</span></div><div class="money-icon">▣</div></div>
-<div class="chart" id="chart"></div><div class="days" id="days"></div>
+<div class="chart-scroll"><div class="chart" id="chart"></div></div>
 <div class="avg"><div class="avg-label">Daily Avg</div><div class="avg-value" id="avgAmount">0.00 AED</div></div>
 </section>
 <h2 class="section-title">Quick Actions</h2>
@@ -1181,7 +1199,7 @@ measurementId:"G-0HWWENTGX6"
 const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
-let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;
+let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="";
 let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
@@ -1231,7 +1249,7 @@ window.logout=async()=>{
   try{ if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;} }catch(e){}
   try{ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;} }catch(e){}
   savedTargetRecords=[];
-  savedChargeRecords=[]; editingChargeDate=null;
+  savedChargeRecords=[]; editingChargeDate=null; monthlyCycleRecords={}; monthlyCycleSyncKey="";
   leaveRecords=[];
   try{ await signOut(auth); }catch(e){}
   showAuth();
@@ -2400,28 +2418,188 @@ window.deleteLeaveRecord=async(id)=>{
   }catch(e){alert("Unable to delete leave record: "+(e.message||"Error"))}
 };
 
-function updateDashboard(){
-const total=invoices.reduce((s,x)=>s+(Number(x.net)||0),0);
-const deductions=invoices.reduce((s,x)=>s+(Number(x.deductions)||0),0);
-const avg=invoices.length?total/invoices.length:0;
-const target=Number(driverData.targetPercent||0);
-document.getElementById("totalAmount").textContent=money(total);
-document.getElementById("avgAmount").textContent=money(avg)+" AED";
-document.getElementById("sumTarget").textContent=target+"%";
-document.getElementById("sumTargetAmount").textContent=money(total*target/100)+" AED";
-document.getElementById("sumDeductions").textContent=money(deductions)+" AED";
-document.getElementById("sumNet").textContent=money(total)+" AED";
-document.getElementById("invoiceBadge").textContent=invoices.length+" ›";
-renderChart();
+let dashboardSelectedDate="";
+
+function dateKeyLocal(date){
+  const d=new Date(date);
+  return new Date(d.getFullYear(),d.getMonth(),d.getDate()).toISOString().slice(0,10);
 }
 
-function renderChart(){
-const chart=document.getElementById("chart"),days=document.getElementById("days");
-chart.innerHTML="";days.innerHTML="";
-const now=new Date(),arr=[];
-for(let i=7;i>=0;i--){const d=new Date(now);d.setDate(now.getDate()-i);const key=d.toISOString().slice(0,10);const value=invoices.filter(x=>x.date===key).reduce((s,x)=>s+(Number(x.net)||0),0);arr.push({key,value,label:i===0?"Today":d.toLocaleDateString("en-US",{weekday:"short"})})}
-const max=Math.max(...arr.map(x=>x.value),1);
-arr.forEach(x=>{const bar=document.createElement("div");bar.className="bar";bar.style.height=Math.max(3,(x.value/max)*100)+"%";bar.title=x.label+": "+money(x.value)+" AED";chart.appendChild(bar);const sp=document.createElement("span");sp.textContent=x.label;days.appendChild(sp)});
+function getMonthCycleRecord(monthKey, setup){
+  if(!monthKey||!setup)return null;
+  const m=/^(\d{4})-(\d{2})$/.exec(String(monthKey));
+  if(!m)return null;
+  const year=Number(m[1]),month=Number(m[2]);
+  const lastDay=new Date(year,month,0).getDate();
+  const ranges=Array.isArray(setup.ranges)?setup.ranges:[];
+  const cycles=ranges.map((r,i)=>{
+    const rawFrom=Number(r?.from),rawTo=Number(r?.to);
+    if(!Number.isInteger(rawFrom)||!Number.isInteger(rawTo))return null;
+    const from=Math.max(1,Math.min(rawFrom,rawTo));
+    const requestedTo=Math.max(rawFrom,rawTo);
+    if(from>lastDay)return {cycle:i+1,from,to:null,days:0,requestedTo};
+    const to=Math.min(requestedTo,lastDay);
+    return {cycle:i+1,from,to,days:Math.max(0,to-from+1),requestedTo};
+  }).filter(Boolean);
+  return {
+    month:monthKey,
+    year,
+    monthNumber:month,
+    lastDay,
+    setupId:setup.id||null,
+    setupDate:setup.date||null,
+    cycleType:Number(setup.cycleType||ranges.length||1),
+    cycles,
+    totalDays:cycles.reduce((sum,c)=>sum+(Number(c.days)||0),0),
+    updatedAt:new Date().toISOString()
+  };
+}
+
+async function syncMonthlyCycleRecord(monthKey){
+  if(!currentUser||!monthKey)return;
+  const setup=getChargeSetupForDate(monthKey+"-01");
+  if(!setup)return;
+  const record=getMonthCycleRecord(monthKey,setup);
+  if(!record)return;
+  const existing=monthlyCycleRecords[monthKey];
+  const signature=JSON.stringify({setupId:record.setupId,setupDate:record.setupDate,cycles:record.cycles,totalDays:record.totalDays});
+  const oldSignature=existing?JSON.stringify({setupId:existing.setupId,setupDate:existing.setupDate,cycles:existing.cycles,totalDays:existing.totalDays}):"";
+  if(signature===oldSignature)return;
+  try{
+    const next={...monthlyCycleRecords,[monthKey]:record};
+    await setDoc(doc(db,"drivers",currentUser.uid),{monthlyCycleRecords:next},{merge:true});
+    monthlyCycleRecords=next;
+    driverData={...driverData,monthlyCycleRecords:next};
+  }catch(e){console.error("Monthly cycle record save error:",e)}
+}
+
+function queueMonthlyCycleRecord(monthKey){
+  if(!currentUser||!monthKey)return;
+  const key=String(monthKey);
+  if(monthlyCycleSyncKey===key)return;
+  monthlyCycleSyncKey=key;
+  syncMonthlyCycleRecord(key).finally(()=>{ if(monthlyCycleSyncKey===key)monthlyCycleSyncKey=""; });
+}
+
+function getDashboardCycleForDate(dateKey){
+  if(!dateKey)return null;
+  const setup=getChargeSetupForDate(dateKey);
+  if(!setup)return null;
+  const [yy,mm,dd]=String(dateKey).split("-").map(Number);
+  const day=dd;
+  const ranges=Array.isArray(setup.ranges)?setup.ranges:[];
+  const activeRange=ranges.find(r=>{
+    const from=Number(r?.from),to=Number(r?.to);
+    if(!Number.isInteger(from)||!Number.isInteger(to))return false;
+    const lo=Math.min(from,to),hi=Math.max(from,to);
+    return day>=lo&&day<=hi;
+  });
+  if(!activeRange)return null;
+  const from=Math.min(Number(activeRange.from),Number(activeRange.to));
+  const requestedTo=Math.max(Number(activeRange.from),Number(activeRange.to));
+  // Clamp the configured end day to the real last day of the selected month.
+  const lastDay=new Date(yy,mm,0).getDate();
+  const to=Math.min(requestedTo,lastDay);
+  if(from>lastDay)return null;
+  const start=new Date(yy,mm-1,from);
+  const end=new Date(yy,mm-1,to);
+  return {
+    setup,from,to,requestedTo,start,end,
+    startKey:dateKeyLocal(start),endKey:dateKeyLocal(end),
+    selectedKey:dateKey
+  };
+}
+
+function getCurrentDashboardCycle(){
+  const key=dashboardSelectedDate||dateKeyLocal(new Date());
+  return getDashboardCycleForDate(key);
+}
+
+function selectDashboardDate(value){
+  dashboardSelectedDate=value||"";
+  const input=document.getElementById("dashboardDateSelect");
+  if(input&&value)input.value=value;
+  updateDashboard();
+}
+
+function clearDashboardDateSelection(){
+  dashboardSelectedDate="";
+  const input=document.getElementById("dashboardDateSelect");
+  if(input)input.value=dateKeyLocal(new Date());
+  updateDashboard();
+}
+
+function updateDashboard(){
+  const cycle=getCurrentDashboardCycle();
+  const cycleMonth=(dashboardSelectedDate||dateKeyLocal(new Date())).slice(0,7);
+  queueMonthlyCycleRecord(cycleMonth);
+  const totalEl=document.getElementById("totalAmount"),avgEl=document.getElementById("avgAmount"),labelEl=document.getElementById("dashboardCycleLabel");
+  let cycleInvoices;
+  if(cycle){
+    cycleInvoices=invoices.filter(x=>String(x.date||"")>=cycle.startKey&&String(x.date||"")<=cycle.endKey);
+  }else{
+    const selected=dashboardSelectedDate;
+    cycleInvoices=selected?invoices.filter(x=>String(x.date||"")===selected):invoices;
+  }
+  const total=cycleInvoices.reduce((s,x)=>s+(Number(x.net)||0),0);
+  const deductions=cycleInvoices.reduce((s,x)=>s+(Number(x.deductions)||0),0);
+  const avg=cycleInvoices.length?total/cycleInvoices.length:0;
+  const target=Number(driverData.targetPercent||0);
+  if(totalEl)totalEl.textContent=money(total);
+  if(avgEl)avgEl.textContent=money(avg)+" AED";
+  if(labelEl){
+    if(cycle){
+      const range=cycle.start.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" – "+cycle.end.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+      const prefix=dashboardSelectedDate?"Collections - Selected Cycle":"Collections - Current Cycle";
+      labelEl.textContent=prefix+" ("+range+")";
+    }else if(dashboardSelectedDate){
+      labelEl.textContent="Collections - No Charge Cycle for Selected Date";
+    }else labelEl.textContent="Collections - Current Cycle";
+  }
+  const targetEl=document.getElementById("sumTarget");
+  const targetAmountEl=document.getElementById("sumTargetAmount");
+  const deductionsEl=document.getElementById("sumDeductions");
+  const sumNetEl=document.getElementById("sumNet");
+  if(targetEl)targetEl.textContent=target+"%";
+  if(targetAmountEl)targetAmountEl.textContent=money(total*target/100)+" AED";
+  if(deductionsEl)deductionsEl.textContent=money(deductions)+" AED";
+  if(sumNetEl)sumNetEl.textContent=money(total)+" AED";
+  const badge=document.getElementById("invoiceBadge");
+  if(badge)badge.textContent=cycle?cycleInvoices.length+" ›":(dashboardSelectedDate?cycleInvoices.length+" ›":invoices.length+" ›");
+  renderChart(cycle);
+}
+
+function renderChart(cycle=getCurrentDashboardCycle()){
+  const chart=document.getElementById("chart");
+  if(!chart)return;
+  chart.innerHTML="";
+  let start,end;
+  if(cycle){start=new Date(cycle.start);end=new Date(cycle.end)}
+  else if(dashboardSelectedDate){
+    const d=new Date(dashboardSelectedDate+"T00:00:00");
+    start=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    end=new Date(start);
+  }else{
+    const today=new Date();
+    start=new Date(today.getFullYear(),today.getMonth(),1);
+    end=new Date(today.getFullYear(),today.getMonth()+1,0);
+  }
+  const arr=[];
+  for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+    const key=dateKeyLocal(d);
+    const value=invoices.filter(x=>String(x.date||"")===key).reduce((s,x)=>s+(Number(x.net)||0),0);
+    arr.push({key,value,date:new Date(d)});
+  }
+  const max=Math.max(...arr.map(x=>x.value),1);
+  arr.forEach(x=>{
+    const col=document.createElement("div");col.className="chart-col";
+    const value=document.createElement("div");value.className="chart-value";value.textContent=money(x.value)+" AED";
+    const wrap=document.createElement("div");wrap.className="bar-wrap";
+    const bar=document.createElement("div");bar.className="bar";bar.style.height=Math.max(3,(x.value/max)*100)+"%";bar.title=x.date.toLocaleDateString("en-GB")+": "+money(x.value)+" AED";
+    wrap.appendChild(bar);
+    const date=document.createElement("div");date.className="chart-date";date.textContent=x.date.toLocaleDateString("en-GB",{day:"2-digit",month:"short"});
+    col.append(value,wrap,date);chart.appendChild(col);
+  });
 }
 
 onAuthStateChanged(auth,async user=>{
@@ -2456,6 +2634,8 @@ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
 // Firebase permissions used by this app.
 savedTargetRecords=Array.isArray(driverData.targetRecords)?driverData.targetRecords.map(r=>({...r})):Object.values(driverData.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
 savedChargeRecords=Object.values(driverData.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
+monthlyCycleRecords={...(driverData.monthlyCycleRecords||{})};
+monthlyCycleSyncKey="";
 leaveRecords=Array.isArray(driverData.leaveRecords)?driverData.leaveRecords.map(r=>({...r})):[];
 renderSavedCharges();
 try{renderLeaveHome();}catch(e){console.error("Leaves startup render error:",e);}
@@ -2463,6 +2643,9 @@ resetChargeSetup();
 renderSavedTargets();
 
 const today=new Date().toISOString().slice(0,10);
+dashboardSelectedDate="";
+const dashboardDateInput=document.getElementById("dashboardDateSelect");
+if(dashboardDateInput)dashboardDateInput.value=today;
 document.getElementById("targetDate").value=today;
 editingTargetDate=null;
 document.getElementById("saveTargetTableBtn").textContent="Save / Update";
