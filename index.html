@@ -1801,11 +1801,12 @@ window.printInvoice=id=>{
 <div class="totals"><div class="totalrow"><span>Total Amount</span><strong>${money2(total)} AED</strong></div><div class="totalrow"><span>Total Deductions</span><strong>${money2(deductions)} AED</strong></div><div class="totalrow net"><span>NET AMOUNT</span><strong>${money2(net)} AED</strong></div><span class="approved">✓ Invoice Saved</span></div>
 </div><div class="foot">This invoice contains the complete details saved for this invoice record.</div>
 <div class="actions"><button class="close" onclick="window.close()">Close</button><button class="print" onclick="window.print()">🖨️ Print / Save as PDF</button></div></div>
-<script>setTimeout(()=>window.print(),450);</script></body></html>`;
+</body></html>`;
 
   const w=window.open("","_blank","width=900,height=1000");
   if(!w){alert("Please allow pop-ups to print the invoice.");return;}
   w.document.open();w.document.write(html);w.document.close();
+   setTimeout(()=>{try{w.focus();w.print();}catch(e){console.error("Invoice print error:",e);}},600);
 };
 
 function renderSavedInvoices(){
