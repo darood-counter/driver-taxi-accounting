@@ -2595,10 +2595,13 @@ async function parseInvoiceOCRValueStrip(file){
   // row centres below stay stable after resizing. OCR is performed only on
   // the numeric/value side of the receipt; labels are never used to choose a
   // field. This prevents one row's value from leaking into another field.
+  // Row centres measured from the supplied full RTA Shift Summary receipt
+  // (860x2440). These are the actual value-row centres, not the older
+  // approximate diagram positions.
   const ROW_Y=[
-    816,859,902,944,985,1027,1068,1109,1151,1192,1233,1274,1314,1355,1397,1439,
-    1481,1524,1568,1610,1652,1694,1735,1774,1812,1848,1883,1920,1961,2003,2046,
-    2090,2132,2175,2219,2263,2311,2356
+    829,873,914,957,999,1041,1082,1124,1165,1206,1247,1288,1329,1369,1412,1453,
+    1496,1539,1582,1630,1669,1709,1750,1791,1827,1862,1906,1936,1976,2018,
+    2072,2110,2149,2190,2232,2274,2316,2358
   ];
   const ROW_FIELD={2:'creditCard',5:'app',8:'cash',10:'tips',13:'tolls',16:'shiftDiscount',18:'shiftTrips',20:'bookings',22:'km',25:'careemDiscount',26:'paidCareem',28:'halaJunior',29:'halaPeak',30:'peak'};
 
