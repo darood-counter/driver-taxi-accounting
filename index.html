@@ -618,7 +618,11 @@ input:focus{border-color:#ed166a}
       <div class="crop-title">✂️ Crop Receipt</div>
       <button type="button" class="scanner-close" onclick="closeInvoiceCropper()">✕</button>
     </div>
-    <div class="small" style="margin-bottom:8px">Receipt ko box ke andar adjust karein, phir Use Crop dabayein.</div>
+    <div class="small" style="margin-bottom:8px">RTA Shift Summary ke liye fixed crop area set hai. Receipt ko box ke bilkul andar rakhein; zarurat ho to drag/zoom karein.</div>
+    <div class="crop-actions" style="margin-top:0">
+      <button type="button" class="secondary" onclick="setRTAFixedCrop()">📄 RTA Fixed Crop</button>
+      <button type="button" class="secondary" onclick="resetInvoiceCrop()">↺ Reset Crop</button>
+    </div>
     <div class="crop-image-wrap"><img id="invoiceCropImage" alt="Receipt crop"></div>
     <div class="crop-actions">
       <button type="button" class="primary" onclick="applyInvoiceCrop()">✂️ Use Crop</button>
@@ -2037,8 +2041,11 @@ async function openInvoiceCropper(file){
     invoiceCropObjectUrl=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.92,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false});
-        status.textContent="Receipt ko crop box ke andar adjust karein.";
+        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.86,aspectRatio:.25,background:false,responsive:true,restore:true,zoomable:true,zoomOnWheel:true,cropBoxResizable:false,toggleDragModeOnDblclick:false});
+        // The supplied RTA Shift Summary is a tall, narrow receipt. A fixed 1:4 crop
+        // keeps the complete label/value column together and removes most background.
+        setTimeout(()=>setRTAFixedCrop(),80);
+        status.textContent="RTA fixed crop ready. Receipt ko box ke andar center karein.";
       }catch(e){status.textContent="Crop tool error. You can use Full Photo.";}
     };
     img.src=invoiceCropObjectUrl;
@@ -2046,6 +2053,30 @@ async function openInvoiceCropper(file){
     console.warn("Cropper load error",e);
     status.textContent="Crop tool load nahi hua. Full Photo use kar sakte hain.";
   }
+}
+
+function setRTAFixedCrop(){
+  if(!invoiceCropper)return;
+  try{
+    invoiceCropper.setAspectRatio(.25);
+    const data=invoiceCropper.getImageData();
+    const box=invoiceCropper.getContainerData();
+    const targetH=Math.min(data.height*.94, box.height*1.55);
+    const targetW=targetH*.25;
+    const w=Math.min(targetW, box.width*.94);
+    const h=w/.25;
+    // Center the fixed crop box; the user can still drag the image and zoom.
+    invoiceCropper.setCropBoxData({
+      width:Math.min(w,box.width*.94),
+      height:Math.min(h,box.height*.94),
+      left:(box.width-Math.min(w,box.width*.94))/2,
+      top:(box.height-Math.min(h,box.height*.94))/2
+    });
+  }catch(e){console.warn("RTA fixed crop error",e);}
+}
+function resetInvoiceCrop(){
+  if(!invoiceCropper)return;
+  try{invoiceCropper.reset(); setTimeout(()=>setRTAFixedCrop(),60);}catch(e){}
 }
 
 function closeInvoiceCropper(){
@@ -2083,7 +2114,7 @@ function captureInvoicePhoto(){
   if(!v?.videoWidth){s.textContent="Camera is not ready. Please use Choose Photo.";return;}
   c.width=v.videoWidth;c.height=v.videoHeight;
   const ctx=c.getContext("2d");ctx.drawImage(v,0,0,c.width,c.height);
-  c.toBlob(b=>{if(b)processInvoiceScan(b);else s.textContent="Photo could not be captured. Please try again.";},"image/jpeg",.92);
+  c.toBlob(b=>{if(b)openInvoiceCropper(new File([b],"rta-camera.jpg",{type:"image/jpeg"}));else s.textContent="Photo could not be captured. Please try again.";},"image/jpeg",.92);
 }
 
 document.getElementById("invoiceCameraInput")?.addEventListener("change",e=>{
