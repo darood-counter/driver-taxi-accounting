@@ -1847,6 +1847,7 @@ window.addEventListener("unhandledrejection",e=>{console.error(e.reason);const x
 
 let invoiceCameraStream=null;
 let invoiceOcrScriptPromise=null;
+let invoiceOcrWorker=null;
 
 function loadInvoiceOCR(){
   if(window.Tesseract)return Promise.resolve(window.Tesseract);
@@ -1861,168 +1862,125 @@ function loadInvoiceOCR(){
   return invoiceOcrScriptPromise;
 }
 
+async function getInvoiceOCRWorker(){
+  const T=await loadInvoiceOCR();
+  if(invoiceOcrWorker)return invoiceOcrWorker;
+  invoiceOcrWorker=await T.createWorker("eng");
+  await invoiceOcrWorker.setParameters({tessedit_pageseg_mode:"6",preserve_interword_spaces:"1"});
+  return invoiceOcrWorker;
+}
+
+async function closeInvoiceOCRWorker(){
+  if(invoiceOcrWorker){try{await invoiceOcrWorker.terminate();}catch(e){} invoiceOcrWorker=null;}
+}
+
 async function openInvoiceScanner(){
-  const modal=document.getElementById("invoiceScannerModal");
-  const video=document.getElementById("invoiceCameraPreview");
-  const status=document.getElementById("invoiceScanStatus");
-  modal.classList.add("show");
-  status.textContent="Opening camera...";
+  const modal=document.getElementById("invoiceScannerModal"), video=document.getElementById("invoiceCameraPreview"), status=document.getElementById("invoiceScanStatus");
+  modal.classList.add("show"); status.textContent="Opening camera...";
   try{
     if(navigator.mediaDevices?.getUserMedia){
-      invoiceCameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+      invoiceCameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:1920}},audio:false});
       video.srcObject=invoiceCameraStream;
-      status.textContent="Camera ready. Keep the invoice clear, then tap Take Photo.";
+      status.textContent="Camera ready. Receipt ko frame ke beech mein rakhein, phir Take Photo dabayein.";
     }else status.textContent="Camera preview is not supported. You can choose a photo instead.";
-  }catch(e){
-    console.warn(e);
-    status.textContent="Camera permission was not available. You can choose a photo instead.";
-  }
+  }catch(e){console.warn(e);status.textContent="Camera permission was not available. You can choose a photo instead.";}
 }
 function closeInvoiceScanner(){
-  const modal=document.getElementById("invoiceScannerModal"), video=document.getElementById("invoiceCameraPreview");
+  const modal=document.getElementById("invoiceScannerModal"),video=document.getElementById("invoiceCameraPreview");
   if(invoiceCameraStream){invoiceCameraStream.getTracks().forEach(t=>t.stop());invoiceCameraStream=null;}
   if(video)video.srcObject=null;
   if(modal)modal.classList.remove("show");
 }
 function chooseInvoicePhoto(){document.getElementById("invoiceCameraInput")?.click();}
 function captureInvoicePhoto(){
-  const v=document.getElementById("invoiceCameraPreview"), c=document.getElementById("invoiceCameraCanvas"), s=document.getElementById("invoiceScanStatus");
+  const v=document.getElementById("invoiceCameraPreview"),c=document.getElementById("invoiceCameraCanvas"),s=document.getElementById("invoiceScanStatus");
   if(!v?.videoWidth){s.textContent="Camera is not ready. Please use Choose Photo.";return;}
   c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0,c.width,c.height);
-  c.toBlob(b=>{if(b)processInvoiceScan(b)},"image/jpeg",.92);
+  c.toBlob(b=>{if(b)processInvoiceScan(b);},"image/jpeg",.90);
 }
-document.getElementById("invoiceCameraInput")?.addEventListener("change",e=>{
-  const f=e.target.files?.[0]; if(f)processInvoiceScan(f); e.target.value="";
-});
+document.getElementById("invoiceCameraInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)processInvoiceScan(f);e.target.value="";});
+
 async function processInvoiceScan(file){
   const s=document.getElementById("invoiceScanStatus");
-  s.textContent="Preparing photo for fast scan...";
   try{
-    const T=await loadInvoiceOCR();
-
-    // Resize + grayscale/contrast the photo before OCR. This keeps OCR much
-    // faster on mobile while preserving the small receipt text.
+    s.textContent="Preparing RTA receipt...";
     const prepared=await prepareInvoiceOCRImage(file);
-
-    s.textContent="Reading invoice... Please wait.";
-    const worker=await T.createWorker("eng");
-    await worker.setParameters({
-      tessedit_pageseg_mode:"6",
-      preserve_interword_spaces:"1"
-    });
+    s.textContent="Reading RTA Shift Summary...";
+    const worker=await getInvoiceOCRWorker();
     const r=await worker.recognize(prepared);
     const text=r?.data?.text||"";
-    await worker.terminate();
-
+    console.log("RTA OCR text:",text);
     const filled=parseInvoiceOCRText(text);
     let count=0;
-    Object.entries(filled).forEach(([id,val])=>{
-      const el=document.getElementById(id);
-      if(el&&Number.isFinite(val)){
-        el.value=String(val);
-        count++;
-      }
-    });
-
-    updatePreview();
-    closeInvoiceScanner();
-
+    Object.entries(filled).forEach(([id,val])=>{const el=document.getElementById(id);if(el&&Number.isFinite(val)){el.value=String(val);count++;}});
+    updatePreview(); closeInvoiceScanner();
     const st=document.getElementById("invoiceStatus");
-    st.textContent=count
-      ? `${count} field(s) auto-filled from the invoice photo. Please check all values before saving.`
-      : "No matching fields found. Please enter values manually.";
-  }catch(e){
-    console.error("Invoice OCR error:",e);
-    s.textContent="Could not read the invoice. Try a clear photo with the receipt filling most of the screen.";
-  }
+    st.textContent=count?`${count} field(s) auto-filled from the RTA receipt. Please check all values before saving.`:"RTA receipt could not be read. Please take a clearer photo with the receipt filling most of the screen.";
+  }catch(e){console.error("Invoice OCR error:",e);s.textContent="Could not read the RTA receipt. Please try a clear, straight photo.";}
 }
 
 function prepareInvoiceOCRImage(file){
   return new Promise((resolve,reject)=>{
-    const img=new Image();
-    const url=URL.createObjectURL(file);
+    const img=new Image(),url=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        // Keep OCR input around 1100px wide. Larger images add processing time
-        // without helping this narrow thermal receipt much.
-        const maxW=1100;
-        const scale=Math.min(1,maxW/img.naturalWidth);
-        const w=Math.max(1,Math.round(img.naturalWidth*scale));
-        const h=Math.max(1,Math.round(img.naturalHeight*scale));
-
-        const c=document.createElement("canvas");
-        c.width=w;c.height=h;
-        const ctx=c.getContext("2d",{willReadFrequently:true});
-        ctx.drawImage(img,0,0,w,h);
-
-        const data=ctx.getImageData(0,0,w,h);
-        const p=data.data;
-        for(let i=0;i<p.length;i+=4){
-          const gray=(p[i]*0.299)+(p[i+1]*0.587)+(p[i+2]*0.114);
-          const v=Math.max(0,Math.min(255,(gray-128)*1.45+128));
-          p[i]=p[i+1]=p[i+2]=v;
-        }
-        ctx.putImageData(data,0,0);
-
-        c.toBlob(blob=>{
-          URL.revokeObjectURL(url);
-          if(blob)resolve(blob);
-          else reject(new Error("Image preparation failed."));
-        },"image/jpeg",0.82);
-      }catch(e){
-        URL.revokeObjectURL(url);
-        reject(e);
-      }
+        const maxW=1400,scale=Math.min(1,maxW/img.naturalWidth),w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+        const c=document.createElement("canvas");c.width=w;c.height=h;const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0,w,h);
+        // RTA receipts are normally a tall, centered document. Remove side background when present.
+        const cropW=Math.round(w*.90),x=Math.round((w-cropW)/2);
+        const out=document.createElement("canvas");out.width=cropW;out.height=h;const ox=out.getContext("2d",{willReadFrequently:true});ox.drawImage(c,x,0,cropW,h,0,0,cropW,h);
+        const data=ox.getImageData(0,0,cropW,h),p=data.data;
+        for(let i=0;i<p.length;i+=4){const g=p[i]*.299+p[i+1]*.587+p[i+2]*.114;let v=(g-128)*1.60+128;v=Math.max(0,Math.min(255,v));p[i]=p[i+1]=p[i+2]=v;}
+        ox.putImageData(data,0,0);
+        out.toBlob(b=>{URL.revokeObjectURL(url);b?resolve(b):reject(new Error("Image preparation failed."));},"image/jpeg",.84);
+      }catch(e){URL.revokeObjectURL(url);reject(e);}
     };
-    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Image could not be opened."));};
-    img.src=url;
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Image could not be opened."));};img.src=url;
   });
 }
 
+function normOCR(s){return String(s||"").replace(/[|]/g,"I").replace(/\s+/g," ").trim();}
+function numOCR(s){
+  const m=String(s||"").replace(/,/g,"").match(/-?\d+(?:\.\d+)?/);return m?Number(m[0]):null;
+}
 function invoiceFindValue(text,labels){
-  const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const lines=String(text||"").split(/\r?\n/).map(normOCR).filter(Boolean);
   for(let i=0;i<lines.length;i++){
-    const labelRe=new RegExp("(?:"+labels.join("|")+")","i");
-    if(!labelRe.test(lines[i]))continue;
-
-    const after=lines[i].replace(labelRe," ");
-    const same=after.match(/(?:AED\s*)?(-?\d[\d,]*(?:\.\d{1,2})?)/i);
-    if(same)return Number(same[1].replace(/,/g,""));
-
-    for(let j=i+1;j<Math.min(i+3,lines.length);j++){
-      const m=lines[j].match(/(?:AED\s*)?(-?\d[\d,]*(?:\.\d{1,2})?)/i);
-      if(m)return Number(m[1].replace(/,/g,""));
+    const line=lines[i];
+    for(const label of labels){
+      const re=new RegExp(label,"i"),m=line.match(re); if(!m)continue;
+      const rest=line.slice(m.index+m[0].length);
+      const same=numOCR(rest); if(same!==null)return same;
+      for(let j=i+1;j<Math.min(i+3,lines.length);j++){const n=numOCR(lines[j]);if(n!==null)return n;}
     }
   }
   return null;
 }
 
 function parseInvoiceOCRText(text){
-  const fields={
-    creditCard:["credit\\s*card","card"],
-    app:["\\bapp\\b","application"],
-    cash:["\\bcash\\b"],
-    tips:["\\btips?\\b","gratuity"],
-    tolls:["tollways?","tolls?","salik"],
-    shiftDiscount:["shift\\s*discount","discount"],
-    shiftTrips:["shift\\s*trips?","trips?"],
-    bookings:["bookings?","booking"],
-    km:["kilometers?\\s*hired","kilomet(?:er|re)s?","\\bkm\\b"],
-    careemDiscount:["careem\\s*discount"],
-    paidCareem:["paid\\s*(?:in\\s*)?careem","careem\\s*paid"],
-    halaJunior:["hala\\s*juniors?","hala\\s*junior"],
-    halaPeak:["hala\\s*peak"],
-    peak:["\\bpeak\\b"],
-    extraCharges:[]
-  };
   const out={};
-  for(const [id,labels] of Object.entries(fields)){
-    const v=invoiceFindValue(text,labels);
-    if(v!==null&&Number.isFinite(v))out[id]=v;
-  }
+  // Exact RTA Shift Summary labels. Total Extras is intentionally NOT mapped to Others.
+  const fields={
+    creditCard:["credit\\s*cards?","credit\\s*card"],
+    app:["\\bapp\\b"],
+    cash:["\\bcash\\b"],
+    tips:["\\btips?\\b"],
+    tolls:["total\\s*tollways?","tollways?","tolls?"],
+    shiftDiscount:["shift\\s*discount"],
+    shiftTrips:["shift\\s*trips?"],
+    bookings:["bookings?"],
+    km:["kilometers?\\s*hired","kilomet(?:er|re)s?\\s*hired"],
+    careemDiscount:["careem\\s*discount"],
+    paidCareem:["paid\\s*in\\s*careem","paid\\s*careem"],
+    halaJunior:["hala\\s*juniors?"],
+    halaPeak:["hala\\s*peak"],
+    peak:["(?<!hala\\s)\\bpeak\\b"]
+  };
+  for(const [id,labels] of Object.entries(fields)){const v=invoiceFindValue(text,labels);if(v!==null&&Number.isFinite(v))out[id]=v;}
   return out;
 }
 
+window.addEventListener("beforeunload",()=>{closeInvoiceOCRWorker();});
 </script>
 </body>
 </html>
