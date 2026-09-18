@@ -2642,16 +2642,20 @@ function rtaValueFromNumberedRow(group,W){
 
 
 async function parseInvoiceOCRValueStrip(file){
-  // LABEL-ANCHORED RTA READER:
-  // First locate the actual RTA label in the captured image. Then read only
-  // the numeric area to the right of that label. This avoids the old bug where
-  // fixed pixel rows put a value into a neighbouring field after a mobile
-  // camera photo was resized/perspectively changed.
+  // SAME-LABEL -> SAME-ROW-VALUE reader.
+  // We do not assign a number by fixed row position. First OCR the complete
+  // receipt with word boxes, find the exact RTA field name, then take the
+  // numeric value on that same line and to the right of that exact label.
+  // A value of 0.00 is a real value and is kept exactly like any other value.
   const img=new Image();
   const url=URL.createObjectURL(file);
   try{
-    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Receipt image could not be opened.'));img.src=url;});
-    const W=img.naturalWidth||860,H=img.naturalHeight||2440;
+    await new Promise((resolve,reject)=>{
+      img.onload=resolve;
+      img.onerror=()=>reject(new Error('Receipt image could not be opened.'));
+      img.src=url;
+    });
+    const W=img.naturalWidth||860, H=img.naturalHeight||2440;
     const result={};
     const worker=await getInvoiceOCRWorker('11');
     await worker.setParameters({
@@ -2660,141 +2664,164 @@ async function parseInvoiceOCRValueStrip(file){
       user_defined_dpi:'300'
     });
 
-    // Full receipt OCR with word boxes. Labels are the anchors; numbers are
-    // never selected merely because they happen to be near a fixed row.
-    const full=await worker.recognize(img,{},{blocks:false,paragraphs:false,lines:false,words:true});
-    const words=Array.isArray(full?.data?.words)?full.data.words.filter(w=>String(w?.text||'').trim()&&w?.bbox):[];
+    const full=await worker.recognize(img,{}, {blocks:false,paragraphs:false,lines:false,words:true});
+    const words=Array.isArray(full?.data?.words)
+      ? full.data.words.filter(w=>String(w?.text||'').trim()&&w?.bbox)
+      : [];
     if(!words.length)return result;
 
-    const clean=cleanOCRToken;
+    const clean=s=>String(s||'').toLowerCase()
+      .replace(/[|]/g,'i')
+      .replace(/[—–]/g,'-')
+      .replace(/[^a-z0-9]+/g,'')
+      .trim();
+
     const labelTokens={
-      creditCard:['credit','cards'],
-      app:['app'],
-      cash:['cash'],
-      tips:['tips','tip'],
-      tolls:['total','tollways'],
-      shiftDiscount:['shift','discount'],
-      shiftTrips:['shift','trips'],
-      bookings:['bookings'],
-      km:['kilometers','hired'],
-      careemDiscount:['careem','discount'],
-      paidCareem:['paid','in','careem'],
-      halaJunior:['hala','juniors'],
-      halaPeak:['hala','peak'],
-      peak:['peak']
+      creditCard:[['credit','cards'],['credit','card']],
+      app:[['app']],
+      cash:[['cash']],
+      tips:[['tips'],['tip']],
+      tolls:[['total','tollways'],['tollways']],
+      shiftDiscount:[['shift','discount']],
+      shiftTrips:[['shift','trips'],['shift','trip']],
+      bookings:[['bookings'],['booking']],
+      km:[['kilometers','hired'],['kilometer','hired'],['kilometres','hired'],['kilometre','hired']],
+      careemDiscount:[['careem','discount']],
+      paidCareem:[['paid','in','careem']],
+      halaJunior:[['hala','juniors'],['hala','junior']],
+      halaPeak:[['hala','peak']],
+      peak:[['peak']]
     };
-    const expectedRow={creditCard:2,app:5,cash:8,tips:10,tolls:13,shiftDiscount:16,shiftTrips:18,bookings:20,km:22,careemDiscount:25,paidCareem:26,halaJunior:28,halaPeak:29,peak:30};
-    const sourceCenters=[816,985,1109,1192,1314,1439,1524,1610,1694,1812,1848,1920,1961,2003];
 
-    const centerY=w=>((Number(w.bbox?.top||0)+Number(w.bbox?.bottom||0))/2);
-    const tokenAt=(w)=>clean(String(w?.text||''));
+    // Used only when the same word occurs more than once (APP / Peak).
+    const expectedRow={
+      creditCard:2,app:5,cash:8,tips:10,tolls:13,shiftDiscount:16,
+      shiftTrips:18,bookings:20,km:22,careemDiscount:25,paidCareem:26,
+      halaJunior:28,halaPeak:29,peak:30
+    };
+    const rowY={
+      2:.353279,5:.408197,8:.459836,10:.493852,13:.544672,16:.595492,
+      18:.630328,20:.664754,22:.700000,25:.750000,26:.767213,
+      28:.801230,29:.818852,30:.836066
+    };
 
-    function labelCandidates(field){
-      const target=labelTokens[field];
-      const targetJoined=target.join('');
-      const out=[];
+    const cy=w=>(Number(w.bbox?.top||0)+Number(w.bbox?.bottom||0))/2;
+    const left=w=>Number(w.bbox?.left||0);
+    const right=w=>Number(w.bbox?.right||left(w));
+
+    function numberFromToken(t){
+      let raw=String(t||'').trim().replace(/,/g,'').replace(/[Oo]/g,'0');
+      raw=raw.replace(/^[^0-9-]+/,'').replace(/[^0-9.%-]+$/,'');
+      if(!/^[-+]?\d+(?:\.\d+)?$/.test(raw))return null;
+      const n=Number(raw);
+      return Number.isFinite(n)?n:null;
+    }
+
+    function findLabels(field){
+      const variants=labelTokens[field]||[];
+      const hits=[];
       for(let i=0;i<words.length;i++){
-        // OCR can split a label such as "Bookings" into "Book" + "ings",
-        // or "Tollways" into "Tol" + "lways". Try 1-4 contiguous OCR
-        // words and compare their compact spelling.
-        let joined='';
-        for(let n=1;n<=Math.min(4,words.length-i);n++){
-          const t=tokenAt(words[i+n-1]);
-          if(!t)break;
-          joined+=t;
-          const exact=joined===targetJoined;
-          const fuzzy=(targetJoined.length>=5 && levenshteinOCR(joined,targetJoined)<=Math.max(1,Math.floor(targetJoined.length*.18)));
-          if(exact||fuzzy){
-            out.push({start:i,end:i+n-1,y:(centerY(words[i])+centerY(words[i+n-1]))/2,x:Number(words[i].bbox?.left||0)});
-            break;
+        for(const variant of variants){
+          const parts=variant.map(clean);
+          let joined='';
+          for(let n=0;n<parts.length && i+n<words.length;n++){
+            const t=clean(words[i+n].text);
+            if(!t)break;
+            joined+=t;
+            if(joined===parts.slice(0,n+1).join('')){
+              if(n===parts.length-1){
+                hits.push({
+                  start:i,end:i+n,
+                  x:left(words[i]),right:right(words[i+n]),
+                  y:(cy(words[i])+cy(words[i+n]))/2
+                });
+              }
+            }else{
+              break;
+            }
           }
         }
       }
-      return out;
+      // Remove duplicate hits at the same location.
+      return hits.filter((h,i,a)=>a.findIndex(x=>Math.abs(x.x-h.x)<3&&Math.abs(x.y-h.y)<3&&x.start===h.start&&x.end===h.end)===i);
     }
 
-    // Expected normalized row position is only used to choose between genuine
-    // duplicate labels such as APP/In-App and Peak/Hala Peak. It does NOT pick
-    // the value itself.
-    function chooseLabel(field,cands){
-      if(!cands.length)return null;
-      const row=expectedRow[field];
-      const expected=(RTA_TEMPLATE.rowCenters[row-1]||0.5)*H;
-      let best=null,bestScore=Infinity;
-      for(const c of cands){
-        const score=Math.abs(c.y-expected);
-        if(score<bestScore){best=c;bestScore=score;}
-      }
-      return best;
+    function chooseLabel(field,hits){
+      if(!hits.length)return null;
+      if(hits.length===1)return hits[0];
+      const expected=expectedRow[field];
+      const ey=(rowY[expected]||.5)*H;
+      return hits.slice().sort((a,b)=>Math.abs(a.y-ey)-Math.abs(b.y-ey))[0];
     }
 
-    async function readValueAt(label,field){
+    function directValueFromSameRow(label){
       if(!label)return null;
-      const expected=(RTA_TEMPLATE.rowCenters[expectedRow[field]-1]||0.5)*H;
-      // Use the label's real y, with a modest vertical window. x starts well
-      // after AED so the label itself can never become the numeric result.
-      const y=Math.abs(label.y-expected)<H*.035?expected:label.y;
-      const x1=Math.min(W*.54,Math.max(0,label.x+Math.max(120,W*.16)));
-      const x2=W*.90;
-      const band=Math.max(34,H*.018);
-      const c=document.createElement('canvas');
-      const scale=4;
-      c.width=Math.max(1,Math.round((x2-x1)*scale));
-      c.height=Math.max(1,Math.round((band*2)*scale));
-      const ctx=c.getContext('2d',{willReadFrequently:true});
-      ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
-      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-      ctx.drawImage(img,x1,y-band,x2-x1,band*2,0,0,c.width,c.height);
-      try{
-        const px=ctx.getImageData(0,0,c.width,c.height),d=px.data;
-        for(let i=0;i<d.length;i+=4){
-          const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
-          const v=Math.max(0,Math.min(255,(g-128)*1.25+128));
-          d[i]=d[i+1]=d[i+2]=v;
-        }
-        ctx.putImageData(px,0,0);
-      }catch(e){}
-      const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('value crop failed')),'image/png'));
-      await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789.,-'});
-      const rr=await worker.recognize(blob);
-      const txt=String(rr?.data?.text||'').replace(/,/g,'');
-      const nums=txt.match(/-?\d+(?:\.\d+)?/g)||[];
-      if(nums.length){
-        // Prefer a decimal-looking token; for Trips/Bookings integers are fine.
-        const parsed=nums.map(Number).filter(Number.isFinite);
-        if(parsed.length)return parsed[0];
+      const band=Math.max(24,H*.0125);
+      const minX=Math.max(label.right+8,W*.40);
+      const maxX=W*.98;
+      const candidates=[];
+      for(const w of words){
+        if(left(w)<minX || left(w)>maxX)continue;
+        if(Math.abs(cy(w)-label.y)>band)continue;
+        const n=numberFromToken(w.text);
+        if(n!==null)candidates.push({n,x:left(w),y:cy(w),w});
+      }
+      candidates.sort((a,b)=>Math.abs(a.y-label.y)-Math.abs(b.y-label.y)||a.x-b.x);
+      if(candidates.length)return candidates[0].n;
+
+      // Some OCR engines split a decimal into two words, e.g. "0" + ".00".
+      const rowWords=words.filter(w=>left(w)>=minX&&left(w)<=maxX&&Math.abs(cy(w)-label.y)<=band)
+        .sort((a,b)=>left(a)-left(b));
+      for(let i=0;i<rowWords.length-1;i++){
+        const a=String(rowWords[i].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
+        const b=String(rowWords[i+1].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
+        const joined=(a+b).replace(/^\./,'0.');
+        if(/^[-+]?\d+\.\d+$/.test(joined))return Number(joined);
       }
       return null;
     }
 
-    for(const field of REQUIRED_RTA_OCR_FIELDS){
-      const label=chooseLabel(field,labelCandidates(field));
-      const n=await readValueAt(label,field);
-      if(n!==null&&Number.isFinite(n))result[field]=n;
+    async function fallbackCropValue(label){
+      if(!label)return null;
+      const band=Math.max(34,H*.018);
+      const x1=Math.min(W*.78,Math.max(label.right+8,W*.38));
+      const x2=W*.98;
+      const c=document.createElement('canvas');
+      const scale=4;
+      c.width=Math.max(1,Math.round((x2-x1)*scale));
+      c.height=Math.max(1,Math.round((band*2)*scale));
+      const ctx=c.getContext('2d');
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      ctx.drawImage(img,x1,label.y-band,x2-x1,band*2,0,0,c.width,c.height);
+      try{
+        const px=ctx.getImageData(0,0,c.width,c.height),d=px.data;
+        for(let i=0;i<d.length;i+=4){
+          const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
+          const v=Math.max(0,Math.min(255,(g-128)*1.35+128));
+          d[i]=d[i+1]=d[i+2]=v;
+        }
+        ctx.putImageData(px,0,0);
+      }catch(e){}
+      await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789.,-'});
+      const rr=await worker.recognize(c);
+      const nums=String(rr?.data?.text||'').replace(/,/g,'').match(/-?\d+(?:\.\d+)?/g)||[];
+      const parsed=nums.map(Number).filter(Number.isFinite);
+      return parsed.length?parsed[0]:null;
     }
 
-    // Bookings is the one row where the supplied receipt's large 5 can be
-    // missed by OCR. Use the physical row inferred from the label, not a
-    // hard-coded receipt value.
-    if(result.bookings===undefined){
-      const lab=chooseLabel('bookings',labelCandidates('bookings'));
-      if(lab){
-        const y=lab.y, x1=W*.58,x2=W*.88,band=Math.max(38,H*.02);
-        const c=document.createElement('canvas'),scale=6;
-        c.width=(x2-x1)*scale;c.height=(band*2)*scale;
-        c.getContext('2d').drawImage(img,x1,y-band,x2-x1,band*2,0,0,c.width,c.height);
-        await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789'});
-        const rr=await worker.recognize(c);
-        const m=String(rr?.data?.text||'').match(/\d+/);
-        if(m)result.bookings=Number(m[0]);
-      }
+    for(const field of REQUIRED_RTA_OCR_FIELDS){
+      const label=chooseLabel(field,findLabels(field));
+      if(!label)continue;
+      let n=directValueFromSameRow(label);
+      if(n===null)n=await fallbackCropValue(label);
+      if(n!==null&&Number.isFinite(n))result[field]=n;
     }
     return result;
   }finally{
     URL.revokeObjectURL(url);
   }
 }
-
 function parseInvoiceOCRData(data){
   const out=blankRTAOCRFields();
   const pack=rtaBuildNumberedRows(data);
