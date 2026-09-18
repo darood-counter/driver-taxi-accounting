@@ -25,8 +25,8 @@ main{padding:0 22px}
 .total-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .total{font-size:42px;font-weight:800;letter-spacing:-1.5px}
 .currency{font-size:20px;font-weight:700}
-.cycle-date-badge{width:68px;height:68px;border:0;border-radius:50%;background:#0d1033;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;box-shadow:0 4px 10px rgba(13,16,51,.16);position:relative;cursor:pointer;padding:0;overflow:hidden;transform:translateY(-9px);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
-.cycle-date-badge:hover{background:#0d1033;box-shadow:0 5px 12px rgba(13,16,51,.20)}.cycle-date-badge:active{transform:translateY(-9px) scale(.97)}
+.cycle-date-badge{width:58px;height:58px;border:0;border-radius:50%;background:#0d1033;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;box-shadow:0 4px 10px rgba(13,16,51,.16);position:relative;cursor:pointer;padding:0;overflow:hidden;transform:translateY(-14px);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+.cycle-date-badge:hover{background:#0d1033;box-shadow:0 5px 12px rgba(13,16,51,.20)}.cycle-date-badge:active{transform:translateY(-14px) scale(.97)}
 .cycle-badge-day{font-size:26px;font-weight:800;letter-spacing:-.8px}
 .cycle-badge-month{font-size:10px;font-weight:800;text-transform:uppercase;margin-top:5px;color:#fff;letter-spacing:.3px}
 .cycle-date-badge input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:0}
@@ -43,8 +43,8 @@ main{padding:0 22px}
 .chart-average-line{position:absolute;height:3px;background:#111827;left:8px;right:8px;z-index:1;border-radius:2px;pointer-events:none}
 .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#111827;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;z-index:3;white-space:nowrap}
 .chart-average-overlay{position:absolute;inset:0;z-index:20;pointer-events:none;display:none}
-.chart-average-overlay .chart-average-line{position:absolute;left:8px;right:58px;height:3px;background:#111827;border-radius:2px}
-.chart-average-overlay .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#111827;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;white-space:nowrap}
+.chart-average-overlay .chart-average-line{position:absolute;left:8px;right:58px;height:3px;background:#e11d48;border-radius:2px}
+.chart-average-overlay .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#e11d48;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;white-space:nowrap}
 .chart-selected-value{position:absolute;transform:translate(-50%,-100%);background:#fff;border:2px solid #3155c8;color:#3155c8;border-radius:7px;padding:6px 8px;font-size:12px;font-weight:900;white-space:nowrap;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .dashboard-cycle-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .dashboard-cycle-controls .period{margin:0;flex:1;min-width:0}
@@ -2508,35 +2508,53 @@ function queueMonthlyCycleRecord(monthKey){
   syncMonthlyCycleRecord(key).finally(()=>{ if(monthlyCycleSyncKey===key)monthlyCycleSyncKey=""; });
 }
 
+function makeCycleSegment(year, monthIndex, fromDay, toDay){
+  const from=Number(fromDay), to=Number(toDay);
+  if(!Number.isInteger(from)||!Number.isInteger(to))return null;
+  const start=new Date(year,monthIndex-1,from);
+  if(start.getMonth()!==((monthIndex-1)%12+12)%12)return null;
+  let end=new Date(year,monthIndex-1,to);
+  // A range such as 20 → 5 continues into the following calendar month.
+  if(end<start) end=new Date(year,monthIndex,to);
+  return {start,end};
+}
+
 function getDashboardCycleForDate(dateKey){
   if(!dateKey)return null;
   const setup=getChargeSetupForDate(dateKey);
   if(!setup)return null;
-  const [yy,mm,dd]=String(dateKey).split("-").map(Number);
-  const day=dd;
+  const selected=new Date(dateKey+"T00:00:00");
+  const type=Number(setup.cycleType||1);
   const ranges=Array.isArray(setup.ranges)?setup.ranges:[];
-  const activeRange=ranges.find(r=>{
-    const from=Number(r?.from),to=Number(r?.to);
-    if(!Number.isInteger(from)||!Number.isInteger(to))return false;
-    const lo=Math.min(from,to),hi=Math.max(from,to);
-    return day>=lo&&day<=hi;
-  });
-  if(!activeRange)return null;
-  const from=Math.min(Number(activeRange.from),Number(activeRange.to));
-  const requestedTo=Math.max(Number(activeRange.from),Number(activeRange.to));
-  // Clamp the configured end day to the real last day of the selected month.
-  const lastDay=new Date(yy,mm,0).getDate();
-  const to=Math.min(requestedTo,lastDay);
-  if(from>lastDay)return null;
-  const start=new Date(yy,mm-1,from);
-  const end=new Date(yy,mm-1,to);
-  return {
-    setup,from,to,requestedTo,start,end,
-    startKey:dateKeyLocal(start),endKey:dateKeyLocal(end),
-    selectedKey:dateKey
-  };
-}
+  const r1=ranges[0];
+  if(!r1)return null;
 
+  // Cycle 1 is the anchor. A cycle group always starts on Cycle 1's start
+  // date and remains the same group even if Cycle 2 crosses into the next month.
+  const candidates=[];
+  for(let offset=-1;offset<=1;offset++){
+    const anchor=new Date(selected.getFullYear(),selected.getMonth()+offset,1);
+    const c1=makeCycleSegment(anchor.getFullYear(),anchor.getMonth()+1,r1.from,r1.to);
+    if(!c1)continue;
+    let c2=null;
+    if(type===2 && ranges[1]){
+      const r2=ranges[1];
+      const c2Month=c1.end.getMonth();
+      const c2Year=c1.end.getFullYear();
+      let c2Start=new Date(c2Year,c2Month,Number(r2.from));
+      if(c2Start<=c1.end)c2Start=new Date(c2Year,c2Month+1,Number(r2.from));
+      let c2End=new Date(c2Start.getFullYear(),c2Start.getMonth(),Number(r2.to));
+      if(c2End<c2Start)c2End=new Date(c2Start.getFullYear(),c2Start.getMonth()+1,Number(r2.to));
+      c2={start:c2Start,end:c2End};
+    }
+    const groupEnd=c2?c2.end:c1.end;
+    if(selected>=c1.start && selected<=groupEnd){
+      candidates.push({setup,start:c1.start,end:groupEnd,cycle1Start:c1.start,cycle1End:c1.end,cycle2Start:c2?.start||null,cycle2End:c2?.end||null,selectedKey:dateKey});
+    }
+  }
+  if(!candidates.length)return null;
+  return candidates.sort((a,b)=>b.start-a.start)[0];
+}
 function getCurrentDashboardCycle(){
   const key=dashboardSelectedDate||dateKeyLocal(new Date());
   return getDashboardCycleForDate(key);
@@ -2622,8 +2640,12 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   if(!chart)return;
   chart.innerHTML="";
   let start,end;
-  if(cycle){start=new Date(cycle.start);end=new Date(cycle.end)}
-  else if(dashboardSelectedDate){
+  if(cycle){
+    // Always begin at Cycle 1's start date. The visible window ends at TODAY,
+    // never at a future configured date. Tomorrow is added automatically.
+    start=new Date(cycle.cycle1Start);
+    end=new Date(cycle.end);
+  }else if(dashboardSelectedDate){
     const d=new Date(dashboardSelectedDate+"T00:00:00");
     start=new Date(d.getFullYear(),d.getMonth(),d.getDate());
     end=new Date(start);
@@ -2632,8 +2654,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     start=new Date(today.getFullYear(),today.getMonth(),1);
     end=new Date(today.getFullYear(),today.getMonth()+1,0);
   }
-  // Never show future days. The chart grows naturally one calendar day at a time.
-  // When tomorrow arrives, it becomes visible automatically; no empty future bars.
+  // Never show future days. The chart grows one day at a time.
   const todayKey=dateKeyLocal(new Date());
   const visibleEndKey=end&&dateKeyLocal(end)<todayKey?dateKeyLocal(end):todayKey;
   const visibleEnd=new Date(visibleEndKey+"T00:00:00");
@@ -2720,8 +2741,8 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     const hasData=invoices.some(inv=>String(inv.date||"")===x.key);
     return hasData && (!cycleStart||x.key>=cycleStart) && (!cycleEnd||x.key<=cycleEnd);
   });
-  const latestData=dataDates.length?dataDates[dataDates.length-1]:null;
-  const followDate=dashboardSelectedDate||latestData?.key||arr[arr.length-1]?.key;
+  const latestVisible=arr[arr.length-1]?.key;
+  const followDate=dashboardSelectedDate||latestVisible;
   if(followDate){
     requestAnimationFrame(()=>scrollDashboardChartToDate(followDate,{smooth:true}));
   }
