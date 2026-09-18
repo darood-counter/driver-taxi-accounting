@@ -2098,38 +2098,52 @@ async function processInvoiceScan(file){
   invoiceOcrBusy=true;
   try{
     s.textContent="Preparing receipt...";
-    const prepared=await prepareInvoiceOCRImage(file,false);
-    s.textContent="Reading RTA Shift Summary... first scan may take a few seconds.";
-    let worker=await getInvoiceOCRWorker("6");
-    let r=await worker.recognize(prepared);
-    let text=r?.data?.text||"";
-    console.log("RTA OCR text (PSM 6):",text);
-    let filled={...parseInvoiceOCRText(text),...parseInvoiceOCRData(r?.data)};
-
-    // If the first layout pass missed fields, retry with sparse-text mode and a
-    // full-frame enhancement. This is slower only when the first pass fails.
-    if(Object.keys(filled).length<5){
-      s.textContent="Trying a second RTA reading...";
-      const prepared2=await prepareInvoiceOCRImage(file,true);
-      worker=await getInvoiceOCRWorker("11");
-      r=await worker.recognize(prepared2);
-      text+=("\n"+(r?.data?.text||""));
-      console.log("RTA OCR text (PSM 11):",r?.data?.text||"");
-      const second={...parseInvoiceOCRText(r?.data?.text||""),...parseInvoiceOCRData(r?.data)};
-      filled={...second,...filled};
+    // Start with a clean zero-filled object so every required invoice field
+    // always receives a value, even when the receipt itself shows 0.00.
+    let filled=blankRTAOCRFields();
+    const passes=[
+      {psm:"6",mode:"normal"},
+      {psm:"6",mode:"gray"},
+      {psm:"11",mode:"full"}
+    ];
+    let allText="";
+    for(let pi=0;pi<passes.length;pi++){
+      const pass=passes[pi];
+      s.textContent=pi===0?"Reading RTA Shift Summary...":"Checking missing values...";
+      const prepared=await prepareInvoiceOCRImage(file,pass.mode);
+      const worker=await getInvoiceOCRWorker(pass.psm);
+      const r=await worker.recognize(prepared);
+      const txt=r?.data?.text||"";
+      allText+=("\n"+txt);
+      console.log("RTA OCR pass",pi+1,pass.mode,"PSM",pass.psm,txt);
+      const fromText=parseInvoiceOCRText(txt);
+      const fromData=parseInvoiceOCRData(r?.data);
+      // Prefer a non-zero reading over the default zero. A later pass can
+      // replace a missed/zero value when it finds the actual number.
+      for(const id of REQUIRED_RTA_OCR_FIELDS){
+        const a=Number(fromData[id]), b=Number(fromText[id]);
+        const candidates=[a,b].filter(v=>Number.isFinite(v));
+        const nz=candidates.find(v=>v!==0);
+        if(nz!==undefined){filled[id]=nz;}
+        else if(candidates.length && filled[id]===0){filled[id]=0;}
+      }
+      // Once all fields have non-zero readings OR the remaining fields are
+      // explicitly present as zero, still run the last pass only when needed.
+      if(pi<passes.length-1){
+        const missingOrZero=REQUIRED_RTA_OCR_FIELDS.filter(id=>Number(filled[id])===0).length;
+        if(missingOrZero<=2 && pi===1)break;
+      }
     }
 
     let count=0;
     Object.entries(filled).forEach(([id,val])=>{
       const el=document.getElementById(id);
-      if(el&&Number.isFinite(val)){el.value=String(val);count++;}
+      if(el&&Number.isFinite(Number(val))){el.value=String(val);count++;}
     });
 
-    // Read the receipt's Start Time date when available, but never overwrite
-    // a date the driver has already entered manually.
     const dateInput=document.getElementById("invDate");
     if(dateInput&&!dateInput.value){
-      const d=parseInvoiceOCRDate(text);
+      const d=parseInvoiceOCRDate(allText);
       if(d)dateInput.value=d;
     }
 
@@ -2137,26 +2151,24 @@ async function processInvoiceScan(file){
     if(count){
       closeInvoiceScanner();
       const st=document.getElementById("invoiceStatus");
-      st.textContent=`${count} field(s) auto-filled from the RTA receipt. Please check all values before saving.`;
+      st.textContent=`${count} RTA fields filled. Fields not found on the receipt were set to 0.00/0. Please check before saving.`;
     }else{
-      s.textContent="RTA receipt text was not detected. Please move the receipt closer, keep all four edges visible, and try again.";
+      s.textContent="RTA receipt could not be read. All required fields can still be entered manually.";
     }
   }catch(e){
     console.error("Invoice OCR error:",e);
-    s.textContent="Scanner error: "+(e?.message||"Unable to read the receipt")+". You can use Choose Photo and try again.";
+    s.textContent="Scanner error: "+(e?.message||"Unable to read the receipt")+". Please try the photo again.";
   }finally{
     invoiceOcrBusy=false;
   }
 }
 
-function prepareInvoiceOCRImage(file,fullFrame=false){
+function prepareInvoiceOCRImage(file,mode="normal"){
   return new Promise((resolve,reject)=>{
     const img=new Image(),url=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        // Keep enough pixels for the small receipt characters, but cap the
-        // image so mobile OCR does not become excessively slow.
-        const maxW=fullFrame?1800:1600;
+        const maxW=mode==="full"?1900:1800;
         const scale=Math.min(1,maxW/img.naturalWidth);
         const w=Math.max(1,Math.round(img.naturalWidth*scale));
         const h=Math.max(1,Math.round(img.naturalHeight*scale));
@@ -2164,29 +2176,21 @@ function prepareInvoiceOCRImage(file,fullFrame=false){
         const ctx=c.getContext("2d",{willReadFrequently:true});
         ctx.drawImage(img,0,0,w,h);
 
-        // First pass: modest center crop, but never crop more than 5% from
-        // each side. Second pass: keep the entire photo for off-center receipts.
-        let source=c;
-        if(!fullFrame){
-          const cropW=Math.round(w*.94),x=Math.max(0,Math.round((w-cropW)/2));
-          const out=document.createElement("canvas");out.width=cropW;out.height=h;
-          const ox=out.getContext("2d",{willReadFrequently:true});
-          ox.drawImage(c,x,0,cropW,h,0,0,cropW,h);source=out;
+        // For normal/gray passes keep the whole receipt. The earlier 94%
+        // center crop could cut off the left/right labels and cause missing
+        // fields. The crop tool already lets the user remove the background.
+        const dataCtx=c.getContext("2d",{willReadFrequently:true});
+        if(mode!=="normal"){
+          const data=dataCtx.getImageData(0,0,w,h),p=data.data;
+          for(let i=0;i<p.length;i+=4){
+            const g=p[i]*.299+p[i+1]*.587+p[i+2]*.114;
+            let v=mode==="full" ? (g-128)*1.35+128 : (g-128)*1.65+128;
+            v=Math.max(0,Math.min(255,v));
+            p[i]=p[i+1]=p[i+2]=v;
+          }
+          dataCtx.putImageData(data,0,0);
         }
-
-        const sx=source.width,sy=source.height;
-        const dataCtx=source.getContext("2d",{willReadFrequently:true});
-        const data=dataCtx.getImageData(0,0,sx,sy),p=data.data;
-        for(let i=0;i<p.length;i+=4){
-          const g=p[i]*.299+p[i+1]*.587+p[i+2]*.114;
-          // High-contrast grayscale, with a soft threshold that keeps thin
-          // receipt characters visible.
-          let v=(g-128)*1.75+128;
-          v=Math.max(0,Math.min(255,v));
-          p[i]=p[i+1]=p[i+2]=v;
-        }
-        dataCtx.putImageData(data,0,0);
-        source.toBlob(b=>{URL.revokeObjectURL(url);b?resolve(b):reject(new Error("Image preparation failed."));},"image/jpeg",.88);
+        c.toBlob(b=>{URL.revokeObjectURL(url);b?resolve(b):reject(new Error("Image preparation failed."));},"image/jpeg",.92);
       }catch(e){URL.revokeObjectURL(url);reject(e);}
     };
     img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Image could not be opened."));};
@@ -2269,87 +2273,150 @@ function labelMatchesOCR(line,variants){
   }
   return false;
 }
-function parseInvoiceOCRData(data){
+const REQUIRED_RTA_OCR_FIELDS=[
+  "creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips",
+  "bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak"
+];
+
+// Every invoice field that belongs to the RTA Shift Summary is initialized to
+// 0.00/0 before OCR. This guarantees that the invoice never stays half-empty:
+// a value is replaced when the receipt reader finds it, otherwise it remains 0.
+function blankRTAOCRFields(){
   const out={};
+  REQUIRED_RTA_OCR_FIELDS.forEach(id=>out[id]=0);
+  return out;
+}
+
+const RTA_OCR_LABELS={
+  creditCard:["credit cards","credit card"],
+  app:["app"],
+  cash:["cash"],
+  tips:["tips","tip"],
+  tolls:["total tollways","total tollway","tollways","tollway"],
+  shiftDiscount:["shift discount"],
+  shiftTrips:["shift trips","shift trip"],
+  bookings:["bookings","booking"],
+  km:["kilometers hired","kilometer hired","kilometres hired","kilometre hired"],
+  careemDiscount:["careem discount","careew discount","careem discoun"],
+  paidCareem:["paid in careem","paid careem","paid in careen","paid in careem"],
+  halaJunior:["hala juniors","hala junior"],
+  halaPeak:["hala peak"],
+  peak:["peak"]
+};
+
+function normalizeRTAOCRText(s){
+  return String(s||"").toLowerCase()
+    .replace(/[|]/g,"i")
+    .replace(/[—–]/g,"-")
+    .replace(/[“”]/g,'"')
+    .replace(/[^a-z0-9.\- ]+/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function rtaOCRCompact(s){return normalizeRTAOCRText(s).replace(/\s+/g,"");}
+function rtaOCRNumberFromText(s){
+  const m=String(s||"").replace(/,/g,"").match(/-?\d+(?:\.\d+)?/);
+  return m?Number(m[0]):null;
+}
+function rtaOCRLabelMatch(line,variant){
+  const x=normalizeRTAOCRText(line), y=normalizeRTAOCRText(variant);
+  if(!x||!y)return false;
+  if(x===y || x.includes(y))return true;
+  const yc=rtaOCRCompact(y);
+  if(!yc)return false;
+  // Compare small word windows, not the complete row. This catches thermal
+  // receipt OCR such as "Book ings", "Careew Discount" and "Careen".
+  const toks=x.split(/\s+/).filter(Boolean);
+  const want=y.split(/\s+/).filter(Boolean).length;
+  for(let n=Math.max(1,want-1);n<=Math.min(want+1,4);n++){
+    for(let i=0;i+n<=toks.length;i++){
+      const candidate=toks.slice(i,i+n).join("");
+      if(candidate===yc)return true;
+      const d=levenshteinOCR(candidate,yc);
+      if(yc.length>=5 && d<=Math.max(1,Math.floor(yc.length*.22)))return true;
+    }
+  }
+  return false;
+}
+function rtaOCRFindLabelIndex(words,variant){
+  const labelCompact=rtaOCRCompact(variant);
+  const want=normalizeRTAOCRText(variant).split(/\s+/).filter(Boolean).length;
+  for(let i=0;i<words.length;i++){
+    let joined="";
+    for(let n=1;n<=Math.min(5,words.length-i);n++){
+      joined+=rtaOCRCompact(words[i+n-1].text);
+      if(joined===labelCompact)return i+n-1;
+      if(n>=Math.max(1,want-1)){
+        const d=levenshteinOCR(joined,labelCompact);
+        if(labelCompact.length>=5 && d<=Math.max(1,Math.floor(labelCompact.length*.22)))return i+n-1;
+      }
+    }
+  }
+  return -1;
+}
+function rtaOCRExtractAfterLabel(words,variant){
+  const end=rtaOCRFindLabelIndex(words,variant);
+  if(end<0)return null;
+  for(let k=end+1;k<words.length;k++){
+    const n=rtaOCRNumberFromText(words[k].text);
+    if(n!==null && Number.isFinite(n))return n;
+  }
+  return null;
+}
+function parseInvoiceOCRData(data){
+  const out=blankRTAOCRFields();
   const words=Array.isArray(data?.words)?data.words.filter(w=>String(w?.text||"").trim()&&w?.bbox):[];
   if(!words.length)return out;
-  // Group OCR words into visual rows. Tesseract can change line breaks from
-  // photo to photo, so use the word coordinates and then parse each row.
+
   const rows=[];
   for(const w of words){
     const top=Number(w.bbox.top||0),left=Number(w.bbox.left||0);
-    let row=rows.find(r=>Math.abs(r.top-top)<=16);
+    // Thermal receipt characters can have slightly different baselines.
+    let row=rows.find(r=>Math.abs(r.top-top)<=20);
     if(!row){row={top,words:[]};rows.push(row);}
     row.words.push({...w,left,top});
   }
   rows.sort((a,b)=>a.top-b.top);
   rows.forEach(r=>r.words.sort((a,b)=>a.left-b.left));
-  const fields={
-    creditCard:["credit cards","credit card"],
-    app:["app","in app","in-app"],
-    cash:["cash"],
-    tips:["tips","tip"],
-    tolls:["total tollways","total tollway","tollways"],
-    shiftDiscount:["shift discount"],
-    shiftTrips:["shift trips"],
-    bookings:["bookings","booking"],
-    km:["kilometers hired","kilometer hired"],
-    careemDiscount:["careem discount"],
-    paidCareem:["paid in careem","paid careem"],
-    halaJunior:["hala juniors","hala junior"],
-    halaPeak:["hala peak"],
-    peak:["peak"]
-  };
-  const normalizeLine=v=>String(v||"").toLowerCase().replace(/[|]/g,"i").replace(/[—–]/g,"-").replace(/\s+/g," ").trim();
-  for(const [id,variants] of Object.entries(fields)){
+
+  for(const [id,variants] of Object.entries(RTA_OCR_LABELS)){
     for(const row of rows){
-      const line=normalizeLine(row.words.map(w=>w.text).join(" "));
+      const line=row.words.map(w=>w.text).join(" ");
       if(!line)continue;
-      if(id==="peak" && /hala\s+peak/i.test(line))continue;
-      let matched=null;
+      // Peak must not be taken from Hala Peak.
+      if(id==="peak" && /hala\s*peak/i.test(normalizeRTAOCRText(line)))continue;
+      let matchedVariant=null;
       for(const v of variants){
-        const vv=normalizeLine(v);
-        const re=new RegExp("(?:^|\\s)"+vv.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\$&")+"(?:\\s|$)","i");
-        if(re.test(line)||line.includes(vv)){matched=vv;break;}
+        if(rtaOCRLabelMatch(line,v)){matchedVariant=v;break;}
       }
-      if(!matched)continue;
-      // Read the first numeric value after the matched label. AED may be
-      // between the label and value, and OCR may omit the colon.
-      const pos=line.indexOf(matched);
-      const rest=line.slice(pos+matched.length).replace(/^[^0-9-]*/,"");
-      const m=rest.match(/-?\d+(?:\.\d+)?/);
-      if(m){
-        const n=Number(m[0]);
-        if(Number.isFinite(n)){out[id]=n;break;}
-      }
+      if(!matchedVariant)continue;
+      const n=rtaOCRExtractAfterLabel(row.words,matchedVariant);
+      if(n!==null && Number.isFinite(n)){out[id]=n;break;}
     }
   }
   return out;
 }
 
 function parseInvoiceOCRText(text){
-  const out={};
-  // Exact RTA Shift Summary labels. Total Extras is intentionally NOT mapped
-  // to Others because the user wants Others to remain a separate manual field.
-  const fields={
-    creditCard:["credit\\s*cards?","credit\\s*card"],
-    app:["^app\\b","\\bapp\\s*:\\s*(?:aed)?"],
-    cash:["^cash\\b","\\bcash\\s*:\\s*(?:aed)?"],
-    tips:["^tips?\\b"],
-    tolls:["total\\s*tollways?","tollways?","tolls?"],
-    shiftDiscount:["shift\\s*discount"],
-    shiftTrips:["shift\\s*trips?"],
-    bookings:["^bookings?\\b","\\bbookings?\\s*[:\\-]"],
-    km:["kilometers?\\s*hired","kilomet(?:er|re)s?\\s*hired"],
-    careemDiscount:["careem\\s*discount"],
-    paidCareem:["paid\\s*in\\s*careem","paid\\s*careem"],
-    halaJunior:["hala\\s*juniors?"],
-    halaPeak:["hala\\s*peak"],
-    peak:["(?<!hala\\s)\\bpeak\\b"]
-  };
-  for(const [id,labels] of Object.entries(fields)){
-    const v=invoiceFindValue(text,labels);
-    if(v!==null&&Number.isFinite(v))out[id]=v;
+  const out=blankRTAOCRFields();
+  const lines=String(text||"").split(/\r?\n/).map(normOCR).filter(Boolean);
+  for(const [id,variants] of Object.entries(RTA_OCR_LABELS)){
+    for(let i=0;i<lines.length;i++){
+      const line=lines[i];
+      if(id==="peak" && /hala\s*peak/i.test(line))continue;
+      let matched=null;
+      for(const v of variants){if(rtaOCRLabelMatch(line,v)){matched=v;break;}}
+      if(!matched)continue;
+      const rest=line.slice(Math.max(0,line.toLowerCase().indexOf(matched.toLowerCase())+matched.length));
+      let n=rtaOCRNumberFromText(rest);
+      if(n===null){
+        for(let j=i+1;j<Math.min(i+3,lines.length);j++){
+          n=rtaOCRNumberFromText(lines[j]);
+          if(n!==null)break;
+        }
+      }
+      if(n!==null && Number.isFinite(n)){out[id]=n;break;}
+    }
   }
   return out;
 }
