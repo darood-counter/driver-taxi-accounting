@@ -604,6 +604,7 @@ input:focus{border-color:#ed166a}
     </div>
     <canvas id="invoiceCameraCanvas" hidden></canvas>
     <input id="invoiceCameraInput" type="file" accept="image/*" capture="environment" hidden>
+    <input id="invoiceGalleryInput" type="file" accept="image/*" hidden>
     <div class="scanner-actions">
       <button type="button" class="primary" onclick="captureInvoicePhoto()">📸 Take Photo</button>
       <button type="button" class="secondary" onclick="openInvoiceNativeCamera()">📱 Full Camera</button>
@@ -2010,7 +2011,11 @@ function closeInvoiceScanner(){
   if(video)video.srcObject=null;
   if(modal)modal.classList.remove("show");
 }
-function chooseInvoicePhoto(){document.getElementById("invoiceCameraInput")?.click();}
+function chooseInvoicePhoto(){
+  // Gallery must NOT use capture=environment; otherwise Android opens the camera.
+  invoiceDirectCapture=false;
+  document.getElementById("invoiceGalleryInput")?.click();
+}
 function openInvoiceNativeCamera(){
   const input=document.getElementById("invoiceCameraInput");
   if(!input)return;
@@ -2091,60 +2096,100 @@ function skipInvoiceCrop(){
   closeInvoiceCropper();
   if(file)processInvoiceScan(file);
 }
-async function autoPrepareRTAReceiptBlob(sourceCanvas){
-  // RTA Shift Summary is a tall receipt. Normalize the camera frame to portrait,
-  // then take a clean centered crop using the same aspect ratio as the RTA receipt.
-  const SW=sourceCanvas.width, SH=sourceCanvas.height;
-  if(!SW || !SH) throw new Error("Empty camera image");
+async function autoPrepareRTAReceiptBlob(sourceFile){
+  // Native-camera capture: automatically find the tall receipt area instead
+  // of assuming that the receipt is already centred in the camera frame.
+  // The OCR reader expects the final image to have the same 860:2440 ratio.
+  const img=new Image();
+  const url=URL.createObjectURL(sourceFile);
+  await new Promise((resolve,reject)=>{
+    img.onload=resolve;
+    img.onerror=()=>reject(new Error("Captured photo could not be opened"));
+    img.src=url;
+  });
 
-  let portrait=sourceCanvas;
-  if(SW>SH){
-    const rot=document.createElement("canvas");
-    rot.width=SH; rot.height=SW;
-    const rctx=rot.getContext("2d");
-    rctx.translate(rot.width/2,rot.height/2);
-    rctx.rotate(Math.PI/2);
-    rctx.drawImage(sourceCanvas,-SW/2,-SH/2);
-    portrait=rot;
-  }
+  const MAX_SIDE=2200;
+  const scale=Math.min(1,MAX_SIDE/Math.max(img.naturalWidth,img.naturalHeight));
+  const W=Math.max(1,Math.round(img.naturalWidth*scale));
+  const H=Math.max(1,Math.round(img.naturalHeight*scale));
+  const src=document.createElement('canvas');src.width=W;src.height=H;
+  const ctx=src.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0,W,H);
+  URL.revokeObjectURL(url);
 
-  const W=portrait.width, H=portrait.height;
-  const RTA_RATIO=860/2440;
-  // Keep a little margin around the receipt so the last rows are not clipped.
-  let cropH=Math.round(H*0.96);
-  let cropW=Math.round(cropH*RTA_RATIO);
-  if(cropW>W*0.96){
-    cropW=Math.round(W*0.96);
-    cropH=Math.round(cropW/RTA_RATIO);
-  }
-  cropH=Math.min(cropH,H); cropW=Math.min(cropW,W);
-  const sx=Math.max(0,Math.round((W-cropW)/2));
-  const sy=Math.max(0,Math.round((H-cropH)/2));
-
-  const out=document.createElement("canvas");
-  const targetH=Math.min(3200,cropH);
-  const scale=targetH/cropH;
-  out.width=Math.max(860,Math.round(cropW*scale));
-  out.height=Math.round(cropH*scale);
-  const octx=out.getContext("2d",{willReadFrequently:false});
-  octx.imageSmoothingEnabled=true;
-  octx.imageSmoothingQuality="high";
-  octx.drawImage(portrait,sx,sy,cropW,cropH,0,0,out.width,out.height);
-
-  // Mild cleanup for OCR: grayscale + slight contrast, without destroying decimals.
+  // Detect the receipt as the largest tall, bright rectangle. We sample the
+  // image first so this remains fast on a mobile phone.
+  let left=Math.round(W*.02), right=Math.round(W*.98), top=Math.round(H*.02), bottom=Math.round(H*.98);
   try{
-    const img=octx.getImageData(0,0,out.width,out.height);
-    const d=img.data;
+    const sampleW=Math.min(420,W), sampleH=Math.min(900,H);
+    const sm=document.createElement('canvas');sm.width=sampleW;sm.height=sampleH;
+    const sx=sm.getContext('2d',{willReadFrequently:true});
+    sx.drawImage(src,0,0,W,H,0,0,sampleW,sampleH);
+    const data=sx.getImageData(0,0,sampleW,sampleH).data;
+    const col=[],row=[];
+    for(let x=0;x<sampleW;x++)col[x]=0;
+    for(let y=0;y<sampleH;y++)row[y]=0;
+    // Receipt paper is normally much brighter than the surrounding table/wall.
+    for(let y=0;y<sampleH;y++){
+      for(let x=0;x<sampleW;x++){
+        const i=(y*sampleW+x)*4;
+        const g=data[i]*.299+data[i+1]*.587+data[i+2]*.114;
+        if(g>178){ col[x]++; row[y]++; }
+      }
+    }
+    const colFrac=col.map(v=>v/sampleH), rowFrac=row.map(v=>v/sampleW);
+    // Find the longest contiguous region with strong paper presence.
+    function longest(arr,threshold,minLen){
+      let best=[0,arr.length-1],st=-1;
+      for(let i=0;i<arr.length;i++){
+        if(arr[i]>=threshold){ if(st<0)st=i; }
+        else if(st>=0){
+          if(i-st>best[1]-best[0])best=[st,i-1]; st=-1;
+        }
+      }
+      if(st>=0 && arr.length-st>best[1]-best[0])best=[st,arr.length-1];
+      return (best[1]-best[0]+1)>=minLen?best:null;
+    }
+    const cb=longest(colFrac,.55,Math.round(sampleW*.18));
+    const rb=longest(rowFrac,.35,Math.round(sampleH*.25));
+    if(cb){left=Math.round(cb[0]*W/sampleW);right=Math.round((cb[1]+1)*W/sampleW);}
+    if(rb){top=Math.round(rb[0]*H/sampleH);bottom=Math.round((rb[1]+1)*H/sampleH);}
+  }catch(e){console.warn('Receipt boundary detection skipped',e);}
+
+  // Force the crop to the RTA receipt aspect ratio while preserving the
+  // detected receipt centre. Add only a small margin so no bottom rows clip.
+  const RTA_RATIO=860/2440;
+  let cropW=Math.max(1,right-left), cropH=Math.max(1,bottom-top);
+  const detectedRatio=cropW/cropH;
+  if(detectedRatio>RTA_RATIO){ cropW=Math.round(cropH*RTA_RATIO); }
+  else { cropH=Math.round(cropW/RTA_RATIO); }
+  cropW=Math.min(cropW,W);cropH=Math.min(cropH,H);
+  const cx=(left+right)/2, cy=(top+bottom)/2;
+  let sx=Math.round(cx-cropW/2), sy=Math.round(cy-cropH/2);
+  sx=Math.max(0,Math.min(W-cropW,sx));
+  sy=Math.max(0,Math.min(H-cropH,sy));
+
+  const outH=Math.min(3200,Math.max(2440,cropH));
+  const outW=Math.round(outH*RTA_RATIO);
+  const out=document.createElement('canvas');out.width=outW;out.height=outH;
+  const octx=out.getContext('2d',{willReadFrequently:true});
+  octx.imageSmoothingEnabled=true;octx.imageSmoothingQuality='high';
+  octx.fillStyle='#fff';octx.fillRect(0,0,outW,outH);
+  octx.drawImage(src,sx,sy,cropW,cropH,0,0,outW,outH);
+
+  // Mild grayscale/contrast cleanup only; preserve decimal points and small digits.
+  try{
+    const px=octx.getImageData(0,0,outW,outH),d=px.data;
     for(let i=0;i<d.length;i+=4){
-      const g=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114);
-      const v=Math.max(0,Math.min(255,(g-128)*1.10+128));
+      const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
+      const v=Math.max(0,Math.min(255,(g-128)*1.12+128));
       d[i]=d[i+1]=d[i+2]=v;
     }
-    octx.putImageData(img,0,0);
-  }catch(e){console.warn("Image cleanup skipped",e);}
+    octx.putImageData(px,0,0);
+  }catch(e){console.warn('Image cleanup skipped',e);}
 
   return await new Promise((resolve,reject)=>{
-    out.toBlob(b=>b?resolve(b):reject(new Error("Photo could not be prepared")),"image/jpeg",.94);
+    out.toBlob(b=>b?resolve(b):reject(new Error('Auto-cropped photo could not be created')),'image/jpeg',.95);
   });
 }
 
@@ -2163,6 +2208,13 @@ async function captureInvoicePhoto(){
     s.textContent="Camera could not be opened. Please use Choose Photo.";
   }
 }
+
+document.getElementById("invoiceGalleryInput")?.addEventListener("change",async e=>{
+  const f=e.target.files?.[0];
+  e.target.value="";
+  if(!f)return;
+  openInvoiceCropper(f);
+});
 
 document.getElementById("invoiceCameraInput")?.addEventListener("change",async e=>{
   const f=e.target.files?.[0];
@@ -2590,125 +2642,159 @@ function rtaValueFromNumberedRow(group,W){
 
 
 async function parseInvoiceOCRValueStrip(file){
-  // FINAL RTA READER: use the receipt's fixed numbered row diagram only.
-  // The crop tool keeps the receipt at the same 860:2440 aspect ratio, so the
-  // row centres below stay stable after resizing. OCR is performed only on
-  // the numeric/value side of the receipt; labels are never used to choose a
-  // field. This prevents one row's value from leaking into another field.
-  const ROW_Y=[
-    816,859,902,944,985,1027,1068,1109,1151,1192,1233,1274,1314,1355,1397,1439,
-    1481,1524,1568,1610,1652,1694,1735,1774,1812,1848,1883,1920,1961,2003,2046,
-    2090,2132,2175,2219,2263,2311,2356
-  ];
-  const ROW_FIELD={2:'creditCard',5:'app',8:'cash',10:'tips',13:'tolls',16:'shiftDiscount',18:'shiftTrips',20:'bookings',22:'km',25:'careemDiscount',26:'paidCareem',28:'halaJunior',29:'halaPeak',30:'peak'};
+  // LABEL-ANCHORED RTA READER:
+  // First locate the actual RTA label in the captured image. Then read only
+  // the numeric area to the right of that label. This avoids the old bug where
+  // fixed pixel rows put a value into a neighbouring field after a mobile
+  // camera photo was resized/perspectively changed.
+  const img=new Image();
+  const url=URL.createObjectURL(file);
+  try{
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Receipt image could not be opened.'));img.src=url;});
+    const W=img.naturalWidth||860,H=img.naturalHeight||2440;
+    const result={};
+    const worker=await getInvoiceOCRWorker('11');
+    await worker.setParameters({
+      tessedit_pageseg_mode:'11',
+      preserve_interword_spaces:'1',
+      user_defined_dpi:'300'
+    });
 
-  const imageBlob=await new Promise((resolve,reject)=>{
-    const img=new Image();
-    const url=URL.createObjectURL(file);
-    img.onload=()=>{
-      try{
-        // Keep the full value column. It includes AED rows and the wider
-        // number positions used by Shift Trips/Bookings/Kilometers Hired.
-        const scale=Math.min(2.4,2400/img.naturalWidth);
-        const w=Math.max(1,Math.round(img.naturalWidth*scale));
-        const h=Math.max(1,Math.round(img.naturalHeight*scale));
-        const c=document.createElement('canvas');c.width=w;c.height=h;
-        const ctx=c.getContext('2d',{willReadFrequently:true});
-        ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-        ctx.drawImage(img,0,0,w,h);
-        // Keep only the receipt's value area. Left labels are deliberately
-        // excluded from this OCR pass.
-        const sx=Math.round(w*(440/860));
-        const ex=Math.round(w*(700/860));
-        const out=document.createElement('canvas');
-        out.width=Math.max(1,ex-sx);out.height=h;
-        const octx=out.getContext('2d',{willReadFrequently:true});
-        octx.imageSmoothingEnabled=true;octx.imageSmoothingQuality='high';
-        octx.drawImage(c,sx,0,ex-sx,h,0,0,out.width,out.height);
-        out.toBlob(b=>{URL.revokeObjectURL(url);b?resolve(b):reject(new Error('Value-column image preparation failed.'));},'image/jpeg',.95);
-      }catch(e){URL.revokeObjectURL(url);reject(e);}
+    // Full receipt OCR with word boxes. Labels are the anchors; numbers are
+    // never selected merely because they happen to be near a fixed row.
+    const full=await worker.recognize(img,{},{blocks:false,paragraphs:false,lines:false,words:true});
+    const words=Array.isArray(full?.data?.words)?full.data.words.filter(w=>String(w?.text||'').trim()&&w?.bbox):[];
+    if(!words.length)return result;
+
+    const clean=cleanOCRToken;
+    const labelTokens={
+      creditCard:['credit','cards'],
+      app:['app'],
+      cash:['cash'],
+      tips:['tips','tip'],
+      tolls:['total','tollways'],
+      shiftDiscount:['shift','discount'],
+      shiftTrips:['shift','trips'],
+      bookings:['bookings'],
+      km:['kilometers','hired'],
+      careemDiscount:['careem','discount'],
+      paidCareem:['paid','in','careem'],
+      halaJunior:['hala','juniors'],
+      halaPeak:['hala','peak'],
+      peak:['peak']
     };
-    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Receipt image could not be opened.'));};
-    img.src=url;
-  });
+    const expectedRow={creditCard:2,app:5,cash:8,tips:10,tolls:13,shiftDiscount:16,shiftTrips:18,bookings:20,km:22,careemDiscount:25,paidCareem:26,halaJunior:28,halaPeak:29,peak:30};
+    const sourceCenters=[816,985,1109,1192,1314,1439,1524,1610,1694,1812,1848,1920,1961,2003];
 
-  const worker=await getInvoiceOCRWorker('11');
-  await worker.setParameters({
-    tessedit_pageseg_mode:'11',
-    tessedit_char_whitelist:'0123456789.,-',
-    preserve_interword_spaces:'1',
-    user_defined_dpi:'300'
-  });
-  const r=await worker.recognize(imageBlob,{}, {words:true});
-  const data=r?.data||{};
-  const words=Array.isArray(data.words)?data.words.filter(w=>String(w?.text||'').trim()&&w?.bbox):[];
-  const H=Number(data.height)||2440;
-  const W=Number(data.width)||260;
-  const result={};
+    const centerY=w=>((Number(w.bbox?.top||0)+Number(w.bbox?.bottom||0))/2);
+    const tokenAt=(w)=>clean(String(w?.text||''));
 
-  // Map each numeric OCR word to ONE fixed numbered row. A word can only be
-  // assigned to the closest row within a narrow band, so neighbouring rows
-  // cannot steal each other's values.
-  const tokens=[];
-  for(const w of words){
-    const raw=String(w.text||'').replace(/[Oo]/g,'0').replace(/,/g,'');
-    const m=raw.match(/[-+]?\d+(?:\.\d+)?/);
-    if(!m)continue;
-    const n=Number(m[0]);
-    if(!Number.isFinite(n))continue;
-    const cy=(Number(w.bbox.top||0)+Number(w.bbox.bottom||0))/2;
-    tokens.push({n,cy,x:Number(w.bbox.left||0),text:raw});
+    function labelCandidates(field){
+      const target=labelTokens[field];
+      const targetJoined=target.join('');
+      const out=[];
+      for(let i=0;i<words.length;i++){
+        // OCR can split a label such as "Bookings" into "Book" + "ings",
+        // or "Tollways" into "Tol" + "lways". Try 1-4 contiguous OCR
+        // words and compare their compact spelling.
+        let joined='';
+        for(let n=1;n<=Math.min(4,words.length-i);n++){
+          const t=tokenAt(words[i+n-1]);
+          if(!t)break;
+          joined+=t;
+          const exact=joined===targetJoined;
+          const fuzzy=(targetJoined.length>=5 && levenshteinOCR(joined,targetJoined)<=Math.max(1,Math.floor(targetJoined.length*.18)));
+          if(exact||fuzzy){
+            out.push({start:i,end:i+n-1,y:(centerY(words[i])+centerY(words[i+n-1]))/2,x:Number(words[i].bbox?.left||0)});
+            break;
+          }
+        }
+      }
+      return out;
+    }
+
+    // Expected normalized row position is only used to choose between genuine
+    // duplicate labels such as APP/In-App and Peak/Hala Peak. It does NOT pick
+    // the value itself.
+    function chooseLabel(field,cands){
+      if(!cands.length)return null;
+      const row=expectedRow[field];
+      const expected=(RTA_TEMPLATE.rowCenters[row-1]||0.5)*H;
+      let best=null,bestScore=Infinity;
+      for(const c of cands){
+        const score=Math.abs(c.y-expected);
+        if(score<bestScore){best=c;bestScore=score;}
+      }
+      return best;
+    }
+
+    async function readValueAt(label,field){
+      if(!label)return null;
+      const expected=(RTA_TEMPLATE.rowCenters[expectedRow[field]-1]||0.5)*H;
+      // Use the label's real y, with a modest vertical window. x starts well
+      // after AED so the label itself can never become the numeric result.
+      const y=Math.abs(label.y-expected)<H*.035?expected:label.y;
+      const x1=Math.min(W*.54,Math.max(0,label.x+Math.max(120,W*.16)));
+      const x2=W*.90;
+      const band=Math.max(34,H*.018);
+      const c=document.createElement('canvas');
+      const scale=4;
+      c.width=Math.max(1,Math.round((x2-x1)*scale));
+      c.height=Math.max(1,Math.round((band*2)*scale));
+      const ctx=c.getContext('2d',{willReadFrequently:true});
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      ctx.drawImage(img,x1,y-band,x2-x1,band*2,0,0,c.width,c.height);
+      try{
+        const px=ctx.getImageData(0,0,c.width,c.height),d=px.data;
+        for(let i=0;i<d.length;i+=4){
+          const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
+          const v=Math.max(0,Math.min(255,(g-128)*1.25+128));
+          d[i]=d[i+1]=d[i+2]=v;
+        }
+        ctx.putImageData(px,0,0);
+      }catch(e){}
+      const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('value crop failed')),'image/png'));
+      await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789.,-'});
+      const rr=await worker.recognize(blob);
+      const txt=String(rr?.data?.text||'').replace(/,/g,'');
+      const nums=txt.match(/-?\d+(?:\.\d+)?/g)||[];
+      if(nums.length){
+        // Prefer a decimal-looking token; for Trips/Bookings integers are fine.
+        const parsed=nums.map(Number).filter(Number.isFinite);
+        if(parsed.length)return parsed[0];
+      }
+      return null;
+    }
+
+    for(const field of REQUIRED_RTA_OCR_FIELDS){
+      const label=chooseLabel(field,labelCandidates(field));
+      const n=await readValueAt(label,field);
+      if(n!==null&&Number.isFinite(n))result[field]=n;
+    }
+
+    // Bookings is the one row where the supplied receipt's large 5 can be
+    // missed by OCR. Use the physical row inferred from the label, not a
+    // hard-coded receipt value.
+    if(result.bookings===undefined){
+      const lab=chooseLabel('bookings',labelCandidates('bookings'));
+      if(lab){
+        const y=lab.y, x1=W*.58,x2=W*.88,band=Math.max(38,H*.02);
+        const c=document.createElement('canvas'),scale=6;
+        c.width=(x2-x1)*scale;c.height=(band*2)*scale;
+        c.getContext('2d').drawImage(img,x1,y-band,x2-x1,band*2,0,0,c.width,c.height);
+        await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789'});
+        const rr=await worker.recognize(c);
+        const m=String(rr?.data?.text||'').match(/\d+/);
+        if(m)result.bookings=Number(m[0]);
+      }
+    }
+    return result;
+  }finally{
+    URL.revokeObjectURL(url);
   }
-
-  // ROW_Y is measured on the original 860x2440 receipt. Scale to OCR image.
-  const scaleY=H/2440;
-  for(const [rowStr,field] of Object.entries(ROW_FIELD)){
-    const row=Number(rowStr);
-    const target=ROW_Y[row-1]*scaleY;
-    const band=Math.max(15,H*0.0105);
-    const candidates=tokens.filter(t=>Math.abs(t.cy-target)<=band);
-    if(!candidates.length)continue;
-    // Prefer the token in the normal AED value area. For KM/Trips/Bookings,
-    // values are farther left, so the wider crop still allows them.
-    candidates.sort((a,b)=>Math.abs(a.cy-target)-Math.abs(b.cy-target) || b.x-a.x);
-    result[field]=candidates[0].n;
-  }
-
-  // Booking is a small single digit and can be confused with OCR noise. Do a
-  // second, tiny row-only pass ONLY for row 20. This pass cannot affect any
-  // other field.
-  if(result.bookings===undefined || result.bookings!==5){
-    try{
-      const img=new Image();const url=URL.createObjectURL(file);
-      const rowBlob=await new Promise((resolve,reject)=>{
-        img.onload=()=>{
-          try{
-            const y=1610, c=document.createElement('canvas');
-            const x1=530,x2=670,scale=6;
-            c.width=(x2-x1)*scale;c.height=56*scale;
-            const ctx=c.getContext('2d',{willReadFrequently:true});
-            ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-            ctx.drawImage(img,x1,y-28,x2-x1,56,0,0,c.width,c.height);
-            const px=ctx.getImageData(0,0,c.width,c.height);
-            for(let i=0;i<px.data.length;i+=4){
-              const g=px.data[i]*.299+px.data[i+1]*.587+px.data[i+2]*.114;
-              const v=g>175?255:0; px.data[i]=px.data[i+1]=px.data[i+2]=v;
-            }
-            ctx.putImageData(px,0,0);
-            c.toBlob(b=>{URL.revokeObjectURL(url);b?resolve(b):reject(new Error('Booking row image failed'));},'image/png');
-          }catch(e){URL.revokeObjectURL(url);reject(e);}
-        };
-        img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Booking row image failed'));};
-        img.src=URL.createObjectURL(file);
-      });
-      await worker.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:'0123456789'});
-      const br=await worker.recognize(rowBlob);
-      const nums=(String(br?.data?.text||'').match(/\b[0-9]\b/g)||[]).map(Number);
-      if(nums.length===1)result.bookings=nums[0];
-    }catch(e){console.warn('Booking row fallback failed',e);}
-  }
-  return result;
 }
+
 function parseInvoiceOCRData(data){
   const out=blankRTAOCRFields();
   const pack=rtaBuildNumberedRows(data);
