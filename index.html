@@ -492,13 +492,13 @@ input:focus{border-color:#ed166a}
 
 .invoice-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .scan-invoice-btn{border:0;border-radius:12px;padding:10px 13px;font-weight:700;cursor:pointer;background:#111827;color:#fff}
-.invoice-scanner-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;padding:14px;overflow:auto}
+.invoice-scanner-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;padding:8px;overflow:auto}
 .invoice-scanner-modal.show{display:flex;align-items:center;justify-content:center}
-.invoice-scanner-card{width:min(100%,520px);background:#fff;border-radius:18px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.invoice-scanner-card{width:min(100%,620px);max-height:96vh;overflow:auto;background:#fff;border-radius:18px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
 .invoice-scanner-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;margin-bottom:8px}
 .scanner-close{border:0;background:#eee;border-radius:10px;width:36px;height:36px;font-size:18px;cursor:pointer}
 .scanner-help{font-size:13px;line-height:1.45;margin:8px 0 12px}
-.invoice-camera-preview{width:100%;min-height:220px;max-height:55vh;object-fit:cover;border-radius:14px;background:#111;display:block}
+.invoice-camera-preview{width:100%;height:62vh;min-height:320px;max-height:68vh;object-fit:contain;border-radius:14px;background:#050505;display:block}
 .scanner-actions{display:flex;gap:8px;margin-top:10px}
 .scanner-actions button{flex:1}
 
@@ -514,7 +514,7 @@ input:focus{border-color:#ed166a}
 #invoiceCropImage{display:block;max-width:100%;width:100%}
 .crop-actions{display:flex;gap:8px;margin-top:10px}
 .crop-actions button{flex:1}
-@media(max-width:480px){.scanner-camera-controls{flex-direction:row}.crop-actions{flex-direction:column}}
+@media(max-width:480px){.scanner-camera-controls{flex-direction:row}.crop-actions{flex-direction:column}.invoice-scanner-modal{padding:4px}.invoice-scanner-card{width:100%;max-height:98vh;padding:10px;border-radius:14px}.invoice-camera-preview{height:64vh;min-height:360px;max-height:72vh}.scanner-help{font-size:12px;margin:6px 0 8px}}
 @media(max-width:480px){.invoice-title-row{align-items:stretch}.scan-invoice-btn{width:100%}.scanner-actions{flex-direction:column}}
 
 </style>
@@ -606,6 +606,7 @@ input:focus{border-color:#ed166a}
     <input id="invoiceCameraInput" type="file" accept="image/*" capture="environment" hidden>
     <div class="scanner-actions">
       <button type="button" class="primary" onclick="captureInvoicePhoto()">📸 Take Photo</button>
+      <button type="button" class="secondary" onclick="openInvoiceNativeCamera()">📱 Full Camera</button>
       <button type="button" class="secondary" onclick="chooseInvoicePhoto()">🖼️ Choose Photo</button>
     </div>
     <div id="invoiceScanStatus" class="status"></div>
@@ -618,7 +619,7 @@ input:focus{border-color:#ed166a}
       <div class="crop-title">✂️ Crop Receipt</div>
       <button type="button" class="scanner-close" onclick="closeInvoiceCropper()">✕</button>
     </div>
-    <div class="small" style="margin-bottom:8px">Receipt ko box mein seedha fit karein. Puri Shift Summary receipt ko box ke andar rakhein.</div>
+    <div class="small" style="margin-bottom:8px">Receipt ko box mein seedha fit karein. RTA logo se receipt ke last total tak poori receipt box mein rakhein.</div>
     <div class="crop-image-wrap">
       <img id="invoiceCropImage" alt="Receipt crop">
     </div>
@@ -1935,7 +1936,7 @@ async function openInvoiceScanner(){
   try{
     if(navigator.mediaDevices?.getUserMedia){
       invoiceCameraStream=await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:{ideal:"environment"},width:{ideal:1920,max:2560},height:{ideal:2560,max:3840},focusMode:{ideal:"continuous"}},audio:false
+        video:{facingMode:{ideal:"environment"},width:{ideal:2560,max:4096},height:{ideal:3840,max:6144},focusMode:{ideal:"continuous"}},audio:false
       });
       invoiceCameraTrack=invoiceCameraStream.getVideoTracks()[0]||null;
       video.srcObject=invoiceCameraStream;
@@ -1987,7 +1988,7 @@ async function toggleInvoiceCameraTorch(){
   if(!track){s.textContent="Camera is not active. Use Choose Photo instead.";return;}
   try{
     const caps=track.getCapabilities?.()||{};
-    if(!caps.torch){s.textContent="Is phone/browser par camera light control available nahi hai.";if(btn)btn.textContent="💡 Light N/A";return;}
+    if(!caps.torch){s.textContent="Browser direct light control nahi deta. Full Camera khol kar phone ka Flash use karein.";if(btn)btn.textContent="💡 Flash via Camera";return;}
     invoiceTorchOn=!invoiceTorchOn;
     await track.applyConstraints({advanced:[{torch:invoiceTorchOn}]});
     if(btn){btn.textContent=invoiceTorchOn?"💡 Light On":"💡 Light Off";btn.classList.toggle("active",invoiceTorchOn);}
@@ -1996,7 +1997,7 @@ async function toggleInvoiceCameraTorch(){
     console.warn("Torch error",e);
     invoiceTorchOn=false;
     if(btn)btn.textContent="💡 Light Off";
-    s.textContent="Camera light control available nahi hai.";
+    s.textContent="Browser direct light control available nahi hai. Full Camera se phone ka Flash use karein.";
   }
 }
 
@@ -2009,6 +2010,15 @@ function closeInvoiceScanner(){
   if(modal)modal.classList.remove("show");
 }
 function chooseInvoicePhoto(){document.getElementById("invoiceCameraInput")?.click();}
+function openInvoiceNativeCamera(){
+  const input=document.getElementById("invoiceCameraInput");
+  if(!input)return;
+  // On Android/Brave this asks the phone's native camera to open.
+  // The native camera UI can expose the phone's own flash and focus controls
+  // even when the browser getUserMedia stream does not expose torch controls.
+  input.setAttribute("capture","environment");
+  input.click();
+}
 
 async function loadInvoiceCropper(){
   if(window.Cropper)return window.Cropper;
@@ -2039,7 +2049,7 @@ async function openInvoiceCropper(file){
     invoiceCropObjectUrl=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.985,aspectRatio:0.352459,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false});
+        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.985,aspectRatio:0.352459,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false,guides:false,center:false,highlight:false});
         status.textContent="Receipt ko crop box ke andar adjust karein.";
       }catch(e){status.textContent="Crop tool error. You can use Full Photo.";}
     };
@@ -2137,6 +2147,15 @@ async function processInvoiceScan(file){
       }
     }
 
+    // Final safety pass: OCR only the numeric value column and map it by the
+    // fixed RTA row number. This is deliberately independent of label OCR.
+    const stripRows=await parseInvoiceOCRValueStrip(file);
+    const rowToField={2:'creditCard',5:'app',8:'cash',10:'tips',13:'tolls',16:'shiftDiscount',18:'shiftTrips',20:'bookings',22:'km',25:'careemDiscount',26:'paidCareem',28:'halaJunior',29:'halaPeak',30:'peak'};
+    for(const [row,id] of Object.entries(rowToField)){
+      const n=stripRows[Number(row)];
+      if(Number.isFinite(Number(n))) filled[id]=Number(n);
+    }
+
     let count=0;
     Object.entries(filled).forEach(([id,val])=>{
       const el=document.getElementById(id);
@@ -2153,7 +2172,8 @@ async function processInvoiceScan(file){
     if(count){
       closeInvoiceScanner();
       const st=document.getElementById("invoiceStatus");
-      st.textContent=`${count} RTA fields filled. Fields not found on the receipt were set to 0.00/0. Please check before saving.`;
+      const detectedCount=REQUIRED_RTA_OCR_FIELDS.filter(id=>ocrSeen[id] || Number(filled[id])!==0).length;
+      st.textContent=`Scan complete. ${detectedCount} RTA fields detected; all ${REQUIRED_RTA_OCR_FIELDS.length} required fields were processed. Missing values stay 0.00/0. Please check before saving.`;
     }else{
       s.textContent="RTA receipt could not be read. All required fields can still be entered manually.";
     }
@@ -2454,9 +2474,9 @@ function rtaFindShiftCompletedY(words,H){
 // number the physical rows underneath it. This avoids the old bug where a
 // later label such as "Shift Kilometers" was mistaken for the heading.
 const RTA_ROW_OFFSETS_PX=[
-  45,87,130,171,213,255,296,338,380,421,463,504,546,587,629,671,713,755,
-  798,841,884,925,967,1008,1050,1091,1133,1175,1217,1258,1300,1342,1384,
-  1425,1467,1509,1551,1593
+  38,84,126,176,207,254,294,336,377,420,460,501,542,583,624,666,708,752,
+  795,838,881,923,964,1004,1042,1075,1119,1150,1192,1232,1275,1322,1365,
+  1408,1451,1502,1552,1598
 ];
 
 function rtaBuildNumberedRows(data){
@@ -2498,7 +2518,7 @@ function rtaValueFromNumberedRow(group,W){
   const candidates=rowWords.filter(w=>{
     const l=Number(w.bbox?.left||0),r=Number(w.bbox?.right||l);
     const cx=(l+r)/2;
-    return cx>=W*0.52;
+    return cx>=W*0.63;
   });
   // Choose the numeric token closest to the row center. This prevents a
   // neighbouring row's amount from being selected even when OCR boxes overlap.
@@ -2522,6 +2542,66 @@ function rtaValueFromNumberedRow(group,W){
     if(/^\d+\.\d+$/.test(joined))return Number(joined);
   }
   return null;
+}
+
+
+async function parseInvoiceOCRValueStrip(file){
+  // Read the numeric column separately from the labels.  The supplied RTA
+  // Shift Summary has a stable value column, so row number is the authority.
+  const readStrip=async(sx,ex)=>new Promise((resolve)=>{
+    const img=new Image(),url=URL.createObjectURL(file);
+    img.onload=async()=>{
+      try{
+        const srcW=img.naturalWidth;
+        const scale=Math.min(1,1900/srcW);
+        const w=Math.max(1,Math.round(srcW*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        const strip=document.createElement('canvas');
+        strip.width=Math.max(1,Math.round((ex-sx)*w*2));
+        strip.height=Math.max(1,Math.round(h*1.35));
+        const sc=strip.getContext('2d');
+        sc.imageSmoothingEnabled=true;sc.imageSmoothingQuality='high';
+        sc.drawImage(c,Math.round(sx*w),0,Math.round((ex-sx)*w),h,0,0,strip.width,strip.height);
+        strip.toBlob(async blob=>{
+          URL.revokeObjectURL(url);
+          if(!blob){resolve({});return;}
+          try{
+            const worker=await getInvoiceOCRWorker('6');
+            await worker.setParameters({tessedit_char_whitelist:'0123456789.,-',preserve_interword_spaces:'1'});
+            const r=await worker.recognize(blob);
+            const data=r?.data,words=Array.isArray(data?.words)?data.words.filter(x=>String(x?.text||'').trim()&&x?.bbox):[];
+            const H=Number(data?.height)||strip.height;
+            const result={};
+            const shiftApprox=787/2440*H;
+            RTA_ROW_OFFSETS_PX.forEach((off,i)=>{
+              const cy=shiftApprox+(off/2440)*H;
+              const band=words.filter(x=>{
+                const y=(Number(x.bbox.top||0)+Number(x.bbox.bottom||0))/2;
+                return Math.abs(y-cy)<=Math.max(14,H*.0068);
+              });
+              const nums=[];
+              for(const x of band){
+                const raw=String(x.text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
+                const m=raw.match(/[-+]?\d+(?:\.\d+)?/);
+                if(m){const n=Number(m[0]);if(Number.isFinite(n))nums.push(n);}
+              }
+              if(nums.length)result[i+1]=nums[0];
+            });
+            resolve(result);
+          }catch(e){console.warn('RTA numeric strip OCR failed',e);resolve({});}
+        },'image/jpeg',.94);
+      }catch(e){URL.revokeObjectURL(url);resolve({});}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve({});};
+    img.src=URL.createObjectURL(file);
+  });
+
+  const main=await readStrip(.635,.80); // AED column excluded; money values only
+  const km=await readStrip(.585,.70);   // KM values start farther left
+  const merged={...main};
+  if(km[22]!==undefined)merged[22]=km[22];
+  return merged;
 }
 
 function parseInvoiceOCRData(data){
