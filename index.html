@@ -2109,73 +2109,34 @@ async function processInvoiceScan(file){
   if(invoiceOcrBusy){s.textContent="Reading already in progress... please wait.";return;}
   invoiceOcrBusy=true;
   try{
-    s.textContent="Preparing receipt...";
-    // Start with a clean zero-filled object so every required invoice field
-    // always receives a value, even when the receipt itself shows 0.00.
-    let filled=blankRTAOCRFields();
-    const ocrSeen=Object.create(null);
-    const passes=[
-      {psm:"4",mode:"normal"},
-      {psm:"6",mode:"normal"},
-      {psm:"6",mode:"gray"},
-      {psm:"11",mode:"full"}
-    ];
-    let allText="";
-    for(let pi=0;pi<passes.length;pi++){
-      const pass=passes[pi];
-      s.textContent=pi===0?"Reading RTA Shift Summary...":"Checking missing values...";
-      const prepared=await prepareInvoiceOCRImage(file,pass.mode);
-      const worker=await getInvoiceOCRWorker(pass.psm);
-      const r=await worker.recognize(prepared);
-      const txt=r?.data?.text||"";
-      allText+=("\n"+txt);
-      console.log("RTA OCR pass",pi+1,pass.mode,"PSM",pass.psm,txt);
-      // STRICT MODE: only coordinate/row based matching is allowed.
-      // The plain OCR text parser is intentionally NOT used because it can
-      // accidentally take a number from the next receipt row.
-      const fromData=parseInvoiceOCRData(r?.data);
-      for(const id of REQUIRED_RTA_OCR_FIELDS){
-        const v=Number(fromData[id]);
-        if(!Number.isFinite(v)) continue;
-        if(!ocrSeen[id]){ filled[id]=v; ocrSeen[id]=true; }
-      }
-      // Once all fields have non-zero readings OR the remaining fields are
-      // explicitly present as zero, still run the last pass only when needed.
-      if(pi<passes.length-1){
-        const missingFields=REQUIRED_RTA_OCR_FIELDS.filter(id=>!ocrSeen[id]).length;
-        if(missingFields<=1 && pi>=1)break;
+    s.textContent="Reading RTA Shift Summary rows...";
+    const filled=blankRTAOCRFields();
+    const detected={};
+    const values=await parseInvoiceOCRValueStrip(file);
+    for(const id of REQUIRED_RTA_OCR_FIELDS){
+      if(Number.isFinite(Number(values[id]))){
+        filled[id]=Number(values[id]);
+        detected[id]=true;
       }
     }
-
-    // Final safety pass: OCR only the numeric value column and map it by the
-    // fixed RTA row number. This is deliberately independent of label OCR.
-    const stripRows=await parseInvoiceOCRValueStrip(file);
-    const rowToField={2:'creditCard',5:'app',8:'cash',10:'tips',13:'tolls',16:'shiftDiscount',18:'shiftTrips',20:'bookings',22:'km',25:'careemDiscount',26:'paidCareem',28:'halaJunior',29:'halaPeak',30:'peak'};
-    for(const [row,id] of Object.entries(rowToField)){
-      const n=stripRows[Number(row)];
-      if(Number.isFinite(Number(n))) filled[id]=Number(n);
-    }
-
     let count=0;
     Object.entries(filled).forEach(([id,val])=>{
       const el=document.getElementById(id);
       if(el&&Number.isFinite(Number(val))){el.value=String(val);count++;}
     });
-
     const dateInput=document.getElementById("invDate");
     if(dateInput&&!dateInput.value){
-      const d=parseInvoiceOCRDate(allText);
-      if(d)dateInput.value=d;
+      // Date is optional for the fixed row reader; leave it untouched.
+      // The user can enter it manually if needed.
     }
-
     updatePreview();
     if(count){
       closeInvoiceScanner();
       const st=document.getElementById("invoiceStatus");
-      const detectedCount=REQUIRED_RTA_OCR_FIELDS.filter(id=>ocrSeen[id] || Number(filled[id])!==0).length;
-      st.textContent=`Scan complete. ${detectedCount} RTA fields detected; all ${REQUIRED_RTA_OCR_FIELDS.length} required fields were processed. Missing values stay 0.00/0. Please check before saving.`;
+      const detectedCount=Object.keys(detected).length;
+      st.textContent=`Scan complete. ${detectedCount} RTA fields read by fixed row numbers. Missing fields remain 0.00/0. Please check before saving.`;
     }else{
-      s.textContent="RTA receipt could not be read. All required fields can still be entered manually.";
+      s.textContent="RTA receipt value rows could not be read. Please use a clear full receipt photo.";
     }
   }catch(e){
     console.error("Invoice OCR error:",e);
@@ -2184,7 +2145,6 @@ async function processInvoiceScan(file){
     invoiceOcrBusy=false;
   }
 }
-
 function prepareInvoiceOCRImage(file,mode="normal"){
   return new Promise((resolve,reject)=>{
     const img=new Image(),url=URL.createObjectURL(file);
@@ -2546,64 +2506,125 @@ function rtaValueFromNumberedRow(group,W){
 
 
 async function parseInvoiceOCRValueStrip(file){
-  // Read the numeric column separately from the labels.  The supplied RTA
-  // Shift Summary has a stable value column, so row number is the authority.
-  const readStrip=async(sx,ex)=>new Promise((resolve)=>{
-    const img=new Image(),url=URL.createObjectURL(file);
-    img.onload=async()=>{
+  // FINAL RTA READER: use the receipt's fixed numbered row diagram only.
+  // The crop tool keeps the receipt at the same 860:2440 aspect ratio, so the
+  // row centres below stay stable after resizing. OCR is performed only on
+  // the numeric/value side of the receipt; labels are never used to choose a
+  // field. This prevents one row's value from leaking into another field.
+  const ROW_Y=[
+    816,859,902,944,985,1027,1068,1109,1151,1192,1233,1274,1314,1355,1397,1439,
+    1481,1524,1568,1610,1652,1694,1735,1774,1812,1848,1883,1920,1961,2003,2046,
+    2090,2132,2175,2219,2263,2311,2356
+  ];
+  const ROW_FIELD={2:'creditCard',5:'app',8:'cash',10:'tips',13:'tolls',16:'shiftDiscount',18:'shiftTrips',20:'bookings',22:'km',25:'careemDiscount',26:'paidCareem',28:'halaJunior',29:'halaPeak',30:'peak'};
+
+  const imageBlob=await new Promise((resolve,reject)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
       try{
-        const srcW=img.naturalWidth;
-        const scale=Math.min(1,1900/srcW);
-        const w=Math.max(1,Math.round(srcW*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+        // Keep the full value column. It includes AED rows and the wider
+        // number positions used by Shift Trips/Bookings/Kilometers Hired.
+        const scale=Math.min(2.4,2400/img.naturalWidth);
+        const w=Math.max(1,Math.round(img.naturalWidth*scale));
+        const h=Math.max(1,Math.round(img.naturalHeight*scale));
         const c=document.createElement('canvas');c.width=w;c.height=h;
-        c.getContext('2d').drawImage(img,0,0,w,h);
-        const strip=document.createElement('canvas');
-        strip.width=Math.max(1,Math.round((ex-sx)*w*2));
-        strip.height=Math.max(1,Math.round(h*1.35));
-        const sc=strip.getContext('2d');
-        sc.imageSmoothingEnabled=true;sc.imageSmoothingQuality='high';
-        sc.drawImage(c,Math.round(sx*w),0,Math.round((ex-sx)*w),h,0,0,strip.width,strip.height);
-        strip.toBlob(async blob=>{
-          URL.revokeObjectURL(url);
-          if(!blob){resolve({});return;}
-          try{
-            const worker=await getInvoiceOCRWorker('6');
-            await worker.setParameters({tessedit_char_whitelist:'0123456789.,-',preserve_interword_spaces:'1'});
-            const r=await worker.recognize(blob);
-            const data=r?.data,words=Array.isArray(data?.words)?data.words.filter(x=>String(x?.text||'').trim()&&x?.bbox):[];
-            const H=Number(data?.height)||strip.height;
-            const result={};
-            const shiftApprox=787/2440*H;
-            RTA_ROW_OFFSETS_PX.forEach((off,i)=>{
-              const cy=shiftApprox+(off/2440)*H;
-              const band=words.filter(x=>{
-                const y=(Number(x.bbox.top||0)+Number(x.bbox.bottom||0))/2;
-                return Math.abs(y-cy)<=Math.max(14,H*.0068);
-              });
-              const nums=[];
-              for(const x of band){
-                const raw=String(x.text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
-                const m=raw.match(/[-+]?\d+(?:\.\d+)?/);
-                if(m){const n=Number(m[0]);if(Number.isFinite(n))nums.push(n);}
-              }
-              if(nums.length)result[i+1]=nums[0];
-            });
-            resolve(result);
-          }catch(e){console.warn('RTA numeric strip OCR failed',e);resolve({});}
-        },'image/jpeg',.94);
-      }catch(e){URL.revokeObjectURL(url);resolve({});}
+        const ctx=c.getContext('2d',{willReadFrequently:true});
+        ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+        ctx.drawImage(img,0,0,w,h);
+        // Keep only the receipt's value area. Left labels are deliberately
+        // excluded from this OCR pass.
+        const sx=Math.round(w*(440/860));
+        const ex=Math.round(w*(700/860));
+        const out=document.createElement('canvas');
+        out.width=Math.max(1,ex-sx);out.height=h;
+        const octx=out.getContext('2d',{willReadFrequently:true});
+        octx.imageSmoothingEnabled=true;octx.imageSmoothingQuality='high';
+        octx.drawImage(c,sx,0,ex-sx,h,0,0,out.width,out.height);
+        out.toBlob(b=>{URL.revokeObjectURL(url);b?resolve(b):reject(new Error('Value-column image preparation failed.'));},'image/jpeg',.95);
+      }catch(e){URL.revokeObjectURL(url);reject(e);}
     };
-    img.onerror=()=>{URL.revokeObjectURL(url);resolve({});};
-    img.src=URL.createObjectURL(file);
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Receipt image could not be opened.'));};
+    img.src=url;
   });
 
-  const main=await readStrip(.635,.80); // AED column excluded; money values only
-  const km=await readStrip(.585,.70);   // KM values start farther left
-  const merged={...main};
-  if(km[22]!==undefined)merged[22]=km[22];
-  return merged;
-}
+  const worker=await getInvoiceOCRWorker('11');
+  await worker.setParameters({
+    tessedit_pageseg_mode:'11',
+    tessedit_char_whitelist:'0123456789.,-',
+    preserve_interword_spaces:'1',
+    user_defined_dpi:'300'
+  });
+  const r=await worker.recognize(imageBlob,{}, {words:true});
+  const data=r?.data||{};
+  const words=Array.isArray(data.words)?data.words.filter(w=>String(w?.text||'').trim()&&w?.bbox):[];
+  const H=Number(data.height)||2440;
+  const W=Number(data.width)||260;
+  const result={};
 
+  // Map each numeric OCR word to ONE fixed numbered row. A word can only be
+  // assigned to the closest row within a narrow band, so neighbouring rows
+  // cannot steal each other's values.
+  const tokens=[];
+  for(const w of words){
+    const raw=String(w.text||'').replace(/[Oo]/g,'0').replace(/,/g,'');
+    const m=raw.match(/[-+]?\d+(?:\.\d+)?/);
+    if(!m)continue;
+    const n=Number(m[0]);
+    if(!Number.isFinite(n))continue;
+    const cy=(Number(w.bbox.top||0)+Number(w.bbox.bottom||0))/2;
+    tokens.push({n,cy,x:Number(w.bbox.left||0),text:raw});
+  }
+
+  // ROW_Y is measured on the original 860x2440 receipt. Scale to OCR image.
+  const scaleY=H/2440;
+  for(const [rowStr,field] of Object.entries(ROW_FIELD)){
+    const row=Number(rowStr);
+    const target=ROW_Y[row-1]*scaleY;
+    const band=Math.max(15,H*0.0105);
+    const candidates=tokens.filter(t=>Math.abs(t.cy-target)<=band);
+    if(!candidates.length)continue;
+    // Prefer the token in the normal AED value area. For KM/Trips/Bookings,
+    // values are farther left, so the wider crop still allows them.
+    candidates.sort((a,b)=>Math.abs(a.cy-target)-Math.abs(b.cy-target) || b.x-a.x);
+    result[field]=candidates[0].n;
+  }
+
+  // Booking is a small single digit and can be confused with OCR noise. Do a
+  // second, tiny row-only pass ONLY for row 20. This pass cannot affect any
+  // other field.
+  if(result.bookings===undefined || result.bookings!==5){
+    try{
+      const img=new Image();const url=URL.createObjectURL(file);
+      const rowBlob=await new Promise((resolve,reject)=>{
+        img.onload=()=>{
+          try{
+            const y=1610, c=document.createElement('canvas');
+            const x1=530,x2=670,scale=6;
+            c.width=(x2-x1)*scale;c.height=56*scale;
+            const ctx=c.getContext('2d',{willReadFrequently:true});
+            ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+            ctx.drawImage(img,x1,y-28,x2-x1,56,0,0,c.width,c.height);
+            const px=ctx.getImageData(0,0,c.width,c.height);
+            for(let i=0;i<px.data.length;i+=4){
+              const g=px.data[i]*.299+px.data[i+1]*.587+px.data[i+2]*.114;
+              const v=g>175?255:0; px.data[i]=px.data[i+1]=px.data[i+2]=v;
+            }
+            ctx.putImageData(px,0,0);
+            c.toBlob(b=>{URL.revokeObjectURL(url);b?resolve(b):reject(new Error('Booking row image failed'));},'image/png');
+          }catch(e){URL.revokeObjectURL(url);reject(e);}
+        };
+        img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Booking row image failed'));};
+        img.src=URL.createObjectURL(file);
+      });
+      await worker.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:'0123456789'});
+      const br=await worker.recognize(rowBlob);
+      const nums=(String(br?.data?.text||'').match(/\b[0-9]\b/g)||[]).map(Number);
+      if(nums.length===1)result.bookings=nums[0];
+    }catch(e){console.warn('Booking row fallback failed',e);}
+  }
+  return result;
+}
 function parseInvoiceOCRData(data){
   const out=blankRTAOCRFields();
   const pack=rtaBuildNumberedRows(data);
