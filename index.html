@@ -523,6 +523,20 @@ input:focus{border-color:#ed166a}
 
 /* ===== Leave Management ===== */
 .leave-page{padding-bottom:28px}
+/* Leave page uses the same Back button at the top; no second Back button below. */
+#mainTopbar.profile-mode .topbar-left.leave-top-back{
+  min-width:86px;
+  width:auto;
+  height:auto;
+  padding:10px 14px;
+  border-radius:14px;
+  background:#eef0f5;
+  color:#111827;
+  font-size:16px;
+  font-weight:800;
+  line-height:1.2;
+}
+
 .leave-head{margin:18px 0 24px}
 .leave-head h1{font-size:34px;line-height:1.08;margin:0 0 6px;letter-spacing:-1px}
 .leave-head p{margin:0;color:#737783;font-size:17px}
@@ -900,7 +914,6 @@ input:focus{border-color:#ed166a}
   </div>
 
   <div id="leaveFlowView" class="leave-flow">
-    <div class="leave-flow-top-back"><button type="button" class="leave-flow-back" onclick="leaveBackToHome()">← Back</button></div>
     <div class="leave-step-head">
       <span class="leave-step-count" id="leaveStepCount">1/2</span>
       <div class="leave-progress"><span id="leaveProgressBar"></span></div>
@@ -1117,8 +1130,15 @@ const isCharge=pageId==="calculatorPage";
 const isLeaves=pageId==="leavesPage";
 if(topbar&&leftBtn&&brand&&bell){
   topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves);
-  leftBtn.textContent=(isProfile||isTarget||isCharge||isLeaves)?"←":"☰";
-  leftBtn.onclick=(isProfile||isTarget||isCharge||isLeaves)?()=>showPage("dashboardPage"):()=>toggleMenu();
+  leftBtn.textContent=(isLeaves)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
+  leftBtn.classList.toggle("leave-top-back",isLeaves);
+  leftBtn.onclick=(isLeaves)
+    ? ()=>{
+        const flow=document.getElementById("leaveFlowView");
+        if(flow && flow.classList.contains("active")) leaveBackToHome();
+        else showPage("dashboardPage");
+      }
+    : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu());
   brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":"Driver's")));
   bell.style.display=(isProfile||isTarget||isCharge||isLeaves)?"none":"block";
   bell.textContent="🔔";
