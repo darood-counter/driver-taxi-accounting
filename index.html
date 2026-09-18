@@ -36,6 +36,7 @@ main{padding:0 22px}
 .chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2}
 .chart-value{display:block;font-size:10px;font-weight:900;color:#3155c8;white-space:nowrap;line-height:1.1;cursor:pointer;min-height:11px}
 .bar-wrap{height:205px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+@media(max-width:600px){.bar-wrap{height:120px}.chart-col{height:100%}}
 .bar{width:40px;background:#dfe3ea;border-radius:7px 7px 0 0;min-height:3px;transition:height .2s ease,background .2s ease}
 .chart-col.selected .bar{background:#2563eb}.chart-col.has-sales .bar{background:#2563eb}.chart-col.has-sales .chart-date{color:#3155c8;font-weight:900}.chart-col.has-sales{cursor:pointer}.chart-col.has-sales:hover .bar{background:#1d4ed8}
 .chart-col.selected .chart-date{color:#d62970;font-weight:900}
@@ -2454,6 +2455,17 @@ function dateKeyLocal(date){
   return new Date(d.getFullYear(),d.getMonth(),d.getDate()).toISOString().slice(0,10);
 }
 
+function invoiceDateKey(invoice){
+  const raw=invoice?.date;
+  if(!raw)return "";
+  if(typeof raw==="string"){
+    const m=raw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if(m)return m[1];
+  }
+  if(raw&&typeof raw.toDate==="function"){try{return dateKeyLocal(raw.toDate());}catch(e){}}
+  try{return dateKeyLocal(raw);}catch(e){return "";}
+}
+
 function getMonthCycleRecord(monthKey, setup){
   if(!monthKey||!setup)return null;
   const m=/^(\d{4})-(\d{2})$/.exec(String(monthKey));
@@ -2672,7 +2684,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   const arr=[];
   for(let d=new Date(start);d<=visibleEnd;d.setDate(d.getDate()+1)){
     const key=dateKeyLocal(d);
-    const dayInvoices=invoices.filter(x=>String(x.date||"")===key);
+    const dayInvoices=invoices.filter(x=>invoiceDateKey(x)===key);
     const value=dayInvoices.reduce((sum,x)=>sum+(Number(x.net)||0),0);
     const saleTotal=dayInvoices.reduce((sum,x)=>sum+(Number(x.total)||0),0);
     const hasSales=dayInvoices.length>0;
@@ -2729,7 +2741,9 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     wrap.className="bar-wrap";
     const bar=document.createElement("div");
     bar.className="bar";
-    bar.style.height=Math.max(3,(x.value/max)*100)+"%";
+    // A saved invoice makes this date an active blue candle even when Net is 0.00.
+    bar.style.background=x.hasSales?"#2563eb":"#dfe3ea";
+    bar.style.height=x.hasSales ? Math.max(3,(Math.max(0,x.value)/max)*100)+"%" : "3px";
     bar.title=x.date.toLocaleDateString("en-GB")+": "+money(x.value)+" AED";
     wrap.appendChild(bar);
     const date=document.createElement("div");
