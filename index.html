@@ -25,14 +25,14 @@ main{padding:0 22px}
 .total-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .total{font-size:42px;font-weight:800;letter-spacing:-1.5px}
 .currency{font-size:20px;font-weight:700}
-.cycle-date-badge{width:60px;height:60px;border:1px solid #e4e5eb;border-radius:50%;background:#f4f5f8;color:#111827;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;box-shadow:0 2px 7px rgba(17,24,39,.08);position:relative;cursor:pointer;padding:0;overflow:hidden;transform:translateY(-6px);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
-.cycle-date-badge:hover{background:#eef0f5;box-shadow:0 3px 9px rgba(17,24,39,.10)}.cycle-date-badge:active{transform:translateY(-6px) scale(.97)}
-.cycle-badge-day{font-size:24px;font-weight:800;letter-spacing:-.8px}
-.cycle-badge-month{font-size:10px;font-weight:800;text-transform:uppercase;margin-top:5px;color:#737783;letter-spacing:.3px}
+.cycle-date-badge{width:68px;height:68px;border:0;border-radius:50%;background:#0d1033;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;box-shadow:0 4px 10px rgba(13,16,51,.16);position:relative;cursor:pointer;padding:0;overflow:hidden;transform:translateY(-9px);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+.cycle-date-badge:hover{background:#0d1033;box-shadow:0 5px 12px rgba(13,16,51,.20)}.cycle-date-badge:active{transform:translateY(-9px) scale(.97)}
+.cycle-badge-day{font-size:26px;font-weight:800;letter-spacing:-.8px}
+.cycle-badge-month{font-size:10px;font-weight:800;text-transform:uppercase;margin-top:5px;color:#fff;letter-spacing:.3px}
 .cycle-date-badge input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:0}
 .chart-area{position:relative;width:100%}
 .chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding-bottom:3px;scrollbar-width:thin}
-.chart{height:276px;display:flex;align-items:flex-end;gap:10px;padding:28px 8px 8px;border-bottom:2px solid #171717;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 67px,rgba(130,134,145,.20) 68px,transparent 69px)}.chart-y-label{position:absolute;left:0;transform:translateY(-50%);font-size:10px;font-weight:800;color:#777;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:8px;right:auto}.chart-average-line{left:28px;right:8px}
+.chart{height:276px;display:flex;align-items:flex-end;gap:10px;padding:28px 62px 8px 8px;border-bottom:2px solid #171717;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 67px,rgba(130,134,145,.20) 68px,transparent 69px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#777;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:58px}
 .chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2}
 .chart-value{display:none}
 .bar-wrap{height:205px;width:100%;display:flex;align-items:flex-end;justify-content:center}
@@ -43,7 +43,7 @@ main{padding:0 22px}
 .chart-average-line{position:absolute;height:3px;background:#111827;left:8px;right:8px;z-index:1;border-radius:2px;pointer-events:none}
 .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#111827;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;z-index:3;white-space:nowrap}
 .chart-average-overlay{position:absolute;inset:0;z-index:20;pointer-events:none;display:none}
-.chart-average-overlay .chart-average-line{position:absolute;left:28px;right:8px;height:3px;background:#111827;border-radius:2px}
+.chart-average-overlay .chart-average-line{position:absolute;left:8px;right:58px;height:3px;background:#111827;border-radius:2px}
 .chart-average-overlay .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#111827;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;white-space:nowrap}
 .chart-selected-value{position:absolute;transform:translate(-50%,-100%);background:#fff;border:2px solid #3155c8;color:#3155c8;border-radius:7px;padding:6px 8px;font-size:12px;font-weight:900;white-space:nowrap;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .dashboard-cycle-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -2543,6 +2543,8 @@ function getCurrentDashboardCycle(){
 }
 
 function selectDashboardDate(value){
+  const today=dateKeyLocal(new Date());
+  if(value && value>today)value=today;
   dashboardSelectedDate=value||"";
   const input=document.getElementById("dashboardDateSelect");
   if(input&&value)input.value=value;
@@ -2630,14 +2632,20 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     start=new Date(today.getFullYear(),today.getMonth(),1);
     end=new Date(today.getFullYear(),today.getMonth()+1,0);
   }
+  // Never show future days. The chart grows naturally one calendar day at a time.
+  // When tomorrow arrives, it becomes visible automatically; no empty future bars.
+  const todayKey=dateKeyLocal(new Date());
+  const visibleEndKey=end&&dateKeyLocal(end)<todayKey?dateKeyLocal(end):todayKey;
+  const visibleEnd=new Date(visibleEndKey+"T00:00:00");
   const arr=[];
-  for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+  for(let d=new Date(start);d<=visibleEnd;d.setDate(d.getDate()+1)){
     const key=dateKeyLocal(d);
     const value=invoices.filter(x=>String(x.date||"")===key).reduce((sum,x)=>sum+(Number(x.net)||0),0);
     arr.push({key,value,date:new Date(d)});
   }
   const max=Math.max(...arr.map(x=>x.value),1);
-  const avg=arr.length?arr.reduce((sum,x)=>sum+x.value,0)/arr.length:0;
+  const activeDays=arr.filter(x=>x.value>0).length;
+  const avg=activeDays?arr.reduce((sum,x)=>sum+x.value,0)/activeDays:0;
 
   // Y-axis scale labels, like the reference chart.
   const steps=[1,.75,.5,.25,0];
@@ -2658,7 +2666,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     if(monthEl)monthEl.textContent=badgeDate.toLocaleDateString("en-GB",{month:"short"});
     badge.title=cycle ? ((cycle.setup?.cycleLabel||"Current Cycle")+" • "+badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})) : badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
     const dateInput=document.getElementById("dashboardDateSelect");
-    if(dateInput)dateInput.value=dashboardSelectedDate||dateKeyLocal(new Date());
+    if(dateInput){dateInput.value=dashboardSelectedDate||dateKeyLocal(new Date());dateInput.max=dateKeyLocal(new Date());}
   }
 
   const avgOverlay=document.getElementById("chartAverageOverlay");
@@ -2762,7 +2770,7 @@ renderSavedTargets();
 const today=new Date().toISOString().slice(0,10);
 dashboardSelectedDate="";
 const dashboardDateInput=document.getElementById("dashboardDateSelect");
-if(dashboardDateInput)dashboardDateInput.value=today;
+if(dashboardDateInput){dashboardDateInput.value=today;dashboardDateInput.max=today;}
 document.getElementById("targetDate").value=today;
 editingTargetDate=null;
 document.getElementById("saveTargetTableBtn").textContent="Save / Update";
