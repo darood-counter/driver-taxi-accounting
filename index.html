@@ -1123,7 +1123,7 @@ if(topbar&&leftBtn&&brand&&bell){
   bell.onclick=null;
 }
 if(pageId==="historyPage")renderHistory();
-if(pageId==="leavesPage"){leaveCalendarMonth=new Date();renderLeaveCalendar();renderLeaveHome();}
+if(pageId==="leavesPage"){try{leaveCalendarMonth=new Date();renderLeaveCalendar();renderLeaveHome();}catch(e){console.error("Leaves render error:",e);}}
 if(pageId==="invoicePage"){
   updateInvoiceRateCard();
   updatePreview();
@@ -2239,7 +2239,7 @@ savedTargetRecords=Array.isArray(driverData.targetRecords)?driverData.targetReco
 savedChargeRecords=Object.values(driverData.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
 leaveRecords=Array.isArray(driverData.leaveRecords)?driverData.leaveRecords.map(r=>({...r})):[];
 renderSavedCharges();
-renderLeaveHome();
+try{renderLeaveHome();}catch(e){console.error("Leaves startup render error:",e);}
 resetChargeSetup();
 renderSavedTargets();
 
