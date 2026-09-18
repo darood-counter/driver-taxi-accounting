@@ -498,7 +498,10 @@ input:focus{border-color:#ed166a}
 .invoice-scanner-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;margin-bottom:8px}
 .scanner-close{border:0;background:#eee;border-radius:10px;width:36px;height:36px;font-size:18px;cursor:pointer}
 .scanner-help{font-size:13px;line-height:1.45;margin:8px 0 12px}
-.invoice-camera-preview{width:100%;height:62vh;min-height:320px;max-height:68vh;object-fit:contain;border-radius:14px;background:#050505;display:block}
+.invoice-camera-preview{width:100%;height:62vh;min-height:320px;max-height:68vh;object-fit:contain;border-radius:14px;background:#050505;display:block}.invoice-camera-wrap{position:relative;width:100%;overflow:hidden;border-radius:14px;background:#050505}
+.invoice-guide{position:absolute;inset:8% 9%;border:2px solid rgba(255,255,255,.9);border-radius:12px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.10)}
+.invoice-guide:after{content:"";position:absolute;inset:7%;border:1px dashed rgba(255,255,255,.55);border-radius:8px}
+.invoice-guide span{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);white-space:nowrap;background:rgba(0,0,0,.68);color:#fff;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700}
 .scanner-actions{display:flex;gap:8px;margin-top:10px}
 .scanner-actions button{flex:1}
 
@@ -597,7 +600,10 @@ input:focus{border-color:#ed166a}
   <div class="invoice-scanner-card">
     <div class="invoice-scanner-head"><strong>📷 Scan Invoice</strong><button type="button" class="scanner-close" onclick="closeInvoiceScanner()">✕</button></div>
     <p class="scanner-help">Take a clear photo of the taxi invoice. The system will read matching values and fill the invoice fields. Please check them before saving.</p>
-    <video id="invoiceCameraPreview" class="invoice-camera-preview" autoplay playsinline></video>
+    <div class="invoice-camera-wrap">
+      <video id="invoiceCameraPreview" class="invoice-camera-preview" autoplay playsinline></video>
+      <div class="invoice-guide" aria-hidden="true"><span>Invoice ko poora box ke andar rakhein</span></div>
+    </div>
     <div class="scanner-camera-controls">
       <button type="button" id="invoiceFocusBtn" onclick="setInvoiceCameraFocus()">🔎 Focus</button>
       <button type="button" id="invoiceTorchBtn" onclick="toggleInvoiceCameraTorch()">💡 Light Off</button>
@@ -606,7 +612,8 @@ input:focus{border-color:#ed166a}
     <input id="invoiceCameraInput" type="file" accept="image/*" capture="environment" hidden>
     <input id="invoiceGalleryInput" type="file" accept="image/*" hidden>
     <div class="scanner-actions">
-      <button type="button" class="secondary" onclick="chooseInvoicePhoto()">🖼️ Choose Photo</button>
+      <button type="button" class="primary" onclick="openInvoiceNativeCamera()">📱 Full Camera</button>
+      <button type="button" class="secondary" onclick="chooseInvoicePhoto()">🖼️ Gallery</button>
     </div>
     <div id="invoiceScanStatus" class="status"></div>
   </div>
@@ -1960,7 +1967,7 @@ async function openInvoiceScanner(){
   }catch(e){
     stopInvoiceAutoScan();
     console.warn("Camera error",e);
-    status.textContent="Camera permission was not available. You can use Choose Photo instead.";
+    status.textContent="Live scan camera nahi khul saka. Neeche Full Camera se mobile ki photo le sakte hain.";
   }
 }
 
@@ -1994,7 +2001,7 @@ async function toggleInvoiceCameraTorch(){
   if(!track){s.textContent="Camera is not active. Use Choose Photo instead.";return;}
   try{
     const caps=track.getCapabilities?.()||{};
-    if(!caps.torch){s.textContent="Browser direct light control nahi deta. Full Camera khol kar phone ka Flash use karein.";if(btn)btn.textContent="💡 Flash via Camera";return;}
+    if(!caps.torch){s.textContent="Browser direct light control nahi deta. Is phone ke camera mein direct light control available nahi hai.";if(btn)btn.textContent="💡 Flash via Camera";return;}
     invoiceTorchOn=!invoiceTorchOn;
     await track.applyConstraints({advanced:[{torch:invoiceTorchOn}]});
     if(btn){btn.textContent=invoiceTorchOn?"💡 Light On":"💡 Light Off";btn.classList.toggle("active",invoiceTorchOn);}
@@ -2003,7 +2010,7 @@ async function toggleInvoiceCameraTorch(){
     console.warn("Torch error",e);
     invoiceTorchOn=false;
     if(btn)btn.textContent="💡 Light Off";
-    s.textContent="Browser direct light control available nahi hai. Full Camera se phone ka Flash use karein.";
+    s.textContent="Browser direct light control available nahi hai.";
   }
 }
 
@@ -2015,103 +2022,145 @@ function stopInvoiceAutoScan(){
 }
 
 function invoiceAutoFrameScore(video, canvas, ctx){
-  if(!video || video.readyState < 2 || !video.videoWidth || !video.videoHeight) return {score:0, sample:null};
-  const W=320,H=Math.max(240,Math.round(320*video.videoHeight/video.videoWidth));
-  canvas.width=W;canvas.height=H;
+  if(!video || video.readyState < 2 || !video.videoWidth || !video.videoHeight){
+    return {score:0,sample:null,ready:false};
+  }
+
+  // Small analysis frame = fast enough for Android. We analyse the central
+  // document area and compare it with the outer area. An RTA invoice is
+  // normally a large, bright, text-filled rectangle.
+  const W=320;
+  const H=Math.max(240,Math.round(W*video.videoHeight/video.videoWidth));
+  canvas.width=W; canvas.height=H;
   ctx.drawImage(video,0,0,W,H);
   const data=ctx.getImageData(0,0,W,H).data;
-  let sum=0,sum2=0,bright=0,edges=0,total=0;
+
+  let innerSum=0,innerN=0,innerEdges=0;
+  let outerSum=0,outerN=0;
   const sample=[];
-  // Ignore the outer 10% where the phone UI/room can dominate.
-  const x0=Math.floor(W*.10),x1=Math.floor(W*.90),y0=Math.floor(H*.08),y1=Math.floor(H*.92);
-  for(let y=y0;y<y1;y+=3){
-    for(let x=x0;x<x1;x+=3){
+
+  const ix0=Math.floor(W*.12), ix1=Math.floor(W*.88);
+  const iy0=Math.floor(H*.08), iy1=Math.floor(H*.92);
+
+  for(let y=0;y<H;y+=4){
+    for(let x=0;x<W;x+=4){
       const i=(y*W+x)*4;
       const g=data[i]*.299+data[i+1]*.587+data[i+2]*.114;
-      sum+=g;sum2+=g*g;total++;
-      if(g>155)bright++;
-      if(x+3<x1){
-        const j=(y*W+x+3)*4;
-        const g2=data[j]*.299+data[j+1]*.587+data[j+2]*.114;
-        if(Math.abs(g-g2)>35)edges++;
-      }
-      if(y+3<y1){
-        const j=((y+3)*W+x)*4;
-        const g2=data[j]*.299+data[j+1]*.587+data[j+2]*.114;
-        if(Math.abs(g-g2)>35)edges++;
+      const inside=x>=ix0&&x<=ix1&&y>=iy0&&y<=iy1;
+      if(inside){
+        innerSum+=g; innerN++;
+        if(x+4<ix1){
+          const j=(y*W+x+4)*4;
+          const g2=data[j]*.299+data[j+1]*.587+data[j+2]*.114;
+          if(Math.abs(g-g2)>28) innerEdges++;
+        }
+        if(y+4<iy1){
+          const j=((y+4)*W+x)*4;
+          const g2=data[j]*.299+data[j+1]*.587+data[j+2]*.114;
+          if(Math.abs(g-g2)>28) innerEdges++;
+        }
+      }else{
+        outerSum+=g; outerN++;
       }
     }
   }
-  const avg=sum/Math.max(1,total);
-  const variance=Math.max(0,sum2/Math.max(1,total)-avg*avg);
-  const contrast=Math.sqrt(variance);
-  const brightRatio=bright/Math.max(1,total);
-  const edgeRatio=edges/Math.max(1,total*2);
-  // A complete RTA sheet should be a large, bright, text-rich/stable object.
-  // This is deliberately conservative to avoid firing on an empty camera view.
-  const score=Math.min(1,
-    (brightRatio>.38?0.30:brightRatio/.38*.30)+
-    (contrast>28?0.25:contrast/28*.25)+
-    (edgeRatio>.035?0.30:edgeRatio/.035*.30)+
-    (avg>115?0.15:avg/115*.15)
-  );
-  for(let y=Math.floor(H*.18);y<H*.82;y+=12){
-    for(let x=Math.floor(W*.18);x<W*.82;x+=12){
+
+  const innerAvg=innerSum/Math.max(1,innerN);
+  const outerAvg=outerSum/Math.max(1,outerN);
+  const edgeRatio=innerEdges/Math.max(1,innerN*2);
+
+  // Use a forgiving score. The old detector was too strict and often never
+  // fired on real phone cameras because exposure/background vary.
+  const bright=Math.min(1,Math.max(0,(innerAvg-75)/110));
+  const text=Math.min(1,Math.max(0,(edgeRatio-.004)/.030));
+  const separation=Math.min(1,Math.max(0,(innerAvg-outerAvg+10)/70));
+  const score=.48*bright+.32*text+.20*separation;
+
+  for(let y=Math.floor(H*.18);y<H*.82;y+=10){
+    for(let x=Math.floor(W*.18);x<W*.82;x+=10){
       const i=(y*W+x)*4;
-      sample.push(Math.round((data[i]*.299+data[i+1]*.587+data[i+2]*.114)/8));
+      sample.push(Math.round((data[i]*.299+data[i+1]*.587+data[i+2]*.114)/6));
     }
   }
-  return {score,sample};
+  return {score,sample,ready:true,innerAvg,edgeRatio};
 }
 
 function invoiceSamplesStable(a,b){
   if(!a||!b||a.length!==b.length)return false;
   let diff=0;
   for(let i=0;i<a.length;i++)diff+=Math.abs(a[i]-b[i]);
-  return diff/a.length<1.8;
+  return (diff/a.length)<3.2;
 }
 
 function startInvoiceAutoScan(){
   stopInvoiceAutoScan();
   const video=document.getElementById("invoiceCameraPreview");
   const canvas=document.getElementById("invoiceCameraCanvas");
+  const status=document.getElementById("invoiceScanStatus");
   if(!video||!canvas)return;
+
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
-  invoiceAutoScanTimer=setInterval(async()=>{
-    if(invoiceAutoScanBusy || invoiceOcrBusy || !document.getElementById("invoiceScannerModal")?.classList.contains("show"))return;
+  const run=async()=>{
+    if(invoiceAutoScanBusy || invoiceOcrBusy ||
+       !document.getElementById("invoiceScannerModal")?.classList.contains("show")) return;
+
     const result=invoiceAutoFrameScore(video,canvas,ctx);
+    if(!result.ready){
+      status.textContent="Camera ready hone ka intezar...";
+      return;
+    }
+
     const now=performance.now();
     const stable=invoiceSamplesStable(invoiceAutoLastSample,result.sample);
     invoiceAutoLastSample=result.sample;
-    const status=document.getElementById("invoiceScanStatus");
-    if(result.score>=.78 && stable){
+
+    // Require a reasonably complete, stable document. 0.52 is intentionally
+    // lower than the previous 0.78 so normal phone exposure does not block it.
+    if(result.score>=.52 && stable){
       if(!invoiceAutoStableSince)invoiceAutoStableSince=now;
       const held=(now-invoiceAutoStableSince)/1000;
-      status.textContent=held<1.5?`Invoice detected — hold still ${(1.5-held).toFixed(1)}s...`:`Invoice detected — scanning automatically...`;
-      if(held>=1.5){
-        invoiceAutoScanBusy=true;
-        clearInterval(invoiceAutoScanTimer);invoiceAutoScanTimer=null;
-        try{
-          const fullCanvas=document.createElement("canvas");
-          fullCanvas.width=video.videoWidth;fullCanvas.height=video.videoHeight;
-          const fullCtx=fullCanvas.getContext("2d");
-          fullCtx.drawImage(video,0,0,fullCanvas.width,fullCanvas.height);
-          const blob=await new Promise((resolve,reject)=>fullCanvas.toBlob(b=>b?resolve(b):reject(new Error("Camera frame could not be captured")),"image/jpeg",.96));
-          status.textContent="Invoice captured — reading automatically...";
-          closeInvoiceScanner();
-          await processInvoiceScan(blob);
-        }catch(e){
-          console.warn("Automatic invoice scan failed",e);
-          invoiceAutoScanBusy=false;
-          status.textContent="Auto scan failed. Invoice ko seedha/poora frame mein rakhein aur dobara try karein.";
-          startInvoiceAutoScan();
-        }
+      if(held<1.0){
+        status.textContent=`Invoice detect ho gaya — phone stable rakhein ${(1-held).toFixed(1)}s`;
+        return;
+      }
+
+      invoiceAutoScanBusy=true;
+      stopInvoiceAutoScan();
+      try{
+        status.textContent="Invoice capture ho raha hai...";
+        const fullCanvas=document.createElement("canvas");
+        fullCanvas.width=video.videoWidth;
+        fullCanvas.height=video.videoHeight;
+        const fullCtx=fullCanvas.getContext("2d");
+        fullCtx.drawImage(video,0,0,fullCanvas.width,fullCanvas.height);
+
+        const blob=await new Promise((resolve,reject)=>{
+          fullCanvas.toBlob(
+            b=>b?resolve(b):reject(new Error("Camera frame could not be captured")),
+            "image/jpeg",.96
+          );
+        });
+
+        status.textContent="Invoice captured — OCR reading...";
+        closeInvoiceScanner();
+        await processInvoiceScan(blob);
+      }catch(e){
+        console.warn("Automatic invoice scan failed",e);
+        invoiceAutoScanBusy=false;
+        status.textContent="Scan dobara try karein. Invoice poora box mein rakhein.";
+        setTimeout(()=>startInvoiceAutoScan(),500);
       }
     }else{
       invoiceAutoStableSince=0;
-      if(result.score>.55) status.textContent="Invoice ko poora frame mein seedha rakhein — scan khud ho jayega.";
+      status.textContent="Invoice ko poora white box ke andar rakhein — scan khud hoga.";
     }
-  },250);
+  };
+
+  // Use both metadata and a timer. This avoids the common Android issue where
+  // the first timer starts before the video has a real frame.
+  if(video.readyState>=2) run();
+  video.addEventListener("loadeddata",run,{once:true});
+  invoiceAutoScanTimer=setInterval(run,300);
 }
 
 function closeInvoiceScanner(){
@@ -2130,12 +2179,21 @@ function chooseInvoicePhoto(){
 }
 function openInvoiceNativeCamera(){
   const input=document.getElementById("invoiceCameraInput");
-  if(!input)return;
-  // On Android/Brave this asks the phone's native camera to open.
-  // The native camera UI can expose the phone's own flash and focus controls
-  // even when the browser getUserMedia stream does not expose torch controls.
-  input.setAttribute("capture","environment");
-  input.click();
+  const status=document.getElementById("invoiceScanStatus");
+  if(!input){
+    if(status)status.textContent="Phone camera input available nahi hai.";
+    return;
+  }
+  invoiceDirectCapture=true;
+  if(status)status.textContent="Phone camera khul raha hai — invoice ki poori photo lein.";
+  try{
+    input.setAttribute("capture","environment");
+    input.click();
+  }catch(e){
+    invoiceDirectCapture=false;
+    console.warn("Native camera open error",e);
+    if(status)status.textContent="Phone camera open nahi ho saka. Full Camera dobara try karein.";
+  }
 }
 
 async function loadInvoiceCropper(){
@@ -2251,8 +2309,8 @@ async function autoPrepareRTAReceiptBlob(sourceFile){
 }
 
 async function captureInvoicePhoto(){
-  // Take Photo uses the phone's native camera. After capture the photo is
-  // automatically cropped/cleaned and sent straight to the RTA reader.
+  // Take Photo = phone's native camera fallback. If automatic live scanning
+  // does not trigger, the driver can take a normal phone photo and OCR it.
   const input=document.getElementById("invoiceCameraInput");
   const s=document.getElementById("invoiceScanStatus");
   if(!input){s.textContent="Camera input is not available.";return;}
@@ -2279,21 +2337,16 @@ document.getElementById("invoiceCameraInput")?.addEventListener("change",async e
   invoiceDirectCapture=false;
   e.target.value="";
   if(!f)return;
-  if(direct){
-    const modal=document.getElementById("invoiceScannerModal");
-    const s=document.getElementById("invoiceScanStatus");
-    try{
-      s.textContent="Photo captured — preparing full receipt for OCR...";
-      const cleanBlob=await autoPrepareRTAReceiptBlob(f);
-      closeInvoiceScanner();
-      await processInvoiceScan(cleanBlob);
-    }catch(err){
-      console.warn("Auto native capture/crop error",err);
-      if(modal)modal.classList.add("show");
-      s.textContent="Auto crop failed. Please take the photo again.";
-    }
-  }else{
-    openInvoiceCropper(f);
+
+  const status=document.getElementById("invoiceScanStatus");
+  try{
+    if(status)status.textContent="Photo mil gayi — invoice prepare ho rahi hai...";
+    const cleanBlob=await autoPrepareRTAReceiptBlob(f);
+    closeInvoiceScanner();
+    await processInvoiceScan(cleanBlob);
+  }catch(err){
+    console.warn("Native camera photo processing error",err);
+    if(status)status.textContent="Photo process nahi hui. Dobara photo lein.";
   }
 });
 
