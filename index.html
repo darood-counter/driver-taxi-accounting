@@ -2055,7 +2055,7 @@ async function openInvoiceCropper(file){
     invoiceCropObjectUrl=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.985,aspectRatio:0.352459,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false,guides:false,center:false,highlight:false});
+        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.985,aspectRatio:null,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false,guides:false,center:false,highlight:false});
         status.textContent="Receipt ko crop box ke andar adjust karein.";
       }catch(e){status.textContent="Crop tool error. You can use Full Photo.";}
     };
@@ -2097,9 +2097,10 @@ function skipInvoiceCrop(){
   if(file)processInvoiceScan(file);
 }
 async function autoPrepareRTAReceiptBlob(sourceFile){
-  // Native-camera capture: automatically find the tall receipt area instead
-  // of assuming that the receipt is already centred in the camera frame.
-  // The OCR reader expects the final image to have the same 860:2440 ratio.
+  // Native-camera capture: find the receipt and keep its ORIGINAL aspect ratio.
+  // IMPORTANT: do not force the receipt into 860:2440. Real phone photos are
+  // often wider than that ratio, and forcing the ratio can cut off complete
+  // rows from the left/right or top/bottom of the RTA Shift Summary.
   const img=new Image();
   const url=URL.createObjectURL(sourceFile);
   await new Promise((resolve,reject)=>{
@@ -2108,7 +2109,7 @@ async function autoPrepareRTAReceiptBlob(sourceFile){
     img.src=url;
   });
 
-  const MAX_SIDE=2200;
+  const MAX_SIDE=2600;
   const scale=Math.min(1,MAX_SIDE/Math.max(img.naturalWidth,img.naturalHeight));
   const W=Math.max(1,Math.round(img.naturalWidth*scale));
   const H=Math.max(1,Math.round(img.naturalHeight*scale));
@@ -2117,11 +2118,11 @@ async function autoPrepareRTAReceiptBlob(sourceFile){
   ctx.drawImage(img,0,0,W,H);
   URL.revokeObjectURL(url);
 
-  // Detect the receipt as the largest tall, bright rectangle. We sample the
-  // image first so this remains fast on a mobile phone.
-  let left=Math.round(W*.02), right=Math.round(W*.98), top=Math.round(H*.02), bottom=Math.round(H*.98);
+  // Detect the bright paper area, but use generous margins so receipt text at
+  // the edges is never sacrificed just to make a fixed aspect ratio.
+  let left=Math.round(W*.02), right=Math.round(W*.98), top=Math.round(H*.01), bottom=Math.round(H*.99);
   try{
-    const sampleW=Math.min(420,W), sampleH=Math.min(900,H);
+    const sampleW=Math.min(500,W), sampleH=Math.min(1100,H);
     const sm=document.createElement('canvas');sm.width=sampleW;sm.height=sampleH;
     const sx=sm.getContext('2d',{willReadFrequently:true});
     sx.drawImage(src,0,0,W,H,0,0,sampleW,sampleH);
@@ -2129,67 +2130,65 @@ async function autoPrepareRTAReceiptBlob(sourceFile){
     const col=[],row=[];
     for(let x=0;x<sampleW;x++)col[x]=0;
     for(let y=0;y<sampleH;y++)row[y]=0;
-    // Receipt paper is normally much brighter than the surrounding table/wall.
     for(let y=0;y<sampleH;y++){
       for(let x=0;x<sampleW;x++){
         const i=(y*sampleW+x)*4;
         const g=data[i]*.299+data[i+1]*.587+data[i+2]*.114;
-        if(g>178){ col[x]++; row[y]++; }
+        if(g>170){col[x]++;row[y]++;}
       }
     }
-    const colFrac=col.map(v=>v/sampleH), rowFrac=row.map(v=>v/sampleW);
-    // Find the longest contiguous region with strong paper presence.
+    const colFrac=col.map(v=>v/sampleH),rowFrac=row.map(v=>v/sampleW);
     function longest(arr,threshold,minLen){
-      let best=[0,arr.length-1],st=-1;
+      let best=null,st=-1;
       for(let i=0;i<arr.length;i++){
-        if(arr[i]>=threshold){ if(st<0)st=i; }
+        if(arr[i]>=threshold){if(st<0)st=i;}
         else if(st>=0){
-          if(i-st>best[1]-best[0])best=[st,i-1]; st=-1;
+          const cand=[st,i-1];
+          if(!best || cand[1]-cand[0]>best[1]-best[0])best=cand;
+          st=-1;
         }
       }
-      if(st>=0 && arr.length-st>best[1]-best[0])best=[st,arr.length-1];
-      return (best[1]-best[0]+1)>=minLen?best:null;
+      if(st>=0){
+        const cand=[st,arr.length-1];
+        if(!best || cand[1]-cand[0]>best[1]-best[0])best=cand;
+      }
+      return best && best[1]-best[0]+1>=minLen ? best : null;
     }
-    const cb=longest(colFrac,.55,Math.round(sampleW*.18));
-    const rb=longest(rowFrac,.35,Math.round(sampleH*.25));
+    const cb=longest(colFrac,.45,Math.round(sampleW*.25));
+    const rb=longest(rowFrac,.28,Math.round(sampleH*.45));
     if(cb){left=Math.round(cb[0]*W/sampleW);right=Math.round((cb[1]+1)*W/sampleW);}
     if(rb){top=Math.round(rb[0]*H/sampleH);bottom=Math.round((rb[1]+1)*H/sampleH);}
   }catch(e){console.warn('Receipt boundary detection skipped',e);}
 
-  // Force the crop to the RTA receipt aspect ratio while preserving the
-  // detected receipt centre. Add only a small margin so no bottom rows clip.
-  const RTA_RATIO=860/2440;
-  let cropW=Math.max(1,right-left), cropH=Math.max(1,bottom-top);
-  const detectedRatio=cropW/cropH;
-  if(detectedRatio>RTA_RATIO){ cropW=Math.round(cropH*RTA_RATIO); }
-  else { cropH=Math.round(cropW/RTA_RATIO); }
-  cropW=Math.min(cropW,W);cropH=Math.min(cropH,H);
-  const cx=(left+right)/2, cy=(top+bottom)/2;
-  let sx=Math.round(cx-cropW/2), sy=Math.round(cy-cropH/2);
-  sx=Math.max(0,Math.min(W-cropW,sx));
-  sy=Math.max(0,Math.min(H-cropH,sy));
+  // Add a small safety margin around the detected paper.
+  const mx=Math.round((right-left)*.04),my=Math.round((bottom-top)*.015);
+  left=Math.max(0,left-mx);right=Math.min(W,right+mx);
+  top=Math.max(0,top-my);bottom=Math.min(H,bottom+my);
+  const cropW=Math.max(1,right-left),cropH=Math.max(1,bottom-top);
 
-  const outH=Math.min(3200,Math.max(2440,cropH));
-  const outW=Math.round(outH*RTA_RATIO);
+  // Keep the detected receipt ratio. Only resize for OCR quality.
+  const outScale=Math.min(1,3200/Math.max(cropW,cropH));
+  const outW=Math.max(1,Math.round(cropW*outScale));
+  const outH=Math.max(1,Math.round(cropH*outScale));
   const out=document.createElement('canvas');out.width=outW;out.height=outH;
   const octx=out.getContext('2d',{willReadFrequently:true});
   octx.imageSmoothingEnabled=true;octx.imageSmoothingQuality='high';
   octx.fillStyle='#fff';octx.fillRect(0,0,outW,outH);
-  octx.drawImage(src,sx,sy,cropW,cropH,0,0,outW,outH);
+  octx.drawImage(src,left,top,cropW,cropH,0,0,outW,outH);
 
-  // Mild grayscale/contrast cleanup only; preserve decimal points and small digits.
+  // Mild grayscale/contrast cleanup. Keep decimal points and small digits.
   try{
     const px=octx.getImageData(0,0,outW,outH),d=px.data;
     for(let i=0;i<d.length;i+=4){
       const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
-      const v=Math.max(0,Math.min(255,(g-128)*1.12+128));
+      const v=Math.max(0,Math.min(255,(g-128)*1.22+128));
       d[i]=d[i+1]=d[i+2]=v;
     }
     octx.putImageData(px,0,0);
   }catch(e){console.warn('Image cleanup skipped',e);}
 
   return await new Promise((resolve,reject)=>{
-    out.toBlob(b=>b?resolve(b):reject(new Error('Auto-cropped photo could not be created')),'image/jpeg',.95);
+    out.toBlob(b=>b?resolve(b):reject(new Error('Prepared receipt photo could not be created')),'image/jpeg',.96);
   });
 }
 
@@ -2642,11 +2641,12 @@ function rtaValueFromNumberedRow(group,W){
 
 
 async function parseInvoiceOCRValueStrip(file){
-  // SAME-LABEL -> SAME-ROW-VALUE reader.
-  // We do not assign a number by fixed row position. First OCR the complete
-  // receipt with word boxes, find the exact RTA field name, then take the
-  // numeric value on that same line and to the right of that exact label.
-  // A value of 0.00 is a real value and is kept exactly like any other value.
+  // Robust RTA reader:
+  // 1) OCR a complete receipt without assuming an 860:2440 image ratio.
+  // 2) Build physical text rows from OCR line boxes.
+  // 3) Use the known RTA row order to disambiguate similar labels.
+  // 4) Read the number from the SAME physical row only.
+  // 5) If OCR misses the number, re-read only that row with a digit whitelist.
   const img=new Image();
   const url=URL.createObjectURL(file);
   try{
@@ -2655,166 +2655,185 @@ async function parseInvoiceOCRValueStrip(file){
       img.onerror=()=>reject(new Error('Receipt image could not be opened.'));
       img.src=url;
     });
-    const W=img.naturalWidth||860, H=img.naturalHeight||2440;
-    const result={};
-    const worker=await getInvoiceOCRWorker('11');
+
+    const srcW=img.naturalWidth||860,srcH=img.naturalHeight||2440;
+    const prepScale=Math.min(2.5,3200/Math.max(srcW,srcH));
+    const W=Math.max(1,Math.round(srcW*prepScale));
+    const H=Math.max(1,Math.round(srcH*prepScale));
+    const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    ctx.drawImage(img,0,0,W,H);
+
+    // OCR-friendly grayscale/contrast. No hard threshold: hard thresholding can
+    // erase the decimal points on RTA amounts.
+    try{
+      const px=ctx.getImageData(0,0,W,H),d=px.data;
+      for(let i=0;i<d.length;i+=4){
+        const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
+        const v=Math.max(0,Math.min(255,(g-128)*1.30+128));
+        d[i]=d[i+1]=d[i+2]=v;
+      }
+      ctx.putImageData(px,0,0);
+    }catch(e){console.warn('OCR preprocessing skipped',e);}
+
+    const worker=await getInvoiceOCRWorker('6');
     await worker.setParameters({
-      tessedit_pageseg_mode:'11',
+      tessedit_pageseg_mode:'6',
       preserve_interword_spaces:'1',
-      user_defined_dpi:'300'
+      user_defined_dpi:'300',
+      tessedit_char_whitelist:''
     });
 
-    const full=await worker.recognize(img,{}, {blocks:false,paragraphs:false,lines:false,words:true});
+    const full=await worker.recognize(canvas,{}, {blocks:false,paragraphs:false,lines:true,words:true});
     const words=Array.isArray(full?.data?.words)
       ? full.data.words.filter(w=>String(w?.text||'').trim()&&w?.bbox)
       : [];
-    if(!words.length)return result;
 
-    const clean=s=>String(s||'').toLowerCase()
+    let rows=Array.isArray(full?.data?.lines)
+      ? full.data.lines.filter(x=>String(x?.text||'').trim()&&x?.bbox)
+          .map(x=>({text:String(x.text||'').trim(),bbox:x.bbox}))
+      : [];
+
+    // Tesseract can omit line objects on some mobile builds. Reconstruct rows
+    // from word boxes in that case.
+    if(rows.length<10 && words.length){
+      const sorted=words.slice().sort((a,b)=>{
+        const ay=(Number(a.bbox.top||0)+Number(a.bbox.bottom||0))/2;
+        const by=(Number(b.bbox.top||0)+Number(b.bbox.bottom||0))/2;
+        return ay-by || Number(a.bbox.left||0)-Number(b.bbox.left||0);
+      });
+      rows=[];
+      for(const w of sorted){
+        const cy=(Number(w.bbox.top||0)+Number(w.bbox.bottom||0))/2;
+        const h=Math.max(8,Number(w.bbox.bottom||0)-Number(w.bbox.top||0));
+        let row=rows.length?rows[rows.length-1]:null;
+        const rowCy=row ? (Number(row.bbox.top)+Number(row.bbox.bottom))/2 : 0;
+        if(!row || Math.abs(cy-rowCy)>Math.max(14,h*.65)){
+          rows.push({text:String(w.text||''),bbox:{left:Number(w.bbox.left||0),top:Number(w.bbox.top||0),right:Number(w.bbox.right||0),bottom:Number(w.bbox.bottom||0)}});
+        }else{
+          row.text+=' '+String(w.text||'');
+          row.bbox.left=Math.min(row.bbox.left,Number(w.bbox.left||0));
+          row.bbox.right=Math.max(row.bbox.right,Number(w.bbox.right||0));
+          row.bbox.top=Math.min(row.bbox.top,Number(w.bbox.top||0));
+          row.bbox.bottom=Math.max(row.bbox.bottom,Number(w.bbox.bottom||0));
+        }
+      }
+    }
+
+    const compact=s=>String(s||'').toLowerCase()
       .replace(/[|]/g,'i')
-      .replace(/[—–]/g,'-')
-      .replace(/[^a-z0-9]+/g,'')
-      .trim();
+      .replace(/[0o]/g,'0')
+      .replace(/[^a-z0-9]+/g,'');
 
-    const labelTokens={
-      creditCard:[['credit','cards'],['credit','card']],
-      app:[['app']],
-      cash:[['cash']],
-      tips:[['tips'],['tip']],
-      tolls:[['total','tollways'],['tollways']],
-      shiftDiscount:[['shift','discount']],
-      shiftTrips:[['shift','trips'],['shift','trip']],
-      bookings:[['bookings'],['booking']],
-      km:[['kilometers','hired'],['kilometer','hired'],['kilometres','hired'],['kilometre','hired']],
-      careemDiscount:[['careem','discount']],
-      paidCareem:[['paid','in','careem']],
-      halaJunior:[['hala','juniors'],['hala','junior']],
-      halaPeak:[['hala','peak']],
-      peak:[['peak']]
+    const labelVariants={
+      creditCard:['creditcards','creditcard'],
+      app:['app'],
+      cash:['cash'],
+      tips:['tips','tip'],
+      tolls:['totaltollways','totaltollway','tollways'],
+      shiftDiscount:['shiftdiscount'],
+      shiftTrips:['shifttrips','shifttrip'],
+      bookings:['bookings','booking'],
+      km:['kilometershired','kilometerhired','kilometreshired','kilometrehired'],
+      careemDiscount:['careemdiscount'],
+      paidCareem:['paidincareem'],
+      halaJunior:['halajuniors','halajunior'],
+      halaPeak:['halapeak'],
+      peak:['peak']
     };
 
-    // Used only when the same word occurs more than once (APP / Peak).
+    // Physical row numbers in the supplied RTA format. These are used only as
+    // a tie-breaker; the actual row is still located from OCR text/geometry.
     const expectedRow={
       creditCard:2,app:5,cash:8,tips:10,tolls:13,shiftDiscount:16,
       shiftTrips:18,bookings:20,km:22,careemDiscount:25,paidCareem:26,
       halaJunior:28,halaPeak:29,peak:30
     };
-    const rowY={
-      2:.353279,5:.408197,8:.459836,10:.493852,13:.544672,16:.595492,
-      18:.630328,20:.664754,22:.700000,25:.750000,26:.767213,
-      28:.801230,29:.818852,30:.836066
-    };
 
-    const cy=w=>(Number(w.bbox?.top||0)+Number(w.bbox?.bottom||0))/2;
-    const left=w=>Number(w.bbox?.left||0);
-    const right=w=>Number(w.bbox?.right||left(w));
+    const headingIndex=rows.reduce((best,r,i)=>{
+      const t=compact(r.text);
+      if(t.includes('shiftcompleted') || (t.includes('shift')&&t.includes('completed')))return i;
+      return best;
+    },-1);
 
-    function numberFromToken(t){
-      let raw=String(t||'').trim().replace(/,/g,'').replace(/[Oo]/g,'0');
-      raw=raw.replace(/^[^0-9-]+/,'').replace(/[^0-9.%-]+$/,'');
-      if(!/^[-+]?\d+(?:\.\d+)?$/.test(raw))return null;
-      const n=Number(raw);
-      return Number.isFinite(n)?n:null;
+    function numericTokens(text){
+      return String(text||'').replace(/,/g,'').match(/-?\d+(?:\.\d+)?/g)||[];
     }
-
-    function findLabels(field){
-      const variants=labelTokens[field]||[];
-      const hits=[];
-      for(let i=0;i<words.length;i++){
-        for(const variant of variants){
-          const parts=variant.map(clean);
-          let joined='';
-          for(let n=0;n<parts.length && i+n<words.length;n++){
-            const t=clean(words[i+n].text);
-            if(!t)break;
-            joined+=t;
-            if(joined===parts.slice(0,n+1).join('')){
-              if(n===parts.length-1){
-                hits.push({
-                  start:i,end:i+n,
-                  x:left(words[i]),right:right(words[i+n]),
-                  y:(cy(words[i])+cy(words[i+n]))/2
-                });
-              }
-            }else{
-              break;
-            }
-          }
-        }
+    function valueFromRow(row){
+      const nums=numericTokens(row?.text||'').map(Number).filter(Number.isFinite);
+      return nums.length?nums[nums.length-1]:null;
+    }
+    function labelScore(field,row,index){
+      const line=String(row.text||'');
+      const c=compact(line);
+      const variants=labelVariants[field]||[];
+      let score=-Infinity;
+      for(const v of variants){
+        if(c.includes(v))score=Math.max(score,100+v.length);
+        // OCR sometimes splits a word, e.g. "Tol lways". Compare the first
+        // label portion with the compact OCR line as well.
+        const dist=levenshteinOCR(c.slice(0,Math.min(c.length,Math.max(v.length+12,28))),v);
+        if(dist<=Math.max(2,Math.floor(v.length*.22)))score=Math.max(score,80-dist*5);
       }
-      // Remove duplicate hits at the same location.
-      return hits.filter((h,i,a)=>a.findIndex(x=>Math.abs(x.x-h.x)<3&&Math.abs(x.y-h.y)<3&&x.start===h.start&&x.end===h.end)===i);
-    }
-
-    function chooseLabel(field,hits){
-      if(!hits.length)return null;
-      if(hits.length===1)return hits[0];
-      const expected=expectedRow[field];
-      const ey=(rowY[expected]||.5)*H;
-      return hits.slice().sort((a,b)=>Math.abs(a.y-ey)-Math.abs(b.y-ey))[0];
-    }
-
-    function directValueFromSameRow(label){
-      if(!label)return null;
-      const band=Math.max(24,H*.0125);
-      const minX=Math.max(label.right+8,W*.40);
-      const maxX=W*.98;
-      const candidates=[];
-      for(const w of words){
-        if(left(w)<minX || left(w)>maxX)continue;
-        if(Math.abs(cy(w)-label.y)>band)continue;
-        const n=numberFromToken(w.text);
-        if(n!==null)candidates.push({n,x:left(w),y:cy(w),w});
+      if(field==='app' && (c.includes('inapp')||c.includes('inapp')))score=-Infinity;
+      if(field==='peak' && c.includes('halapeak'))score=-Infinity;
+      if(field==='halaPeak' && !c.includes('halapeak'))score-=20;
+      if(field==='tolls' && !c.includes('toll'))score-=10;
+      if(headingIndex>=0){
+        const relative=index-headingIndex;
+        const expected=expectedRow[field];
+        score-=Math.abs(relative-expected)*2.5;
       }
-      candidates.sort((a,b)=>Math.abs(a.y-label.y)-Math.abs(b.y-label.y)||a.x-b.x);
-      if(candidates.length)return candidates[0].n;
-
-      // Some OCR engines split a decimal into two words, e.g. "0" + ".00".
-      const rowWords=words.filter(w=>left(w)>=minX&&left(w)<=maxX&&Math.abs(cy(w)-label.y)<=band)
-        .sort((a,b)=>left(a)-left(b));
-      for(let i=0;i<rowWords.length-1;i++){
-        const a=String(rowWords[i].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
-        const b=String(rowWords[i+1].text||'').replace(/,/g,'').replace(/[Oo]/g,'0');
-        const joined=(a+b).replace(/^\./,'0.');
-        if(/^[-+]?\d+\.\d+$/.test(joined))return Number(joined);
-      }
-      return null;
+      return score;
     }
 
-    async function fallbackCropValue(label){
-      if(!label)return null;
-      const band=Math.max(34,H*.018);
-      const x1=Math.min(W*.78,Math.max(label.right+8,W*.38));
-      const x2=W*.98;
+    function bestRowForField(field){
+      let best=null,bestScore=-Infinity;
+      rows.forEach((r,i)=>{
+        const score=labelScore(field,r,i);
+        if(score>bestScore){bestScore=score;best={row:r,index:i,score};}
+      });
+      return bestScore>0?best:null;
+    }
+
+    async function rereadRow(row){
+      if(!row?.bbox)return null;
+      const band=Math.max(30,H*.012);
+      const x1=Math.max(0,Math.round(W*.42));
+      const x2=Math.min(W,Math.round(W*.99));
+      const y=Math.max(0,(Number(row.bbox.top||0)+Number(row.bbox.bottom||0))/2);
+      const y1=Math.max(0,Math.round(y-band)),y2=Math.min(H,Math.round(y+band));
       const c=document.createElement('canvas');
-      const scale=4;
-      c.width=Math.max(1,Math.round((x2-x1)*scale));
-      c.height=Math.max(1,Math.round((band*2)*scale));
-      const ctx=c.getContext('2d');
-      ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
-      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-      ctx.drawImage(img,x1,label.y-band,x2-x1,band*2,0,0,c.width,c.height);
+      const sw=Math.max(1,x2-x1),sh=Math.max(1,y2-y1),scale=3;
+      c.width=sw*scale;c.height=sh*scale;
+      const cc=c.getContext('2d',{willReadFrequently:true});
+      cc.fillStyle='#fff';cc.fillRect(0,0,c.width,c.height);
+      cc.imageSmoothingEnabled=true;cc.imageSmoothingQuality='high';
+      cc.drawImage(canvas,x1,y1,sw,sh,0,0,c.width,c.height);
       try{
-        const px=ctx.getImageData(0,0,c.width,c.height),d=px.data;
+        const px=cc.getImageData(0,0,c.width,c.height),d=px.data;
         for(let i=0;i<d.length;i+=4){
           const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
-          const v=Math.max(0,Math.min(255,(g-128)*1.35+128));
+          const v=Math.max(0,Math.min(255,(g-128)*1.45+128));
           d[i]=d[i+1]=d[i+2]=v;
         }
-        ctx.putImageData(px,0,0);
+        cc.putImageData(px,0,0);
       }catch(e){}
       await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789.,-'});
       const rr=await worker.recognize(c);
-      const nums=String(rr?.data?.text||'').replace(/,/g,'').match(/-?\d+(?:\.\d+)?/g)||[];
-      const parsed=nums.map(Number).filter(Number.isFinite);
-      return parsed.length?parsed[0]:null;
+      const nums=numericTokens(rr?.data?.text||'').map(Number).filter(Number.isFinite);
+      return nums.length?nums[nums.length-1]:null;
     }
 
+    const result=blankRTAOCRFields();
     for(const field of REQUIRED_RTA_OCR_FIELDS){
-      const label=chooseLabel(field,findLabels(field));
-      if(!label)continue;
-      let n=directValueFromSameRow(label);
-      if(n===null)n=await fallbackCropValue(label);
+      const hit=bestRowForField(field);
+      if(!hit)continue;
+      let n=valueFromRow(hit.row);
+      // A row with a label but no readable amount gets a focused digit-only OCR.
+      if(n===null)n=await rereadRow(hit.row);
       if(n!==null&&Number.isFinite(n))result[field]=n;
     }
     return result;
@@ -2822,6 +2841,7 @@ async function parseInvoiceOCRValueStrip(file){
     URL.revokeObjectURL(url);
   }
 }
+
 function parseInvoiceOCRData(data){
   const out=blankRTAOCRFields();
   const pack=rtaBuildNumberedRows(data);
