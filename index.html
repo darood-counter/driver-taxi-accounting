@@ -501,6 +501,20 @@ input:focus{border-color:#ed166a}
 .invoice-camera-preview{width:100%;min-height:220px;max-height:55vh;object-fit:cover;border-radius:14px;background:#111;display:block}
 .scanner-actions{display:flex;gap:8px;margin-top:10px}
 .scanner-actions button{flex:1}
+
+.scanner-camera-controls{display:flex;gap:8px;margin-top:8px}
+.scanner-camera-controls button{flex:1;border:0;border-radius:11px;padding:10px 8px;font-weight:800;cursor:pointer;background:#eef0f4;color:#111827}
+.scanner-camera-controls button.active{background:#111827;color:#fff}
+.crop-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:10001;padding:12px;align-items:center;justify-content:center}
+.crop-modal.show{display:flex}
+.crop-card{width:min(100%,560px);max-height:94vh;overflow:auto;background:#fff;border-radius:18px;padding:14px}
+.crop-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.crop-title{font-weight:800;font-size:18px}
+.crop-image-wrap{width:100%;max-height:68vh;overflow:hidden;background:#111;border-radius:12px}
+#invoiceCropImage{display:block;max-width:100%;width:100%}
+.crop-actions{display:flex;gap:8px;margin-top:10px}
+.crop-actions button{flex:1}
+@media(max-width:480px){.scanner-camera-controls{flex-direction:row}.crop-actions{flex-direction:column}}
 @media(max-width:480px){.invoice-title-row{align-items:stretch}.scan-invoice-btn{width:100%}.scanner-actions{flex-direction:column}}
 
 </style>
@@ -584,6 +598,10 @@ input:focus{border-color:#ed166a}
     <div class="invoice-scanner-head"><strong>📷 Scan Invoice</strong><button type="button" class="scanner-close" onclick="closeInvoiceScanner()">✕</button></div>
     <p class="scanner-help">Take a clear photo of the taxi invoice. The system will read matching values and fill the invoice fields. Please check them before saving.</p>
     <video id="invoiceCameraPreview" class="invoice-camera-preview" autoplay playsinline></video>
+    <div class="scanner-camera-controls">
+      <button type="button" id="invoiceFocusBtn" onclick="setInvoiceCameraFocus()">🔎 Focus</button>
+      <button type="button" id="invoiceTorchBtn" onclick="toggleInvoiceCameraTorch()">💡 Light Off</button>
+    </div>
     <canvas id="invoiceCameraCanvas" hidden></canvas>
     <input id="invoiceCameraInput" type="file" accept="image/*" capture="environment" hidden>
     <div class="scanner-actions">
@@ -591,6 +609,22 @@ input:focus{border-color:#ed166a}
       <button type="button" class="secondary" onclick="chooseInvoicePhoto()">🖼️ Choose Photo</button>
     </div>
     <div id="invoiceScanStatus" class="status"></div>
+  </div>
+</div>
+
+<div class="crop-modal" id="invoiceCropModal">
+  <div class="crop-card">
+    <div class="crop-head">
+      <div class="crop-title">✂️ Crop Receipt</div>
+      <button type="button" class="scanner-close" onclick="closeInvoiceCropper()">✕</button>
+    </div>
+    <div class="small" style="margin-bottom:8px">Receipt ko box ke andar adjust karein, phir Use Crop dabayein.</div>
+    <div class="crop-image-wrap"><img id="invoiceCropImage" alt="Receipt crop"></div>
+    <div class="crop-actions">
+      <button type="button" class="primary" onclick="applyInvoiceCrop()">✂️ Use Crop</button>
+      <button type="button" class="secondary" onclick="skipInvoiceCrop()">Use Full Photo</button>
+    </div>
+    <div id="invoiceCropStatus" class="status"></div>
   </div>
 </div>
 
@@ -1402,6 +1436,9 @@ const net=round2(total-deductions);
 document.getElementById("invoicePreview").textContent=
   `Total: ${money(total)} AED · Deductions: ${money(deductions)} AED · Net: ${money(net)} AED`;
 }
+// The OCR scanner runs in a normal script while the Firebase app runs in a module.
+// Expose the preview function so scanner callbacks can safely call it.
+window.updatePreview=updatePreview;
 ids.forEach(id=>document.getElementById(id).addEventListener("input",updatePreview));
 document.getElementById("invDate")?.addEventListener("change",()=>{
   updateInvoiceRateCard();
@@ -1846,9 +1883,15 @@ window.addEventListener("error",e=>{console.error(e.error||e.message);const x=do
 window.addEventListener("unhandledrejection",e=>{console.error(e.reason);const x=document.getElementById("authError");if(x&&e.reason)x.textContent="App error: "+(e.reason.message||String(e.reason));});
 
 let invoiceCameraStream=null;
+let invoiceCameraTrack=null;
+let invoiceTorchOn=false;
 let invoiceOcrScriptPromise=null;
 let invoiceOcrWorker=null;
 let invoiceOcrBusy=false;
+let invoiceCropper=null;
+let invoiceCropObjectUrl=null;
+let invoiceCropFile=null;
+let invoiceCropperScriptPromise=null;
 
 function loadInvoiceOCR(){
   if(window.Tesseract)return Promise.resolve(window.Tesseract);
@@ -1884,14 +1927,27 @@ async function openInvoiceScanner(){
   const modal=document.getElementById("invoiceScannerModal"), video=document.getElementById("invoiceCameraPreview"), status=document.getElementById("invoiceScanStatus");
   modal.classList.add("show");
   status.textContent="Opening camera...";
+  invoiceTorchOn=false;
+  const torchBtn=document.getElementById("invoiceTorchBtn");
+  if(torchBtn)torchBtn.textContent="💡 Light Off";
   try{
     if(navigator.mediaDevices?.getUserMedia){
       invoiceCameraStream=await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:{ideal:"environment"},width:{ideal:1280,max:1920},height:{ideal:1920,max:2560}},audio:false
+        video:{facingMode:{ideal:"environment"},width:{ideal:1920,max:2560},height:{ideal:2560,max:3840},focusMode:{ideal:"continuous"}},audio:false
       });
+      invoiceCameraTrack=invoiceCameraStream.getVideoTracks()[0]||null;
       video.srcObject=invoiceCameraStream;
       try{await video.play();}catch(e){}
-      status.textContent="Camera ready. Receipt ko frame ke beech mein rakhein, phir Take Photo dabayein.";
+      // Ask the browser for continuous autofocus where supported.
+      try{
+        const caps=invoiceCameraTrack?.getCapabilities?.()||{};
+        if(caps.focusMode?.includes("continuous")){
+          await invoiceCameraTrack.applyConstraints({advanced:[{focusMode:"continuous"}]});
+        }
+      }catch(e){console.warn("Continuous focus unavailable",e);}
+      const caps=invoiceCameraTrack?.getCapabilities?.()||{};
+      if(torchBtn && !caps.torch)torchBtn.textContent="💡 Light N/A";
+      status.textContent="Camera ready. Focus aur Light buttons use kar sakte hain.";
     }else status.textContent="Camera preview is not supported. You can choose a photo instead.";
   }catch(e){
     console.warn("Camera error",e);
@@ -1899,13 +1955,129 @@ async function openInvoiceScanner(){
   }
 }
 
+async function setInvoiceCameraFocus(){
+  const s=document.getElementById("invoiceScanStatus");
+  const btn=document.getElementById("invoiceFocusBtn");
+  const track=invoiceCameraTrack||invoiceCameraStream?.getVideoTracks?.()[0];
+  if(!track){s.textContent="Camera is not active. Use Choose Photo instead.";return;}
+  try{
+    const caps=track.getCapabilities?.()||{};
+    if(caps.focusMode?.includes("continuous")){
+      await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
+      if(btn){btn.classList.add("active");setTimeout(()=>btn.classList.remove("active"),900);}
+      s.textContent="Auto focus enabled. Receipt ko camera ke samne seedha rakhein.";
+    }else if(caps.focusMode?.includes("single-shot")){
+      await track.applyConstraints({advanced:[{focusMode:"single-shot"}]});
+      if(btn){btn.classList.add("active");setTimeout(()=>btn.classList.remove("active"),900);}
+      s.textContent="Camera focus refreshed.";
+    }else{
+      s.textContent="Is phone/browser par manual focus control available nahi hai. Camera ko receipt se thora door/paas karein.";
+    }
+  }catch(e){
+    console.warn("Focus error",e);
+    s.textContent="Focus control available nahi hai. Camera ko receipt se thora door/paas karein.";
+  }
+}
+
+async function toggleInvoiceCameraTorch(){
+  const s=document.getElementById("invoiceScanStatus"),btn=document.getElementById("invoiceTorchBtn");
+  const track=invoiceCameraTrack||invoiceCameraStream?.getVideoTracks?.()[0];
+  if(!track){s.textContent="Camera is not active. Use Choose Photo instead.";return;}
+  try{
+    const caps=track.getCapabilities?.()||{};
+    if(!caps.torch){s.textContent="Is phone/browser par camera light control available nahi hai.";if(btn)btn.textContent="💡 Light N/A";return;}
+    invoiceTorchOn=!invoiceTorchOn;
+    await track.applyConstraints({advanced:[{torch:invoiceTorchOn}]});
+    if(btn){btn.textContent=invoiceTorchOn?"💡 Light On":"💡 Light Off";btn.classList.toggle("active",invoiceTorchOn);}
+    s.textContent=invoiceTorchOn?"Camera light ON.":"Camera light OFF.";
+  }catch(e){
+    console.warn("Torch error",e);
+    invoiceTorchOn=false;
+    if(btn)btn.textContent="💡 Light Off";
+    s.textContent="Camera light control available nahi hai.";
+  }
+}
+
 function closeInvoiceScanner(){
   const modal=document.getElementById("invoiceScannerModal"),video=document.getElementById("invoiceCameraPreview");
   if(invoiceCameraStream){invoiceCameraStream.getTracks().forEach(t=>t.stop());invoiceCameraStream=null;}
+  invoiceCameraTrack=null;
+  invoiceTorchOn=false;
   if(video)video.srcObject=null;
   if(modal)modal.classList.remove("show");
 }
 function chooseInvoicePhoto(){document.getElementById("invoiceCameraInput")?.click();}
+
+async function loadInvoiceCropper(){
+  if(window.Cropper)return window.Cropper;
+  if(invoiceCropperScriptPromise)return invoiceCropperScriptPromise;
+  invoiceCropperScriptPromise=new Promise((resolve,reject)=>{
+    if(!document.getElementById("invoiceCropperCss")){
+      const l=document.createElement("link");l.id="invoiceCropperCss";l.rel="stylesheet";l.href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css";document.head.appendChild(l);
+    }
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js";
+    s.onload=()=>window.Cropper?resolve(window.Cropper):reject(new Error("Crop tool could not be loaded."));
+    s.onerror=()=>reject(new Error("Crop tool could not be loaded. Check internet connection."));
+    document.head.appendChild(s);
+  });
+  return invoiceCropperScriptPromise;
+}
+
+async function openInvoiceCropper(file){
+  const modal=document.getElementById("invoiceCropModal"),img=document.getElementById("invoiceCropImage"),status=document.getElementById("invoiceCropStatus");
+  if(!file)return;
+  invoiceCropFile=file;
+  status.textContent="Opening crop tool...";
+  modal.classList.add("show");
+  try{
+    await loadInvoiceCropper();
+    if(invoiceCropper){invoiceCropper.destroy();invoiceCropper=null;}
+    if(invoiceCropObjectUrl)URL.revokeObjectURL(invoiceCropObjectUrl);
+    invoiceCropObjectUrl=URL.createObjectURL(file);
+    img.onload=()=>{
+      try{
+        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.92,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false});
+        status.textContent="Receipt ko crop box ke andar adjust karein.";
+      }catch(e){status.textContent="Crop tool error. You can use Full Photo.";}
+    };
+    img.src=invoiceCropObjectUrl;
+  }catch(e){
+    console.warn("Cropper load error",e);
+    status.textContent="Crop tool load nahi hua. Full Photo use kar sakte hain.";
+  }
+}
+
+function closeInvoiceCropper(){
+  const modal=document.getElementById("invoiceCropModal"),img=document.getElementById("invoiceCropImage");
+  if(invoiceCropper){try{invoiceCropper.destroy();}catch(e){}invoiceCropper=null;}
+  if(invoiceCropObjectUrl){URL.revokeObjectURL(invoiceCropObjectUrl);invoiceCropObjectUrl=null;}
+  invoiceCropFile=null;
+  if(img)img.removeAttribute("src");
+  if(modal)modal.classList.remove("show");
+}
+
+async function applyInvoiceCrop(){
+  if(!invoiceCropFile)return;
+  const status=document.getElementById("invoiceCropStatus");
+  try{
+    if(!invoiceCropper){skipInvoiceCrop();return;}
+    status.textContent="Preparing cropped photo...";
+    const canvas=invoiceCropper.getCroppedCanvas({maxWidth:2200,maxHeight:3200,imageSmoothingEnabled:true,imageSmoothingQuality:"high"});
+    if(!canvas){status.textContent="Crop failed. Try Full Photo.";return;}
+    canvas.toBlob(async blob=>{
+      if(!blob){status.textContent="Crop failed. Try again.";return;}
+      closeInvoiceCropper();
+      processInvoiceScan(blob);
+    },"image/jpeg",.94);
+  }catch(e){console.warn(e);status.textContent="Crop failed. Try Full Photo.";}
+}
+
+function skipInvoiceCrop(){
+  const file=invoiceCropFile;
+  closeInvoiceCropper();
+  if(file)processInvoiceScan(file);
+}
 function captureInvoicePhoto(){
   const v=document.getElementById("invoiceCameraPreview"),c=document.getElementById("invoiceCameraCanvas"),s=document.getElementById("invoiceScanStatus");
   if(!v?.videoWidth){s.textContent="Camera is not ready. Please use Choose Photo.";return;}
@@ -1916,7 +2088,7 @@ function captureInvoicePhoto(){
 
 document.getElementById("invoiceCameraInput")?.addEventListener("change",e=>{
   const f=e.target.files?.[0];
-  if(f)processInvoiceScan(f);
+  if(f)openInvoiceCropper(f);
   e.target.value="";
 });
 
@@ -1955,7 +2127,7 @@ async function processInvoiceScan(file){
 
     // Read the receipt's Start Time date when available, but never overwrite
     // a date the driver has already entered manually.
-    const dateInput=document.getElementById("invoiceDate");
+    const dateInput=document.getElementById("invDate");
     if(dateInput&&!dateInput.value){
       const d=parseInvoiceOCRDate(text);
       if(d)dateInput.value=d;
@@ -2091,7 +2263,7 @@ function parseInvoiceOCRDate(text){
   return `${now.getFullYear()}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
 }
 
-window.addEventListener("beforeunload",()=>{closeInvoiceOCRWorker();});
+window.addEventListener("beforeunload",()=>{closeInvoiceOCRWorker();closeInvoiceCropper();});
 
 </script>
 </body>
