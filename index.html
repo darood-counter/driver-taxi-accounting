@@ -538,12 +538,16 @@ input:focus{border-color:#ed166a}
 .leave-day.disabled{color:#d9dde1;cursor:not-allowed}
 .leave-day.today{background:#d9def1;color:#111827;font-weight:900}
 .leave-day.selected{background:#cfd6f1;color:#111827;font-weight:900;box-shadow:inset 0 0 0 2px #7c86b5}
-.leave-day.range{background:#e9ecf8;color:#27313d;border-radius:12px}.leave-day.range-start,.leave-day.range-end{background:#cfd6f1;color:#111827;font-weight:900;box-shadow:inset 0 0 0 2px #7c86b5}.leave-range-note{background:#f6f7fa;border-radius:13px;padding:10px 12px;margin:10px 0;color:#535865;font-size:13px;font-weight:800}.leave-record-range{font-size:14px;font-weight:900;margin-top:5px}.leave-record-days{font-weight:900;color:#111827}.leave-record-approved{display:inline-flex;align-items:center;padding:5px 9px;border-radius:9px;background:#e8f7ee;color:#16804b;font-size:11px;font-weight:900;margin-top:8px}
+.leave-day.range{background:#e9ecf8;color:#27313d;border-radius:12px}.leave-day.range-start,.leave-day.range-end{background:#cfd6f1;color:#111827;font-weight:900;box-shadow:inset 0 0 0 2px #7c86b5}.leave-range-note{background:#f6f7fa;border-radius:13px;padding:10px 12px;margin:10px 0;color:#535865;font-size:13px;font-weight:800}.leave-record-range{font-size:14px;font-weight:900;margin-top:5px}.leave-record-days{font-weight:900;color:#111827}.leave-record-approved{display:inline-flex;align-items:center;padding:7px 10px;border-radius:10px;background:#e8f7ee;color:#16804b;font-size:11px;font-weight:900;margin-top:0;white-space:nowrap}
 .leave-request-btn{width:100%;border:0;border-radius:22px;background:#ed166a;color:#fff;padding:16px 18px;font-size:17px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px}
 .leave-section-title{font-size:20px;font-weight:900;color:#737783;margin:0 0 11px}
 .leave-empty{background:#fff;border-radius:22px;padding:30px 18px;text-align:center;color:#737783;margin-bottom:22px}
 .leave-record{background:#fff;border-radius:20px;padding:15px;margin-bottom:10px;border:1px solid #eceef3}
 .leave-record-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.leave-record-right{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.leave-record-bottom{display:flex;align-items:center;gap:8px;margin-top:10px}
+.leave-record-bottom .leave-record-status{margin-top:0}
+.leave-record-right .leave-delete{border:0;background:#ffe7ef;color:#a3003f;border-radius:10px;padding:7px 10px;font-size:11px;font-weight:900;line-height:1;white-space:nowrap;cursor:pointer}
 .leave-record-name{font-size:17px;font-weight:900}
 .leave-record-date{font-size:13px;color:#737783;font-weight:800}
 .leave-record-status{display:inline-flex;align-items:center;padding:5px 9px;border-radius:9px;background:#f1f2f6;color:#535865;font-size:11px;font-weight:900;margin-top:8px}
@@ -908,20 +912,20 @@ input:focus{border-color:#ed166a}
       <h1>Request a new leave</h1>
       <p class="sub">What kind of leave you need?</p>
       <div class="leave-type-list">
-        <button class="leave-type" onclick="selectLeaveType('Local leave','A single day off you can take twice a month.','📅')">
-          <div class="leave-type-icon">📅</div><div class="leave-type-main"><strong>Local leave</strong><span>A single day off you can take twice a month.</span></div><div class="leave-type-arrow">›</div>
+        <button class="leave-type" onclick="selectLeaveType('Local leave','Select the dates for your local leave.','📅')">
+          <div class="leave-type-icon">📅</div><div class="leave-type-main"><strong>Local leave</strong><span>Select the dates for your local leave.</span></div><div class="leave-type-arrow">›</div>
         </button>
-        <button class="leave-type" onclick="selectLeaveType('Annual leave','Authorized time off for home country vacation or yearly leave.','🗓️')">
-          <div class="leave-type-icon">🗓️</div><div class="leave-type-main"><strong>Annual leave</strong><span>Authorized time off for home country vacation or yearly leave.</span></div><div class="leave-type-arrow">›</div>
+        <button class="leave-type" onclick="selectLeaveType('Sick leave','Select the dates for your sick leave.','😷')">
+          <div class="leave-type-icon">😷</div><div class="leave-type-main"><strong>Sick leave</strong><span>Select the dates for your sick leave.</span></div><div class="leave-type-arrow">›</div>
         </button>
-        <button class="leave-type" onclick="selectLeaveType('Emergency leave','Apply for urgent leave in case of an emergency.','🚨')">
-          <div class="leave-type-icon">🚨</div><div class="leave-type-main"><strong>Emergency leave</strong><span>Drivers can apply for urgent leaves in case of emergency.</span></div><div class="leave-type-arrow">›</div>
+        <button class="leave-type" onclick="selectLeaveType('Management leave','Select the dates for your management leave.','👔')">
+          <div class="leave-type-icon">👔</div><div class="leave-type-main"><strong>Management leave</strong><span>Select the dates for your management leave.</span></div><div class="leave-type-arrow">›</div>
         </button>
-        <button class="leave-type" onclick="selectLeaveType('Sick leave','Apply for sick leave if you are feeling unwell.','😷')">
-          <div class="leave-type-icon">😷</div><div class="leave-type-main"><strong>Sick leave</strong><span>Drivers can apply for sick leave if they are feeling unwell.</span></div><div class="leave-type-arrow">›</div>
+        <button class="leave-type" onclick="selectLeaveType('Accidents leave','Select the dates for your accidents leave.','🚑')">
+          <div class="leave-type-icon">🚑</div><div class="leave-type-main"><strong>Accidents leave</strong><span>Select the dates for your accidents leave.</span></div><div class="leave-type-arrow">›</div>
         </button>
-        <button class="leave-type" onclick="selectLeaveType('Umrah leave','Apply for Umrah leave if you are planning for Umrah.','🕋')">
-          <div class="leave-type-icon">🕋</div><div class="leave-type-main"><strong>Umrah leave</strong><span>Drivers can apply for Umrah leave if they are planning for Umrah.</span></div><div class="leave-type-arrow">›</div>
+        <button class="leave-type" onclick="selectLeaveType('Gerage leave','Select the dates for your gerage leave.','🔧')">
+          <div class="leave-type-icon">🔧</div><div class="leave-type-main"><strong>Gerage leave</strong><span>Select the dates for your gerage leave.</span></div><div class="leave-type-arrow">›</div>
         </button>
       </div>
     </div>
@@ -2073,38 +2077,46 @@ window.leaveGoHome=()=>{
   const page=document.getElementById("leavesPage");
   if(page)page.scrollIntoView({behavior:"smooth",block:"start"});
 };
+const LEAVE_TYPE_ORDER={"Local leave":1,"Sick leave":2,"Management leave":3,"Accidents leave":4,"Gerage leave":5};
+function sortLeaveRecords(rows){
+  return [...rows].sort((a,b)=>{
+    const ao=LEAVE_TYPE_ORDER[a.type]||99, bo=LEAVE_TYPE_ORDER[b.type]||99;
+    if(ao!==bo)return ao-bo;
+    return leaveRecordStart(a).localeCompare(leaveRecordStart(b));
+  });
+}
+function renderLeaveRecordCard(r,showDelete=false){
+  const st=leaveRecordStart(r), en=leaveRecordEnd(r), days=Number(r.days)||leaveDaysBetween(st,en);
+  const safeId=String(r.id||"").replace(/'/g,"\\'");
+  return `<div class="leave-record">
+    <div class="leave-record-top">
+      <div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div>
+      <div class="leave-record-right">
+        <div class="leave-record-approved">✓ Approved</div>
+        ${showDelete?`<button class="leave-delete" type="button" onclick="deleteLeaveRecord('${safeId}')">🗑 Delete</button>`:""}
+      </div>
+    </div>
+    <div class="leave-record-range">${leaveFormatDate(st)}${en!==st?` – ${leaveFormatDate(en)}`:""}</div>
+    <div class="leave-record-bottom"><span class="leave-record-status"><span class="leave-record-days">${days} ${days===1?"Day":"Days"}</span></span></div>
+  </div>`;
+}
 function renderUpcomingLeaves(){
   const box=document.getElementById("upcomingLeaves"); if(!box)return;
   const today=leaveTodayKey();
-  const rows=[...leaveRecords].filter(r=>leaveRecordEnd(r)>=today).sort((a,b)=>leaveRecordStart(a).localeCompare(leaveRecordStart(b))).slice(0,3);
+  const rows=sortLeaveRecords(leaveRecords.filter(r=>leaveRecordEnd(r)>=today)).slice(0,3);
   if(!rows.length){box.innerHTML='<div class="leave-empty">You don’t have any planned leaves.</div>';return;}
-  box.innerHTML=rows.map(r=>{const st=leaveRecordStart(r),en=leaveRecordEnd(r),days=Number(r.days)||leaveDaysBetween(st,en);return `
-    <div class="leave-record">
-      <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-approved">✓ Approved</div></div>
-      <div class="leave-record-range">${leaveFormatDate(st)}${en!==st?` – ${leaveFormatDate(en)}`:""}</div>
-      <span class="leave-record-status"><span class="leave-record-days">${days} ${days===1?"Day":"Days"}</span></span>
-      <div class="leave-record-dates">${leaveRecordDates(r).map(d=>leaveFormatDate(d)).join(" • ")}</div>
-    </div>`}).join("");
+  box.innerHTML=rows.map(r=>renderLeaveRecordCard(r,false)).join("");
 }
 function renderAllLeaves(){
-  const box=document.getElementById("allLeavesList"),count=document.getElementById("allLeavesCount");
+  const box=document.getElementById("allLeavesList"), count=document.getElementById("allLeavesCount");
   if(count)count.textContent=`${leaveRecords.length} ${leaveRecords.length===1?"record":"records"}`;
   const totalDays=document.getElementById("leaveTotalDays");
   const total=leaveRecords.reduce((sum,r)=>sum+(Number(r.days)||leaveDaysBetween(leaveRecordStart(r),leaveRecordEnd(r))),0);
   if(totalDays)totalDays.textContent=`Total leave days: ${total}`;
   if(!box)return;
-  const rows=[...leaveRecords].sort((a,b)=>leaveRecordStart(b).localeCompare(leaveRecordStart(a)));
+  const rows=sortLeaveRecords(leaveRecords);
   if(!rows.length){box.innerHTML='<div class="leave-empty">No leave records yet.</div>';return;}
-  box.innerHTML=rows.map(r=>{
-    const st=leaveRecordStart(r),en=leaveRecordEnd(r),days=Number(r.days)||leaveDaysBetween(st,en);
-    return `<div class="leave-record">
-      <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-approved">✓ Approved</div></div>
-      <div class="leave-record-range">${leaveFormatDate(st)}${en!==st?` – ${leaveFormatDate(en)}`:""}</div>
-      <span class="leave-record-status"><span class="leave-record-days">${days} ${days===1?"Day":"Days"}</span></span>
-      <div class="leave-record-dates">${leaveRecordDates(r).map(d=>leaveFormatDate(d)).join(" • ")}</div>
-      <div class="leave-record-actions"><button class="leave-delete" onclick="deleteLeaveRecord('${String(r.id||"").replace(/'/g,"\\'")}')">🗑 Delete</button></div>
-    </div>`;
-  }).join("");
+  box.innerHTML=rows.map(r=>renderLeaveRecordCard(r,true)).join("");
 }
 function renderLeaveHome(){renderUpcomingLeaves();renderAllLeaves();}
 
