@@ -25,28 +25,26 @@ main{padding:0 22px}
 .total-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .total{font-size:42px;font-weight:800;letter-spacing:-1.5px}
 .currency{font-size:20px;font-weight:700}
-.cycle-date-badge{width:76px;height:76px;border-radius:50%;background:#0d1033;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;box-shadow:0 2px 5px rgba(13,16,51,.12)}
+.cycle-date-badge{width:76px;height:76px;border:0;border-radius:50%;background:#0d1033;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;box-shadow:0 2px 5px rgba(13,16,51,.12);position:relative;cursor:pointer;padding:0;overflow:hidden}
+.cycle-date-badge:active{transform:scale(.98)}
 .cycle-badge-day{font-size:25px;font-weight:900;letter-spacing:-1px}
 .cycle-badge-month{font-size:11px;font-weight:800;text-transform:uppercase;margin-top:5px;opacity:.9}
+.cycle-date-badge input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:0}
 .chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding-bottom:3px;scrollbar-width:thin}
 .chart{height:276px;display:flex;align-items:flex-end;gap:10px;padding:28px 8px 8px;border-bottom:2px solid #171717;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 67px,rgba(130,134,145,.20) 68px,transparent 69px)}
 .chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2}
-.chart-value{font-size:9px;font-weight:900;white-space:nowrap;line-height:1;color:#1b1d26;min-height:10px}
+.chart-value{display:none}
 .bar-wrap{height:205px;width:100%;display:flex;align-items:flex-end;justify-content:center}
-.bar{width:30px;background:#cfd5f5;border-radius:7px 7px 0 0;min-height:3px;transition:height .2s ease,background .2s ease}
+.bar{width:40px;background:#cfd5f5;border-radius:7px 7px 0 0;min-height:3px;transition:height .2s ease,background .2s ease}
 .chart-col.selected .bar{background:#bfc7ef}
 .chart-col.selected .chart-date{color:#d62970;font-weight:900}
-.chart-date{font-size:10px;color:#555;white-space:nowrap}
+.chart-date{font-size:11px;color:#555;white-space:nowrap}
 .chart-average-line{position:absolute;height:3px;background:#ed166a;left:8px;right:8px;z-index:1;border-radius:2px;pointer-events:none}
-.chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#d62970;font-size:10px;font-weight:900;padding:2px 4px;border-radius:5px;z-index:3;white-space:nowrap}
-.chart-selected-value{position:absolute;transform:translate(-50%,-100%);background:#fff;border:2px solid #3155c8;color:#3155c8;border-radius:7px;padding:5px 7px;font-size:11px;font-weight:900;white-space:nowrap;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#d62970;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;z-index:3;white-space:nowrap}
+.chart-selected-value{position:absolute;transform:translate(-50%,-100%);background:#fff;border:2px solid #3155c8;color:#3155c8;border-radius:7px;padding:6px 8px;font-size:12px;font-weight:900;white-space:nowrap;z-index:4;box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .dashboard-cycle-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .dashboard-cycle-controls .period{margin:0;flex:1;min-width:0}
-.dashboard-date-picker{display:flex;align-items:center;gap:6px;flex:0 0 auto}
-.dashboard-date-picker label{font-size:10px;color:#737783;font-weight:800;white-space:nowrap}
-.dashboard-date-picker input{width:132px;padding:8px 7px;border:1px solid #e1e3e9;border-radius:10px;background:#fff;font-size:11px;min-height:36px}
-.dashboard-date-picker input:focus{outline:none;border-color:#ed166a}
-@media(max-width:390px){.dashboard-cycle-controls{align-items:flex-start;flex-direction:column;gap:7px}.dashboard-date-picker{width:100%;justify-content:space-between}.dashboard-date-picker input{width:150px}}
+.dashboard-date-picker{display:none}
 .days{display:none}
 .avg{margin-top:42px;border-left:6px solid #ed166a;padding-left:14px}
 .avg-label{font-size:15px;margin-bottom:8px}.avg-value{font-size:32px;font-weight:800}
@@ -751,14 +749,13 @@ input:focus{border-color:#ed166a}
 <section class="card">
 <div class="dashboard-cycle-controls">
   <div class="period" id="dashboardCycleLabel">Collections - Current Cycle</div>
-  <div class="dashboard-date-picker">
-    <label for="dashboardDateSelect">Select Date</label>
-    <input type="date" id="dashboardDateSelect" onchange="selectDashboardDate(this.value)">
-  </div>
 </div>
 <div class="total-row">
   <div><span class="total" id="totalAmount">0.00</span> <span class="currency">AED</span></div>
-  <div class="cycle-date-badge" id="dashboardCycleBadge"><span class="cycle-badge-day">--</span><span class="cycle-badge-month">---</span></div>
+  <button type="button" class="cycle-date-badge" id="dashboardCycleBadge" aria-label="Select date">
+    <span class="cycle-badge-day">--</span><span class="cycle-badge-month">---</span>
+    <input type="date" id="dashboardDateSelect" onchange="selectDashboardDate(this.value)" aria-label="Select dashboard date">
+  </button>
 </div>
 <div class="chart-scroll"><div class="chart" id="chart"></div></div>
 <div class="avg"><div class="avg-label">Daily Avg</div><div class="avg-value" id="avgAmount">0.00 AED</div></div>
@@ -2605,12 +2602,14 @@ function renderChart(cycle=getCurrentDashboardCycle()){
 
   const badge=document.getElementById("dashboardCycleBadge");
   if(badge){
-    const badgeDate=cycle?new Date(cycle.start):(arr[0]?.date||new Date());
+    const badgeDate=dashboardSelectedDate?new Date(dashboardSelectedDate+"T00:00:00"):new Date();
     const dayEl=badge.querySelector(".cycle-badge-day");
     const monthEl=badge.querySelector(".cycle-badge-month");
     if(dayEl)dayEl.textContent=String(badgeDate.getDate()).padStart(2,"0");
     if(monthEl)monthEl.textContent=badgeDate.toLocaleDateString("en-GB",{month:"short"});
     badge.title=cycle ? ((cycle.setup?.cycleLabel||"Current Cycle")+" • "+badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})) : badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+    const dateInput=document.getElementById("dashboardDateSelect");
+    if(dateInput)dateInput.value=dashboardSelectedDate||dateKeyLocal(new Date());
   }
 
   if(avg>0){
