@@ -2602,7 +2602,7 @@ function updateDashboard(){
   const totalEl=document.getElementById("totalAmount"),avgEl=document.getElementById("avgAmount"),labelEl=document.getElementById("dashboardCycleLabel");
   let cycleInvoices;
   if(cycle){
-    cycleInvoices=invoices.filter(x=>String(x.date||"")>=cycle.startKey&&String(x.date||"")<=cycle.endKey);
+    cycleInvoices=invoices.filter(x=>String(x.date||"")>=dateKeyLocal(cycle.start)&&String(x.date||"")<=dateKeyLocal(cycle.end));
   }else{
     const selected=dashboardSelectedDate;
     cycleInvoices=selected?invoices.filter(x=>String(x.date||"")===selected):invoices;
@@ -2735,8 +2735,8 @@ function renderChart(cycle=getCurrentDashboardCycle()){
 
   // Automatically follow the latest date that actually has invoice data.
   // This makes the chart advance one day at a time as new records arrive.
-  const cycleStart=cycle?.startKey||start&&dateKeyLocal(start);
-  const cycleEnd=cycle?.endKey||end&&dateKeyLocal(end);
+  const cycleStart=cycle?dateKeyLocal(cycle.start):(start?dateKeyLocal(start):"");
+  const cycleEnd=cycle?dateKeyLocal(cycle.end):(end?dateKeyLocal(end):"");
   const dataDates=arr.filter(x=>{
     const hasData=invoices.some(inv=>String(inv.date||"")===x.key);
     return hasData && (!cycleStart||x.key>=cycleStart) && (!cycleEnd||x.key<=cycleEnd);
