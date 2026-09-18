@@ -520,6 +520,77 @@ input:focus{border-color:#ed166a}
 @media(max-width:480px){.scanner-camera-controls{flex-direction:row}.crop-actions{flex-direction:column}.invoice-scanner-modal{padding:4px}.invoice-scanner-card{width:100%;max-height:98vh;padding:10px;border-radius:14px}.invoice-camera-preview{height:64vh;min-height:360px;max-height:72vh}.scanner-help{font-size:12px;margin:6px 0 8px}}
 @media(max-width:480px){.invoice-title-row{align-items:stretch}.scan-invoice-btn{width:100%}.scanner-actions{flex-direction:column}}
 
+
+/* ===== Leave Management ===== */
+.leave-page{padding-bottom:28px}
+.leave-head{margin:18px 0 24px}
+.leave-head h1{font-size:34px;line-height:1.08;margin:0 0 6px;letter-spacing:-1px}
+.leave-head p{margin:0;color:#737783;font-size:17px}
+.leave-calendar-card{background:#fff;border-radius:26px;padding:18px 16px 20px;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:24px}
+.leave-calendar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:17px}
+.leave-calendar-head button{border:0;background:transparent;color:#9ca0aa;font-size:28px;width:38px;height:38px;cursor:pointer}
+.leave-month{font-size:24px;font-weight:900;letter-spacing:-.4px}
+.leave-week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;color:#6f737e;font-weight:800;font-size:14px;margin-bottom:8px}
+.leave-days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.leave-day{height:45px;border:0;background:transparent;border-radius:50%;font-size:16px;color:#27313d;cursor:pointer}
+.leave-day.empty{cursor:default}
+.leave-day.past{color:#d9dde1;cursor:not-allowed}
+.leave-day.disabled{color:#d9dde1;cursor:not-allowed}
+.leave-day.today{background:#d9def1;color:#111827;font-weight:900}
+.leave-day.selected{background:#cfd6f1;color:#111827;font-weight:900;box-shadow:inset 0 0 0 2px #7c86b5}
+.leave-request-btn{width:100%;border:0;border-radius:22px;background:#ed166a;color:#fff;padding:16px 18px;font-size:17px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px}
+.leave-section-title{font-size:20px;font-weight:900;color:#737783;margin:0 0 11px}
+.leave-empty{background:#fff;border-radius:22px;padding:30px 18px;text-align:center;color:#737783;margin-bottom:22px}
+.leave-record{background:#fff;border-radius:20px;padding:15px;margin-bottom:10px;border:1px solid #eceef3}
+.leave-record-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.leave-record-name{font-size:17px;font-weight:900}
+.leave-record-date{font-size:13px;color:#737783;font-weight:800}
+.leave-record-status{display:inline-flex;align-items:center;padding:5px 9px;border-radius:9px;background:#f1f2f6;color:#535865;font-size:11px;font-weight:900;margin-top:8px}
+.leave-record-actions{display:flex;gap:8px;margin-top:11px}
+.leave-record-actions button{flex:1;border:0;border-radius:11px;padding:10px;font-weight:800;cursor:pointer}
+.leave-delete{background:#ffe7ef;color:#a3003f}
+.leave-all-card{background:#fff;border-radius:22px;padding:15px 17px;margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer}
+.leave-all-icon{width:48px;height:48px;border-radius:50%;background:#f0f1f6;display:grid;place-items:center;font-size:24px;flex:0 0 48px}
+.leave-all-main{flex:1}.leave-all-main strong{display:block;font-size:17px}.leave-all-main small{color:#737783}
+.leave-all-arrow{font-size:28px;color:#9ca0aa}
+.leave-flow{display:none}
+.leave-flow.active{display:block}
+.leave-step-head{display:flex;align-items:center;justify-content:space-between;margin:3px 0 22px}
+.leave-step-count{font-size:15px;font-weight:900;color:#111827}
+.leave-progress{height:5px;background:#e4e5e9;border-radius:99px;flex:1;margin-left:14px;overflow:hidden}
+.leave-progress span{display:block;height:100%;width:50%;background:#303766;border-radius:99px}
+.leave-flow h1{font-size:34px;line-height:1.1;margin:0 0 7px;letter-spacing:-1px}
+.leave-flow .sub{font-size:17px;color:#737783;margin:0 0 25px;line-height:1.35}
+.leave-type-list{display:grid;gap:12px}
+.leave-type{border:0;background:#fff;border-radius:21px;padding:18px 15px;display:flex;align-items:center;text-align:left;gap:14px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.035)}
+.leave-type-icon{width:54px;height:54px;border-radius:50%;background:#f0f1f6;display:grid;place-items:center;font-size:27px;flex:0 0 54px}
+.leave-type-main{flex:1;min-width:0}.leave-type-main strong{display:block;font-size:19px;margin-bottom:4px}.leave-type-main span{display:block;color:#737783;font-size:14px;line-height:1.45}
+.leave-type-arrow{font-size:29px;color:#9ca0aa}
+.leave-flow-actions{display:flex;gap:9px;margin-top:22px}
+.leave-flow-actions button{flex:1}
+.leave-flow-back{border:0;border-radius:14px;background:#eef0f5;padding:14px;font-weight:800;cursor:pointer}
+.leave-continue{border:0;border-radius:15px;background:#ed166a;color:#fff;padding:14px;font-weight:900;cursor:pointer}
+.leave-continue:disabled{background:#ed8eb4;cursor:not-allowed}
+.leave-selected-note{background:#f0f1f6;border-radius:14px;padding:11px 12px;margin-bottom:14px;font-size:14px;font-weight:800}
+.leave-calendar-card.flow-calendar{margin-bottom:10px}
+.leave-calendar-card.flow-calendar .leave-day{height:44px}
+.leave-policy{font-size:12px;color:#737783;line-height:1.45;margin-top:10px}
+.leave-success{background:#eef8f0;color:#137333;border-radius:15px;padding:12px;font-weight:800;margin-top:14px;display:none}
+.leave-success.show{display:block}
+.leave-all-view{display:none}
+.leave-all-view.show{display:block}
+@media(max-width:600px){
+  .leave-head h1,.leave-flow h1{font-size:30px}
+  .leave-head p,.leave-flow .sub{font-size:15px}
+  .leave-calendar-card{border-radius:22px;padding:16px 12px 18px}
+  .leave-month{font-size:21px}
+  .leave-day{height:43px;font-size:15px}
+  .leave-type{padding:15px 12px}
+  .leave-type-icon{width:50px;height:50px;flex-basis:50px;font-size:24px}
+  .leave-type-main strong{font-size:17px}
+  .leave-type-main span{font-size:13px}
+}
+
 </style>
 </head>
 <body>
@@ -585,6 +656,7 @@ input:focus{border-color:#ed166a}
 <button class="quick" onclick="showPage('invoicePage')"><span>＋</span>New Invoice</button>
 <button class="quick" onclick="showPage('calculatorPage')"><span>🧮</span>Charge Setup</button>
 <button class="quick" onclick="showPage('targetPage')"><span>🎯</span>Target Setup</button>
+<button class="quick" onclick="showPage('leavesPage')"><span>🗓️</span>Leaves</button>
 </div>
 <h2 class="section-title">My Summary</h2>
 <div class="summary-grid">
@@ -786,6 +858,97 @@ input:focus{border-color:#ed166a}
 <div id="savedTargetList"></div>
 </section>
 
+
+<section id="leavesPage" class="page leave-page">
+  <div id="leavesHomeView">
+    <div class="leave-head">
+      <h1>Leaves</h1>
+      <p>Your leaves in a single place.</p>
+    </div>
+
+    <div class="leave-section-title">Your Calendar</div>
+    <div class="leave-calendar-card">
+      <div class="leave-calendar-head">
+        <button type="button" onclick="changeLeaveMonth(-1)" aria-label="Previous month">‹</button>
+        <div class="leave-month" id="leaveMonthTitle">September 2026</div>
+        <button type="button" onclick="changeLeaveMonth(1)" aria-label="Next month">›</button>
+      </div>
+      <div class="leave-week">
+        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+      </div>
+      <div class="leave-days" id="leaveCalendarDays"></div>
+    </div>
+
+    <div class="leave-section-title">Upcoming Leaves</div>
+    <div id="upcomingLeaves"></div>
+
+    <div class="leave-all-card" onclick="toggleAllLeaves()">
+      <div class="leave-all-icon">↶</div>
+      <div class="leave-all-main"><strong>All Leaves</strong><small id="allLeavesCount">0 records</small></div>
+      <div class="leave-all-arrow">›</div>
+    </div>
+
+    <div class="leave-all-view" id="allLeavesView">
+      <div class="leave-section-title" style="margin-top:20px">All Leave Records</div>
+      <div id="allLeavesList"></div>
+    </div>
+
+    <button class="leave-request-btn" type="button" onclick="startLeaveRequest()">＋ <span>Request a new leave</span></button>
+  </div>
+
+  <div id="leaveFlowView" class="leave-flow">
+    <div class="leave-step-head">
+      <span class="leave-step-count" id="leaveStepCount">1/2</span>
+      <div class="leave-progress"><span id="leaveProgressBar"></span></div>
+    </div>
+
+    <div id="leaveStep1">
+      <h1>Request a new leave</h1>
+      <p class="sub">What kind of leave you need?</p>
+      <div class="leave-type-list">
+        <button class="leave-type" onclick="selectLeaveType('Local leave','A single day off you can take twice a month.','📅')">
+          <div class="leave-type-icon">📅</div><div class="leave-type-main"><strong>Local leave</strong><span>A single day off you can take twice a month.</span></div><div class="leave-type-arrow">›</div>
+        </button>
+        <button class="leave-type" onclick="selectLeaveType('Annual leave','Authorized time off for home country vacation or yearly leave.','🗓️')">
+          <div class="leave-type-icon">🗓️</div><div class="leave-type-main"><strong>Annual leave</strong><span>Authorized time off for home country vacation or yearly leave.</span></div><div class="leave-type-arrow">›</div>
+        </button>
+        <button class="leave-type" onclick="selectLeaveType('Emergency leave','Apply for urgent leave in case of an emergency.','🚨')">
+          <div class="leave-type-icon">🚨</div><div class="leave-type-main"><strong>Emergency leave</strong><span>Drivers can apply for urgent leaves in case of emergency.</span></div><div class="leave-type-arrow">›</div>
+        </button>
+        <button class="leave-type" onclick="selectLeaveType('Sick leave','Apply for sick leave if you are feeling unwell.','😷')">
+          <div class="leave-type-icon">😷</div><div class="leave-type-main"><strong>Sick leave</strong><span>Drivers can apply for sick leave if they are feeling unwell.</span></div><div class="leave-type-arrow">›</div>
+        </button>
+        <button class="leave-type" onclick="selectLeaveType('Umrah leave','Apply for Umrah leave if you are planning for Umrah.','🕋')">
+          <div class="leave-type-icon">🕋</div><div class="leave-type-main"><strong>Umrah leave</strong><span>Drivers can apply for Umrah leave if they are planning for Umrah.</span></div><div class="leave-type-arrow">›</div>
+        </button>
+      </div>
+    </div>
+
+    <div id="leaveStep2" style="display:none">
+      <h1 id="leaveStep2Title">Request a local leave</h1>
+      <p class="sub">Please select the day you want to take off. <b style="color:#ed166a">*</b></p>
+      <div class="leave-selected-note" id="leaveSelectedType">Local leave</div>
+      <div class="leave-calendar-card flow-calendar">
+        <div class="leave-calendar-head">
+          <button type="button" onclick="changeLeaveMonth(-1)">‹</button>
+          <div class="leave-month" id="leaveFlowMonthTitle">September 2026</div>
+          <button type="button" onclick="changeLeaveMonth(1)">›</button>
+        </div>
+        <div class="leave-week">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="leave-days" id="leaveFlowCalendarDays"></div>
+      </div>
+      <div class="leave-policy" id="leavePolicyText"></div>
+      <div class="leave-flow-actions">
+        <button type="button" class="leave-flow-back" onclick="leaveBackToStep1()">← Back</button>
+        <button type="button" class="leave-continue" id="leaveContinueBtn" onclick="submitLeaveRequest()" disabled>Continue</button>
+      </div>
+      <div class="leave-success" id="leaveSuccess"></div>
+    </div>
+  </div>
+</section>
+
 <section id="profilePage" class="page">
 <h2 class="profile-page-title">Driver Profile</h2>
 
@@ -902,6 +1065,7 @@ input:focus{border-color:#ed166a}
 <button onclick="showPage('invoicePage');toggleMenu()">🧾 New Invoice</button>
 <button onclick="showPage('calculatorPage');toggleMenu()">🧮 Charge Setup</button>
 <button onclick="showPage('targetPage');toggleMenu()">🎯 Target Setup</button>
+<button onclick="showPage('leavesPage');toggleMenu()">🗓️ Leaves</button>
 <button onclick="showPage('historyPage');toggleMenu()">📋 Invoice History</button>
 <button onclick="showPage('profilePage');toggleMenu()">👤 Profile</button>
 <button onclick="logout()">↪ Logout</button>
@@ -927,6 +1091,7 @@ const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
 let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;
+let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
 const n=id=>Number(document.getElementById(id)?.value||0);
@@ -946,16 +1111,18 @@ const bell=document.getElementById("topbarBell");
 const isProfile=pageId==="profilePage";
 const isTarget=pageId==="targetPage";
 const isCharge=pageId==="calculatorPage";
+const isLeaves=pageId==="leavesPage";
 if(topbar&&leftBtn&&brand&&bell){
-  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge);
-  leftBtn.textContent=(isProfile||isTarget||isCharge)?"←":"☰";
-  leftBtn.onclick=(isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu();
-  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":"Driver's"));
-  bell.style.display=(isProfile||isTarget||isCharge)?"none":"block";
+  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves);
+  leftBtn.textContent=(isProfile||isTarget||isCharge||isLeaves)?"←":"☰";
+  leftBtn.onclick=(isProfile||isTarget||isCharge||isLeaves)?()=>showPage("dashboardPage"):()=>toggleMenu();
+  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":"Driver's")));
+  bell.style.display=(isProfile||isTarget||isCharge||isLeaves)?"none":"block";
   bell.textContent="🔔";
   bell.onclick=null;
 }
 if(pageId==="historyPage")renderHistory();
+if(pageId==="leavesPage"){leaveCalendarMonth=new Date();renderLeaveCalendar();renderLeaveHome();}
 if(pageId==="invoicePage"){
   updateInvoiceRateCard();
   updatePreview();
@@ -967,6 +1134,7 @@ window.logout=async()=>{
   try{ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;} }catch(e){}
   savedTargetRecords=[];
   savedChargeRecords=[]; editingChargeDate=null;
+  leaveRecords=[];
   try{ await signOut(auth); }catch(e){}
   showAuth();
 };
@@ -1141,7 +1309,8 @@ window.confirmFactoryReset=async()=>{
     await setDoc(doc(db,"drivers",currentUser.uid),{
       chargeSetupsByDate:[],
       targetRecords:[],
-      targetRangesByDate:{}
+      targetRangesByDate:{},
+      leaveRecords:[]
     },{merge:true});
 
     invoices=[];
@@ -1151,13 +1320,16 @@ window.confirmFactoryReset=async()=>{
       ...driverData,
       chargeSetupsByDate:[],
       targetRecords:[],
-      targetRangesByDate:{}
+      targetRangesByDate:{},
+      leaveRecords:[]
     };
 
     renderSavedInvoices();
     renderHistory();
     renderSavedCharges();
     renderSavedTargets();
+    leaveRecords=[];
+    renderLeaveHome();
     updateDashboard();
     clearInvoice();
 
@@ -1810,6 +1982,203 @@ function renderSavedTargets(){
 }
 
 
+
+/* ===== Leave Management ===== */
+function leaveTodayKey(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function leaveDateObj(key){
+  const [y,m,d]=String(key||"").split("-").map(Number);
+  return new Date(y,m-1,d);
+}
+function leaveFormatDate(key){
+  const d=leaveDateObj(key);
+  if(Number.isNaN(d.getTime()))return key||"";
+  return d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+}
+function leaveMonthTitle(d){
+  return d.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+}
+function leaveSameMonth(a,b){
+  const da=leaveDateObj(a),db=leaveDateObj(b);
+  return da.getFullYear()===db.getFullYear() && da.getMonth()===db.getMonth();
+}
+function leaveRenderDays(containerId,titleId,selectedDate=""){
+  const box=document.getElementById(containerId),title=document.getElementById(titleId);
+  if(!box||!title)return;
+  const y=leaveCalendarMonth.getFullYear(),m=leaveCalendarMonth.getMonth();
+  title.textContent=leaveMonthTitle(leaveCalendarMonth);
+  const first=new Date(y,m,1).getDay();
+  const days=new Date(y,m+1,0).getDate();
+  const today=leaveTodayKey();
+  let html="";
+  for(let i=0;i<first;i++)html+='<button class="leave-day empty" tabindex="-1" aria-hidden="true"></button>';
+  for(let day=1;day<=days;day++){
+    const key=`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const isPast=key<today;
+    const isToday=key===today;
+    const isSelected=key===selectedDate;
+    const existing=leaveRecords.find(r=>r.date===key);
+    const cls=["leave-day"];
+    if(isPast)cls.push("past");
+    if(isToday)cls.push("today");
+    if(isSelected)cls.push("selected");
+    if(existing)cls.push("disabled");
+    const disabled=isPast||!!existing;
+    html+=`<button type="button" class="${cls.join(" ")}" ${disabled?'disabled':''} onclick="selectLeaveDate('${key}')">${day}</button>`;
+  }
+  box.innerHTML=html;
+}
+function renderLeaveCalendar(){
+  leaveRenderDays("leaveCalendarDays","leaveMonthTitle","");
+  leaveRenderDays("leaveFlowCalendarDays","leaveFlowMonthTitle",leaveSelectedDate);
+}
+window.changeLeaveMonth=direction=>{
+  leaveCalendarMonth.setMonth(leaveCalendarMonth.getMonth()+Number(direction||0));
+  renderLeaveCalendar();
+};
+function renderUpcomingLeaves(){
+  const box=document.getElementById("upcomingLeaves");
+  if(!box)return;
+  const today=leaveTodayKey();
+  const rows=[...leaveRecords].filter(r=>String(r.date||"")>=today).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).slice(0,3);
+  if(!rows.length){
+    box.innerHTML='<div class="leave-empty">You don’t have any planned leaves.</div>';
+    return;
+  }
+  box.innerHTML=rows.map(r=>`
+    <div class="leave-record">
+      <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-date">${leaveFormatDate(r.date)}</div></div>
+      <span class="leave-record-status">Planned</span>
+    </div>`).join("");
+}
+function renderAllLeaves(){
+  const box=document.getElementById("allLeavesList");
+  const count=document.getElementById("allLeavesCount");
+  if(count)count.textContent=`${leaveRecords.length} ${leaveRecords.length===1?"record":"records"}`;
+  if(!box)return;
+  const rows=[...leaveRecords].sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+  if(!rows.length){box.innerHTML='<div class="leave-empty">No leave records yet.</div>';return}
+  box.innerHTML=rows.map(r=>`
+    <div class="leave-record">
+      <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-date">${leaveFormatDate(r.date)}</div></div>
+      <span class="leave-record-status">${String(r.date||"")<leaveTodayKey()?"Past":"Planned"}</span>
+      <div class="leave-record-actions"><button class="leave-delete" onclick="deleteLeaveRecord('${String(r.id||"").replace(/'/g,"\\'")}')">🗑 Delete</button></div>
+    </div>`).join("");
+}
+function renderLeaveHome(){
+  renderUpcomingLeaves();
+  renderAllLeaves();
+}
+window.toggleAllLeaves=()=>{
+  const v=document.getElementById("allLeavesView");
+  if(v)v.classList.toggle("show");
+};
+window.startLeaveRequest=()=>{
+  leaveTypeSelected="";leaveTypeDescription="";leaveTypeIcon="";leaveSelectedDate="";
+  document.getElementById("leavesHomeView").style.display="none";
+  document.getElementById("leaveFlowView").classList.add("active");
+  document.getElementById("leaveStep1").style.display="block";
+  document.getElementById("leaveStep2").style.display="none";
+  document.getElementById("leaveStepCount").textContent="1/2";
+  document.getElementById("leaveProgressBar").style.width="50%";
+  leaveCalendarMonth=new Date();
+  renderLeaveCalendar();
+  document.getElementById("leavesPage")?.scrollIntoView({behavior:"smooth",block:"start"});
+};
+window.selectLeaveType=(type,description,icon)=>{
+  leaveTypeSelected=type;leaveTypeDescription=description;leaveTypeIcon=icon;
+  document.getElementById("leaveStep1").style.display="none";
+  document.getElementById("leaveStep2").style.display="block";
+  document.getElementById("leaveStepCount").textContent="2/2";
+  document.getElementById("leaveProgressBar").style.width="100%";
+  document.getElementById("leaveStep2Title").textContent=`Request a ${type.toLowerCase()}`;
+  document.getElementById("leaveSelectedType").textContent=`${icon} ${type}`;
+  document.getElementById("leavePolicyText").textContent=type==="Local leave"
+    ? "Local leave: maximum 2 approved/planned local leave days in the same calendar month."
+    : description;
+  document.getElementById("leaveContinueBtn").disabled=true;
+  document.getElementById("leaveSuccess").classList.remove("show");
+  leaveSelectedDate="";
+  leaveCalendarMonth=new Date();
+  renderLeaveCalendar();
+};
+window.leaveBackToStep1=()=>{
+  document.getElementById("leaveStep2").style.display="none";
+  document.getElementById("leaveStep1").style.display="block";
+  document.getElementById("leaveStepCount").textContent="1/2";
+  document.getElementById("leaveProgressBar").style.width="50%";
+};
+window.selectLeaveDate=date=>{
+  const today=leaveTodayKey();
+  if(date<today)return;
+  if(leaveRecords.some(r=>r.date===date))return;
+  if(leaveTypeSelected==="Local leave"){
+    const monthCount=leaveRecords.filter(r=>r.type==="Local leave"&&leaveSameMonth(r.date,date)).length;
+    if(monthCount>=2){
+      document.getElementById("leavePolicyText").textContent="Local leave limit reached: you already have 2 local leave records in this month.";
+      document.getElementById("leaveContinueBtn").disabled=true;
+      return;
+    }
+  }
+  leaveSelectedDate=date;
+  document.getElementById("leaveContinueBtn").disabled=false;
+  document.getElementById("leavePolicyText").textContent=leaveTypeSelected==="Local leave"
+    ? "Local leave: maximum 2 approved/planned local leave days in the same calendar month."
+    : leaveTypeDescription;
+  renderLeaveCalendar();
+};
+window.submitLeaveRequest=async()=>{
+  if(!currentUser){alert("Please login first.");return}
+  if(!leaveTypeSelected||!leaveSelectedDate)return;
+  const today=leaveTodayKey();
+  if(leaveSelectedDate<today)return;
+  if(leaveRecords.some(r=>r.date===leaveSelectedDate)){
+    document.getElementById("leavePolicyText").textContent="This date already has a leave record.";
+    return;
+  }
+  if(leaveTypeSelected==="Local leave"){
+    const count=leaveRecords.filter(r=>r.type==="Local leave"&&leaveSameMonth(r.date,leaveSelectedDate)).length;
+    if(count>=2){
+      document.getElementById("leavePolicyText").textContent="Local leave limit reached for this month.";
+      return;
+    }
+  }
+  const btn=document.getElementById("leaveContinueBtn");
+  btn.disabled=true;btn.textContent="Saving...";
+  const record={id:`leave_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,type:leaveTypeSelected,description:leaveTypeDescription,icon:leaveTypeIcon,date:leaveSelectedDate,createdAt:new Date().toISOString()};
+  try{
+    const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{};
+    const records=Array.isArray(existing.leaveRecords)?existing.leaveRecords:leaveRecords;
+    const next=[...records,record];
+    await setDoc(ref,{leaveRecords:next},{merge:true});
+    driverData={...driverData,leaveRecords:next};
+    leaveRecords=next;
+    renderLeaveHome();
+    document.getElementById("leaveSuccess").textContent=`Leave saved successfully for ${leaveFormatDate(leaveSelectedDate)}.`;
+    document.getElementById("leaveSuccess").classList.add("show");
+    btn.textContent="Saved";
+    setTimeout(()=>{showPage("leavesPage");},1100);
+  }catch(e){
+    console.error("Leave save error:",e);
+    document.getElementById("leavePolicyText").textContent="Unable to save leave: "+(e.message||"Error");
+    btn.disabled=false;btn.textContent="Continue";
+  }
+};
+window.deleteLeaveRecord=async(id)=>{
+  if(!currentUser||!id)return;
+  const record=leaveRecords.find(r=>String(r.id)===String(id));
+  if(!record)return;
+  if(!confirm(`Delete ${record.type||"leave"} on ${leaveFormatDate(record.date)}?`))return;
+  try{
+    const next=leaveRecords.filter(r=>String(r.id)!==String(id));
+    await setDoc(doc(db,"drivers",currentUser.uid),{leaveRecords:next},{merge:true});
+    leaveRecords=next;driverData={...driverData,leaveRecords:next};
+    renderLeaveHome();renderLeaveCalendar();
+  }catch(e){alert("Unable to delete leave record: "+(e.message||"Error"))}
+};
+
 function updateDashboard(){
 const total=invoices.reduce((s,x)=>s+(Number(x.net)||0),0);
 const deductions=invoices.reduce((s,x)=>s+(Number(x.deductions)||0),0);
@@ -1866,7 +2235,9 @@ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
 // Firebase permissions used by this app.
 savedTargetRecords=Array.isArray(driverData.targetRecords)?driverData.targetRecords.map(r=>({...r})):Object.values(driverData.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
 savedChargeRecords=Object.values(driverData.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
+leaveRecords=Array.isArray(driverData.leaveRecords)?driverData.leaveRecords.map(r=>({...r})):[];
 renderSavedCharges();
+renderLeaveHome();
 resetChargeSetup();
 renderSavedTargets();
 
