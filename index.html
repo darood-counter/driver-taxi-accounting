@@ -1888,6 +1888,7 @@ window.addEventListener("unhandledrejection",e=>{console.error(e.reason);const x
 let invoiceCameraStream=null;
 let invoiceCameraTrack=null;
 let invoiceTorchOn=false;
+let invoiceDirectCapture=false;
 let invoiceOcrScriptPromise=null;
 let invoiceOcrWorker=null;
 let invoiceOcrBusy=false;
@@ -2148,27 +2149,43 @@ async function autoPrepareRTAReceiptBlob(sourceCanvas){
 }
 
 async function captureInvoicePhoto(){
-  const v=document.getElementById("invoiceCameraPreview"),c=document.getElementById("invoiceCameraCanvas"),s=document.getElementById("invoiceScanStatus");
-  if(!v?.videoWidth){s.textContent="Camera is not ready. Please try again.";return;}
-  try{
-    s.textContent="Photo captured — auto cropping and cleaning receipt...";
-    c.width=v.videoWidth;c.height=v.videoHeight;
-    const ctx=c.getContext("2d");
-    ctx.drawImage(v,0,0,c.width,c.height);
-    const cleanBlob=await autoPrepareRTAReceiptBlob(c);
-    closeInvoiceScanner();
-    s.textContent="Reading auto-cropped RTA receipt...";
-    processInvoiceScan(cleanBlob);
-  }catch(e){
-    console.warn("Auto capture/crop error",e);
-    s.textContent="Auto crop failed. Please take the photo again.";
+  // Take Photo uses the phone's native camera. After capture the photo is
+  // automatically cropped/cleaned and sent straight to the RTA reader.
+  const input=document.getElementById("invoiceCameraInput");
+  const s=document.getElementById("invoiceScanStatus");
+  if(!input){s.textContent="Camera input is not available.";return;}
+  invoiceDirectCapture=true;
+  s.textContent="Opening phone camera... Take the full RTA Shift Summary photo.";
+  try{ input.click(); }
+  catch(e){
+    invoiceDirectCapture=false;
+    console.warn("Native camera open error",e);
+    s.textContent="Camera could not be opened. Please use Choose Photo.";
   }
 }
 
-document.getElementById("invoiceCameraInput")?.addEventListener("change",e=>{
+document.getElementById("invoiceCameraInput")?.addEventListener("change",async e=>{
   const f=e.target.files?.[0];
-  if(f)openInvoiceCropper(f);
+  const direct=invoiceDirectCapture;
+  invoiceDirectCapture=false;
   e.target.value="";
+  if(!f)return;
+  if(direct){
+    const modal=document.getElementById("invoiceScannerModal");
+    const s=document.getElementById("invoiceScanStatus");
+    try{
+      s.textContent="Photo captured — auto cropping and cleaning receipt...";
+      const cleanBlob=await autoPrepareRTAReceiptBlob(f);
+      closeInvoiceScanner();
+      await processInvoiceScan(cleanBlob);
+    }catch(err){
+      console.warn("Auto native capture/crop error",err);
+      if(modal)modal.classList.add("show");
+      s.textContent="Auto crop failed. Please take the photo again.";
+    }
+  }else{
+    openInvoiceCropper(f);
+  }
 });
 
 async function processInvoiceScan(file){
