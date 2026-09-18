@@ -2674,8 +2674,9 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     const key=dateKeyLocal(d);
     const dayInvoices=invoices.filter(x=>String(x.date||"")===key);
     const value=dayInvoices.reduce((sum,x)=>sum+(Number(x.net)||0),0);
+    const saleTotal=dayInvoices.reduce((sum,x)=>sum+(Number(x.total)||0),0);
     const hasSales=dayInvoices.length>0;
-    arr.push({key,value,hasSales,date:new Date(d)});
+    arr.push({key,value,saleTotal,hasSales,date:new Date(d)});
   }
   const max=Math.max(...arr.map(x=>x.value),1);
   const activeDays=arr.filter(x=>x.value>0).length;
@@ -2723,7 +2724,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     if(x.hasSales)col.classList.add("has-sales");
     const value=document.createElement("div");
     value.className="chart-value";
-    value.textContent=x.hasSales?money(x.value)+" AED":"";
+    value.textContent=x.hasSales?"Sale: "+money(x.saleTotal)+" AED":"";
     const wrap=document.createElement("div");
     wrap.className="bar-wrap";
     const bar=document.createElement("div");
@@ -2738,8 +2739,8 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     chart.appendChild(col);
     if(x.hasSales){
       col.addEventListener("click",()=>openDashboardDateInvoices(x.key));
-      value.title="View sales for "+x.date.toLocaleDateString("en-GB");
-      bar.title="View sales for "+x.date.toLocaleDateString("en-GB")+": "+money(x.value)+" AED";
+      value.title="Sale on "+x.date.toLocaleDateString("en-GB")+": "+money(x.saleTotal)+" AED";
+      bar.title="Sale on "+x.date.toLocaleDateString("en-GB")+": "+money(x.saleTotal)+" AED";
     }
     if(dashboardSelectedDate===x.key){
       const callout=document.createElement("div");
