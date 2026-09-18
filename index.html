@@ -606,8 +606,6 @@ input:focus{border-color:#ed166a}
     <input id="invoiceCameraInput" type="file" accept="image/*" capture="environment" hidden>
     <input id="invoiceGalleryInput" type="file" accept="image/*" hidden>
     <div class="scanner-actions">
-      <button type="button" class="primary" onclick="captureInvoicePhoto()">📸 Take Photo</button>
-      <button type="button" class="secondary" onclick="openInvoiceNativeCamera()">📱 Full Camera</button>
       <button type="button" class="secondary" onclick="chooseInvoicePhoto()">🖼️ Choose Photo</button>
     </div>
     <div id="invoiceScanStatus" class="status"></div>
@@ -1897,6 +1895,10 @@ let invoiceCropper=null;
 let invoiceCropObjectUrl=null;
 let invoiceCropFile=null;
 let invoiceCropperScriptPromise=null;
+let invoiceAutoScanTimer=null;
+let invoiceAutoScanBusy=false;
+let invoiceAutoLastSample=null;
+let invoiceAutoStableSince=0;
 
 function loadInvoiceOCR(){
   if(window.Tesseract)return Promise.resolve(window.Tesseract);
@@ -1952,9 +1954,11 @@ async function openInvoiceScanner(){
       }catch(e){console.warn("Continuous focus unavailable",e);}
       const caps=invoiceCameraTrack?.getCapabilities?.()||{};
       if(torchBtn && !caps.torch)torchBtn.textContent="💡 Light N/A";
-      status.textContent="Camera ready. Focus aur Light buttons use kar sakte hain.";
+      status.textContent="Camera ready — invoice ko poora frame mein seedha rakhein. Camera khud scan karega.";
+      startInvoiceAutoScan();
     }else status.textContent="Camera preview is not supported. You can choose a photo instead.";
   }catch(e){
+    stopInvoiceAutoScan();
     console.warn("Camera error",e);
     status.textContent="Camera permission was not available. You can use Choose Photo instead.";
   }
@@ -2003,7 +2007,115 @@ async function toggleInvoiceCameraTorch(){
   }
 }
 
+function stopInvoiceAutoScan(){
+  if(invoiceAutoScanTimer){clearInterval(invoiceAutoScanTimer);invoiceAutoScanTimer=null;}
+  invoiceAutoScanBusy=false;
+  invoiceAutoLastSample=null;
+  invoiceAutoStableSince=0;
+}
+
+function invoiceAutoFrameScore(video, canvas, ctx){
+  if(!video || video.readyState < 2 || !video.videoWidth || !video.videoHeight) return {score:0, sample:null};
+  const W=320,H=Math.max(240,Math.round(320*video.videoHeight/video.videoWidth));
+  canvas.width=W;canvas.height=H;
+  ctx.drawImage(video,0,0,W,H);
+  const data=ctx.getImageData(0,0,W,H).data;
+  let sum=0,sum2=0,bright=0,edges=0,total=0;
+  const sample=[];
+  // Ignore the outer 10% where the phone UI/room can dominate.
+  const x0=Math.floor(W*.10),x1=Math.floor(W*.90),y0=Math.floor(H*.08),y1=Math.floor(H*.92);
+  for(let y=y0;y<y1;y+=3){
+    for(let x=x0;x<x1;x+=3){
+      const i=(y*W+x)*4;
+      const g=data[i]*.299+data[i+1]*.587+data[i+2]*.114;
+      sum+=g;sum2+=g*g;total++;
+      if(g>155)bright++;
+      if(x+3<x1){
+        const j=(y*W+x+3)*4;
+        const g2=data[j]*.299+data[j+1]*.587+data[j+2]*.114;
+        if(Math.abs(g-g2)>35)edges++;
+      }
+      if(y+3<y1){
+        const j=((y+3)*W+x)*4;
+        const g2=data[j]*.299+data[j+1]*.587+data[j+2]*.114;
+        if(Math.abs(g-g2)>35)edges++;
+      }
+    }
+  }
+  const avg=sum/Math.max(1,total);
+  const variance=Math.max(0,sum2/Math.max(1,total)-avg*avg);
+  const contrast=Math.sqrt(variance);
+  const brightRatio=bright/Math.max(1,total);
+  const edgeRatio=edges/Math.max(1,total*2);
+  // A complete RTA sheet should be a large, bright, text-rich/stable object.
+  // This is deliberately conservative to avoid firing on an empty camera view.
+  const score=Math.min(1,
+    (brightRatio>.38?0.30:brightRatio/.38*.30)+
+    (contrast>28?0.25:contrast/28*.25)+
+    (edgeRatio>.035?0.30:edgeRatio/.035*.30)+
+    (avg>115?0.15:avg/115*.15)
+  );
+  for(let y=Math.floor(H*.18);y<H*.82;y+=12){
+    for(let x=Math.floor(W*.18);x<W*.82;x+=12){
+      const i=(y*W+x)*4;
+      sample.push(Math.round((data[i]*.299+data[i+1]*.587+data[i+2]*.114)/8));
+    }
+  }
+  return {score,sample};
+}
+
+function invoiceSamplesStable(a,b){
+  if(!a||!b||a.length!==b.length)return false;
+  let diff=0;
+  for(let i=0;i<a.length;i++)diff+=Math.abs(a[i]-b[i]);
+  return diff/a.length<1.8;
+}
+
+function startInvoiceAutoScan(){
+  stopInvoiceAutoScan();
+  const video=document.getElementById("invoiceCameraPreview");
+  const canvas=document.getElementById("invoiceCameraCanvas");
+  if(!video||!canvas)return;
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  invoiceAutoScanTimer=setInterval(async()=>{
+    if(invoiceAutoScanBusy || invoiceOcrBusy || !document.getElementById("invoiceScannerModal")?.classList.contains("show"))return;
+    const result=invoiceAutoFrameScore(video,canvas,ctx);
+    const now=performance.now();
+    const stable=invoiceSamplesStable(invoiceAutoLastSample,result.sample);
+    invoiceAutoLastSample=result.sample;
+    const status=document.getElementById("invoiceScanStatus");
+    if(result.score>=.78 && stable){
+      if(!invoiceAutoStableSince)invoiceAutoStableSince=now;
+      const held=(now-invoiceAutoStableSince)/1000;
+      status.textContent=held<1.5?`Invoice detected — hold still ${(1.5-held).toFixed(1)}s...`:`Invoice detected — scanning automatically...`;
+      if(held>=1.5){
+        invoiceAutoScanBusy=true;
+        clearInterval(invoiceAutoScanTimer);invoiceAutoScanTimer=null;
+        try{
+          const fullCanvas=document.createElement("canvas");
+          fullCanvas.width=video.videoWidth;fullCanvas.height=video.videoHeight;
+          const fullCtx=fullCanvas.getContext("2d");
+          fullCtx.drawImage(video,0,0,fullCanvas.width,fullCanvas.height);
+          const blob=await new Promise((resolve,reject)=>fullCanvas.toBlob(b=>b?resolve(b):reject(new Error("Camera frame could not be captured")),"image/jpeg",.96));
+          status.textContent="Invoice captured — reading automatically...";
+          closeInvoiceScanner();
+          await processInvoiceScan(blob);
+        }catch(e){
+          console.warn("Automatic invoice scan failed",e);
+          invoiceAutoScanBusy=false;
+          status.textContent="Auto scan failed. Invoice ko seedha/poora frame mein rakhein aur dobara try karein.";
+          startInvoiceAutoScan();
+        }
+      }
+    }else{
+      invoiceAutoStableSince=0;
+      if(result.score>.55) status.textContent="Invoice ko poora frame mein seedha rakhein — scan khud ho jayega.";
+    }
+  },250);
+}
+
 function closeInvoiceScanner(){
+  stopInvoiceAutoScan();
   const modal=document.getElementById("invoiceScannerModal"),video=document.getElementById("invoiceCameraPreview");
   if(invoiceCameraStream){invoiceCameraStream.getTracks().forEach(t=>t.stop());invoiceCameraStream=null;}
   invoiceCameraTrack=null;
