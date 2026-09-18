@@ -513,6 +513,7 @@ input:focus{border-color:#ed166a}
 .crop-image-wrap{width:100%;max-height:68vh;overflow:hidden;background:#111;border-radius:12px}
 #invoiceCropImage{display:block;max-width:100%;width:100%}
 .crop-actions{display:flex;gap:8px;margin-top:10px}
+.rta-guide-lines{position:absolute;inset:0;pointer-events:none}.rta-guide-lines span{position:absolute;left:4%;right:4%;border-top:1px dashed rgba(255,0,80,.75);height:0}.crop-image-wrap{position:relative}
 .crop-actions button{flex:1}
 @media(max-width:480px){.scanner-camera-controls{flex-direction:row}.crop-actions{flex-direction:column}}
 @media(max-width:480px){.invoice-title-row{align-items:stretch}.scan-invoice-btn{width:100%}.scanner-actions{flex-direction:column}}
@@ -618,8 +619,16 @@ input:focus{border-color:#ed166a}
       <div class="crop-title">✂️ Crop Receipt</div>
       <button type="button" class="scanner-close" onclick="closeInvoiceCropper()">✕</button>
     </div>
-    <div class="small" style="margin-bottom:8px">Receipt ko box ke andar adjust karein, phir Use Crop dabayein.</div>
-    <div class="crop-image-wrap"><img id="invoiceCropImage" alt="Receipt crop"></div>
+    <div class="small" style="margin-bottom:8px">Receipt ko box mein seedha fit karein. Red lines required RTA rows ko guide karti hain. Koi required row crop se bahar na ho.</div>
+    <div class="crop-image-wrap">
+      <img id="invoiceCropImage" alt="Receipt crop">
+      <div class="rta-guide-lines" aria-hidden="true">
+        <span style="top:28.7%"></span><span style="top:33.9%"></span><span style="top:39.2%"></span><span style="top:41.3%"></span>
+        <span style="top:46.2%"></span><span style="top:50.3%"></span><span style="top:52.9%"></span><span style="top:56.5%"></span>
+        <span style="top:60.2%"></span><span style="top:64.4%"></span><span style="top:66.3%"></span><span style="top:70.4%"></span>
+        <span style="top:72.5%"></span><span style="top:74.6%"></span>
+      </div>
+    </div>
     <div class="crop-actions">
       <button type="button" class="primary" onclick="applyInvoiceCrop()">✂️ Use Crop</button>
       <button type="button" class="secondary" onclick="skipInvoiceCrop()">Use Full Photo</button>
@@ -654,11 +663,11 @@ input:focus{border-color:#ed166a}
 
 <div class="invoice-fields">
 <div class="invoice-field"><label for="invDate">Date</label><input type="date" id="invDate" ></div>
-<div class="invoice-field"><label for="creditCard">Credit Cards</label><input type="number" id="creditCard" step="0.01"></div>
-<div class="invoice-field"><label for="app">APP</label><input type="number" id="app" step="0.01"></div>
+<div class="invoice-field"><label for="creditCard">Credit Card</label><input type="number" id="creditCard" step="0.01"></div>
+<div class="invoice-field"><label for="app">App</label><input type="number" id="app" step="0.01"></div>
 <div class="invoice-field"><label for="cash">Cash</label><input type="number" id="cash" step="0.01"></div>
 <div class="invoice-field"><label for="tips">Tips</label><input type="number" id="tips" step="0.01"></div>
-<div class="invoice-field"><label for="tolls">Total Tollways</label><input type="number" id="tolls" step="0.01"></div>
+<div class="invoice-field"><label for="tolls">Tollways</label><input type="number" id="tolls" step="0.01"></div>
 <div class="invoice-field"><label for="shiftDiscount">Shift Discount</label><input type="number" id="shiftDiscount" step="0.01"></div>
 <div class="invoice-field"><label for="shiftTrips">Shift Trips</label><input type="number" id="shiftTrips" step="0.01"></div>
 <div class="invoice-field"><label for="bookings">Bookings</label><input type="number" id="bookings" step="0.01"></div>
@@ -2037,7 +2046,7 @@ async function openInvoiceCropper(file){
     invoiceCropObjectUrl=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.92,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false});
+        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.96,aspectRatio:0.3525,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false});
         status.textContent="Receipt ko crop box ke andar adjust karein.";
       }catch(e){status.textContent="Crop tool error. You can use Full Photo.";}
     };
@@ -2116,16 +2125,13 @@ async function processInvoiceScan(file){
       const txt=r?.data?.text||"";
       allText+=("\n"+txt);
       console.log("RTA OCR pass",pi+1,pass.mode,"PSM",pass.psm,txt);
-      const fromText=parseInvoiceOCRText(txt);
+      // STRICT MODE: only coordinate/row based matching is allowed.
+      // The plain OCR text parser is intentionally NOT used because it can
+      // accidentally take a number from the next receipt row.
       const fromData=parseInvoiceOCRData(r?.data);
-      // Prefer a non-zero reading over the default zero. A later pass can
-      // replace a missed/zero value when it finds the actual number.
       for(const id of REQUIRED_RTA_OCR_FIELDS){
-        const a=Number(fromData[id]), b=Number(fromText[id]);
-        const candidates=[a,b].filter(v=>Number.isFinite(v));
-        const nz=candidates.find(v=>v!==0);
-        if(nz!==undefined){filled[id]=nz;}
-        else if(candidates.length && filled[id]===0){filled[id]=0;}
+        const v=Number(fromData[id]);
+        if(Number.isFinite(v) && (v!==0 || filled[id]===0)) filled[id]=v;
       }
       // Once all fields have non-zero readings OR the remaining fields are
       // explicitly present as zero, still run the last pass only when needed.
@@ -2151,7 +2157,7 @@ async function processInvoiceScan(file){
     if(count){
       closeInvoiceScanner();
       const st=document.getElementById("invoiceStatus");
-      st.textContent=`${count} RTA fields filled. Fields not found on the receipt were set to 0.00/0. Others remains manual and is never filled from Total Extras.`;
+      st.textContent=`${count} RTA fields filled. Fields not found on the receipt were set to 0.00/0. Please check before saving.`;
     }else{
       s.textContent="RTA receipt could not be read. All required fields can still be entered manually.";
     }
@@ -2271,12 +2277,9 @@ function rtaExactLabelInRow(words,variants){
       let joined="";
       for(let n=1;n<=Math.min(4,normalized.length-i);n++){
         joined+=normalized[i+n-1];
-        if(joined===target){
-          // Never allow the short "peak" label to match the second part of
-          // the exact "hala peak" label.
-          if(target==="peak" && i>0 && normalized[i-1]==="hala") continue;
-          return {start:i,end:i+n-1,variant};
-        }
+        if(joined===target)return {start:i,end:i+n-1,variant};
+        // Only allow an explicitly configured OCR spelling variant. Do not
+        // fuzzy-match arbitrary receipt words.
       }
     }
   }
@@ -2286,7 +2289,7 @@ function rtaNumberAfterLabelSameRow(words,match){
   if(!match)return null;
   // The value must be to the RIGHT of the complete label, on this row.
   // AED is ignored; the first numeric token after the label is the value.
-  for(let k=match.end+1;k<Math.min(words.length,match.end+4);k++){
+  for(let k=match.end+1;k<words.length;k++){
     const raw=String(words[k]?.text||"").replace(/,/g,"");
     if(/^aed$/i.test(raw.trim()))continue;
     const m=raw.match(/-?\d+(?:\.\d+)?/);
@@ -2312,18 +2315,18 @@ function blankRTAOCRFields(){
 // that are known to represent the same label; arbitrary fuzzy matches are not
 // accepted because they can put a correct number in the wrong field.
 const RTA_OCR_LABELS={
-  creditCard:["credit cards"],
+  creditCard:["credit cards","credit card"],
   app:["app"],
   cash:["cash"],
-  tips:["tips"],
-  tolls:["total tollways"],
+  tips:["tips","tip"],
+  tolls:["total tollways","total tollway"],
   shiftDiscount:["shift discount"],
-  shiftTrips:["shift trips"],
-  bookings:["bookings"],
-  km:["kilometers hired"],
+  shiftTrips:["shift trips","shift trip"],
+  bookings:["bookings","booking"],
+  km:["kilometers hired","kilometer hired","kilometres hired","kilometre hired"],
   careemDiscount:["careem discount"],
   paidCareem:["paid in careem"],
-  halaJunior:["hala juniors"],
+  halaJunior:["hala juniors","hala junior"],
   halaPeak:["hala peak"],
   peak:["peak"]
 };
@@ -2354,28 +2357,77 @@ function rtaOCRExtractAfterLabel(words,variant){
   const m=rtaExactLabelInRow(words,[variant]);
   return rtaNumberAfterLabelSameRow(words,m);
 }
+// Fixed RTA Shift Summary layout. Values are read only from the expected
+// horizontal band for each label. This prevents one row's number from being
+// assigned to another row. The crop tool uses the same 860:2440 ratio.
+const RTA_LAYOUT_ROWS={
+  creditCard:0.287,      // Credit Cards
+  app:0.339,              // APP
+  cash:0.392,             // Cash
+  tips:0.413,             // Tips
+  tolls:0.462,            // Total Tollways
+  shiftDiscount:0.503,   // Shift Discount
+  shiftTrips:0.529,      // Shift Trips
+  bookings:0.565,        // Bookings
+  km:0.602,               // Kilometers Hired
+  careemDiscount:0.644,  // Careem Discount
+  paidCareem:0.663,      // Paid in Careem
+  halaJunior:0.704,      // Hala Juniors
+  halaPeak:0.725,        // Hala Peak
+  peak:0.746             // Peak
+};
+
+function rtaRowsFromWords(data){
+  const words=Array.isArray(data?.words)?data.words.filter(w=>String(w?.text||'').trim()&&w?.bbox):[];
+  if(!words.length)return [];
+  const maxBottom=Math.max(...words.map(w=>Number(w.bbox?.bottom||0)));
+  const maxRight=Math.max(...words.map(w=>Number(w.bbox?.right||0)));
+  const H=Math.max(Number(data?.height)||maxBottom,1), W=Math.max(Number(data?.width)||maxRight,1);
+  return {words,H,W};
+}
+
+function rtaStrictRowValue(data,id,variants){
+  const pack=rtaRowsFromWords(data); if(!pack.words)return null;
+  const {words,H}=pack;
+  const center=RTA_LAYOUT_ROWS[id];
+  // ±1.35% of receipt height is deliberately narrow: adjacent rows are not
+  // allowed to contribute a value.
+  const half=0.0135;
+  const band=words.filter(w=>{
+    const top=Number(w.bbox.top||0), bottom=Number(w.bbox.bottom||top);
+    const cy=((top+bottom)/2)/H;
+    return Math.abs(cy-center)<=half;
+  }).sort((a,b)=>Number(a.bbox.left||0)-Number(b.bbox.left||0));
+  if(!band.length)return null;
+  const normalized=band.map(w=>cleanOCRToken(w.text));
+  for(const variant of variants){
+    const target=cleanOCRToken(variant); if(!target)continue;
+    for(let i=0;i<normalized.length;i++){
+      let joined='';
+      for(let n=1;n<=Math.min(4,normalized.length-i);n++){
+        joined+=normalized[i+n-1];
+        if(joined===target){
+          const labelEnd=Number(band[i+n-1].bbox.right||0);
+          // Only take the first numeric token to the right, within the same
+          // horizontal row and a reasonable distance. Never look downward.
+          const candidates=band.slice(i+n).filter(w=>Number(w.bbox.left||0)>=labelEnd-3);
+          for(const w of candidates){
+            const raw=String(w.text||'').replace(/,/g,'');
+            const m=raw.match(/-?\d+(?:\.\d+)?/);
+            if(m){const num=Number(m[0]); if(Number.isFinite(num))return num;}
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function parseInvoiceOCRData(data){
   const out=blankRTAOCRFields();
-  const words=Array.isArray(data?.words)?data.words.filter(w=>String(w?.text||"").trim()&&w?.bbox):[];
-  if(!words.length)return out;
-
-  const rows=[];
-  for(const w of words){
-    const top=Number(w.bbox.top||0),left=Number(w.bbox.left||0);
-    let row=rows.find(r=>Math.abs(r.top-top)<=12);
-    if(!row){row={top,words:[]};rows.push(row);}
-    row.words.push({...w,left,top});
-  }
-  rows.sort((a,b)=>a.top-b.top);
-  rows.forEach(r=>r.words.sort((a,b)=>a.left-b.left));
-
   for(const [id,variants] of Object.entries(RTA_OCR_LABELS)){
-    for(const row of rows){
-      const match=rtaExactLabelInRow(row.words,variants);
-      if(!match)continue;
-      const n=rtaNumberAfterLabelSameRow(row.words,match);
-      if(n!==null && Number.isFinite(n)){out[id]=n;break;}
-    }
+    const n=rtaStrictRowValue(data,id,variants);
+    if(n!==null)out[id]=n;
   }
   return out;
 }
