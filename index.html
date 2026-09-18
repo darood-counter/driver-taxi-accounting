@@ -889,7 +889,7 @@ input:focus{border-color:#ed166a}
     </div>
 
     <div class="leave-all-view" id="allLeavesView">
-      <div class="leave-section-title" style="margin-top:20px">All Leave Records</div>
+      <div class="leave-section-title" style="margin-top:20px">All Leave Records</div><div id="leaveTotalDays" class="leave-policy" style="margin:-5px 0 12px">Total leave days: 0</div>
       <div id="allLeavesList"></div>
     </div>
 
@@ -1091,7 +1091,7 @@ const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
 let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;
-let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveCalendarMonth=new Date();
+let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
 const n=id=>Number(document.getElementById(id)?.value||0);
@@ -2026,17 +2026,29 @@ function leaveRenderDays(containerId,titleId,selectedDate=""){
     if(isSelected)cls.push("selected");
     if(existing)cls.push("disabled");
     const disabled=isPast||!!existing;
-    html+=`<button type="button" class="${cls.join(" ")}" ${disabled?'disabled':''} onclick="selectLeaveDate('${key}')">${day}</button>`;
+    const handler=containerId==="leaveCalendarDays"?"selectLeaveHomeDate":"selectLeaveDate";
+    html+=`<button type="button" class="${cls.join(" ")}" ${disabled?'disabled':''} onclick="${handler}('${key}')">${day}</button>`;
   }
   box.innerHTML=html;
 }
 function renderLeaveCalendar(){
-  leaveRenderDays("leaveCalendarDays","leaveMonthTitle","");
+  leaveRenderDays("leaveCalendarDays","leaveMonthTitle",leaveHomeSelectedDate);
   leaveRenderDays("leaveFlowCalendarDays","leaveFlowMonthTitle",leaveSelectedDate);
 }
 window.changeLeaveMonth=direction=>{
   leaveCalendarMonth.setMonth(leaveCalendarMonth.getMonth()+Number(direction||0));
   renderLeaveCalendar();
+};
+window.leaveGoHome=()=>{
+  const home=document.getElementById("leavesHomeView"),flow=document.getElementById("leaveFlowView");
+  if(home)home.style.display="block";
+  if(flow)flow.classList.remove("active");
+  leaveTypeSelected="";leaveTypeDescription="";leaveTypeIcon="";leaveSelectedDate="";
+  const success=document.getElementById("leaveSuccess");
+  if(success)success.classList.remove("show");
+  renderLeaveCalendar();renderLeaveHome();
+  const page=document.getElementById("leavesPage");
+  if(page)page.scrollIntoView({behavior:"smooth",block:"start"});
 };
 function renderUpcomingLeaves(){
   const box=document.getElementById("upcomingLeaves");
@@ -2050,20 +2062,22 @@ function renderUpcomingLeaves(){
   box.innerHTML=rows.map(r=>`
     <div class="leave-record">
       <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-date">${leaveFormatDate(r.date)}</div></div>
-      <span class="leave-record-status">Planned</span>
+      <span class="leave-record-status">Planned • 1 Day</span>
     </div>`).join("");
 }
 function renderAllLeaves(){
   const box=document.getElementById("allLeavesList");
   const count=document.getElementById("allLeavesCount");
   if(count)count.textContent=`${leaveRecords.length} ${leaveRecords.length===1?"record":"records"}`;
+  const totalDays=document.getElementById("leaveTotalDays");
+  if(totalDays)totalDays.textContent=`Total leave days: ${leaveRecords.length}`;
   if(!box)return;
   const rows=[...leaveRecords].sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
   if(!rows.length){box.innerHTML='<div class="leave-empty">No leave records yet.</div>';return}
   box.innerHTML=rows.map(r=>`
     <div class="leave-record">
       <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-date">${leaveFormatDate(r.date)}</div></div>
-      <span class="leave-record-status">${String(r.date||"")<leaveTodayKey()?"Past":"Planned"}</span>
+      <span class="leave-record-status">${String(r.date||"")<leaveTodayKey()?"Past":"Planned"} • 1 Day</span>
       <div class="leave-record-actions"><button class="leave-delete" onclick="deleteLeaveRecord('${String(r.id||"").replace(/'/g,"\\'")}')">🗑 Delete</button></div>
     </div>`).join("");
 }
@@ -2109,6 +2123,14 @@ window.leaveBackToStep1=()=>{
   document.getElementById("leaveStep1").style.display="block";
   document.getElementById("leaveStepCount").textContent="1/2";
   document.getElementById("leaveProgressBar").style.width="50%";
+};
+window.leaveBackToHome=()=>{ leaveGoHome(); };
+window.selectLeaveHomeDate=date=>{
+  const today=leaveTodayKey();
+  if(date<today)return;
+  if(leaveRecords.some(r=>r.date===date))return;
+  leaveHomeSelectedDate=date;
+  renderLeaveCalendar();
 };
 window.selectLeaveDate=date=>{
   const today=leaveTodayKey();
@@ -2159,7 +2181,7 @@ window.submitLeaveRequest=async()=>{
     document.getElementById("leaveSuccess").textContent=`Leave saved successfully for ${leaveFormatDate(leaveSelectedDate)}.`;
     document.getElementById("leaveSuccess").classList.add("show");
     btn.textContent="Saved";
-    setTimeout(()=>{showPage("leavesPage");},1100);
+    setTimeout(()=>{showPage("leavesPage");leaveGoHome();},500);
   }catch(e){
     console.error("Leave save error:",e);
     document.getElementById("leavePolicyText").textContent="Unable to save leave: "+(e.message||"Error");
