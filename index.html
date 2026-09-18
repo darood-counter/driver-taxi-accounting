@@ -2156,7 +2156,6 @@ window.submitLeaveRequest=async()=>{
   if(overlaps){document.getElementById("leavePolicyText").textContent="One or more selected dates already have a leave record.";return;}
   if(leaveTypeSelected==="Local leave"){const count=leaveRecords.filter(r=>r.type==="Local leave"&&leaveSameMonth(leaveRecordStart(r),leaveSelectedDate)).length;if(count>=2){document.getElementById("leavePolicyText").textContent="Local leave limit reached for this month.";return;}}
   const btn=document.getElementById("leaveContinueBtn");btn.disabled=true;btn.textContent="Saving...";
-  const selectedDates=leaveDatesBetween(leaveSelectedDate,endDate);
   const record={id:`leave_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,type:leaveTypeSelected,description:leaveTypeDescription,icon:leaveTypeIcon,date:leaveSelectedDate,startDate:leaveSelectedDate,endDate:endDate,dates:selectedDates,days:selectedDates.length,status:"Approved",createdAt:new Date().toISOString()};
   try{
     const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{};
