@@ -618,11 +618,7 @@ input:focus{border-color:#ed166a}
       <div class="crop-title">✂️ Crop Receipt</div>
       <button type="button" class="scanner-close" onclick="closeInvoiceCropper()">✕</button>
     </div>
-    <div class="small" style="margin-bottom:8px">RTA Shift Summary ke liye fixed crop area set hai. Receipt ko box ke bilkul andar rakhein; zarurat ho to drag/zoom karein.</div>
-    <div class="crop-actions" style="margin-top:0">
-      <button type="button" class="secondary" onclick="setRTAFixedCrop()">📄 RTA Fixed Crop</button>
-      <button type="button" class="secondary" onclick="resetInvoiceCrop()">↺ Reset Crop</button>
-    </div>
+    <div class="small" style="margin-bottom:8px">Receipt ko box ke andar adjust karein, phir Use Crop dabayein.</div>
     <div class="crop-image-wrap"><img id="invoiceCropImage" alt="Receipt crop"></div>
     <div class="crop-actions">
       <button type="button" class="primary" onclick="applyInvoiceCrop()">✂️ Use Crop</button>
@@ -2041,11 +2037,8 @@ async function openInvoiceCropper(file){
     invoiceCropObjectUrl=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.86,aspectRatio:.25,background:false,responsive:true,restore:true,zoomable:true,zoomOnWheel:true,cropBoxResizable:false,toggleDragModeOnDblclick:false});
-        // The supplied RTA Shift Summary is a tall, narrow receipt. A fixed 1:4 crop
-        // keeps the complete label/value column together and removes most background.
-        setTimeout(()=>setRTAFixedCrop(),80);
-        status.textContent="RTA fixed crop ready. Receipt ko box ke andar center karein.";
+        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.92,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false});
+        status.textContent="Receipt ko crop box ke andar adjust karein.";
       }catch(e){status.textContent="Crop tool error. You can use Full Photo.";}
     };
     img.src=invoiceCropObjectUrl;
@@ -2053,30 +2046,6 @@ async function openInvoiceCropper(file){
     console.warn("Cropper load error",e);
     status.textContent="Crop tool load nahi hua. Full Photo use kar sakte hain.";
   }
-}
-
-function setRTAFixedCrop(){
-  if(!invoiceCropper)return;
-  try{
-    invoiceCropper.setAspectRatio(.25);
-    const data=invoiceCropper.getImageData();
-    const box=invoiceCropper.getContainerData();
-    const targetH=Math.min(data.height*.94, box.height*1.55);
-    const targetW=targetH*.25;
-    const w=Math.min(targetW, box.width*.94);
-    const h=w/.25;
-    // Center the fixed crop box; the user can still drag the image and zoom.
-    invoiceCropper.setCropBoxData({
-      width:Math.min(w,box.width*.94),
-      height:Math.min(h,box.height*.94),
-      left:(box.width-Math.min(w,box.width*.94))/2,
-      top:(box.height-Math.min(h,box.height*.94))/2
-    });
-  }catch(e){console.warn("RTA fixed crop error",e);}
-}
-function resetInvoiceCrop(){
-  if(!invoiceCropper)return;
-  try{invoiceCropper.reset(); setTimeout(()=>setRTAFixedCrop(),60);}catch(e){}
 }
 
 function closeInvoiceCropper(){
@@ -2114,7 +2083,7 @@ function captureInvoicePhoto(){
   if(!v?.videoWidth){s.textContent="Camera is not ready. Please use Choose Photo.";return;}
   c.width=v.videoWidth;c.height=v.videoHeight;
   const ctx=c.getContext("2d");ctx.drawImage(v,0,0,c.width,c.height);
-  c.toBlob(b=>{if(b)openInvoiceCropper(new File([b],"rta-camera.jpg",{type:"image/jpeg"}));else s.textContent="Photo could not be captured. Please try again.";},"image/jpeg",.92);
+  c.toBlob(b=>{if(b)processInvoiceScan(b);else s.textContent="Photo could not be captured. Please try again.";},"image/jpeg",.92);
 }
 
 document.getElementById("invoiceCameraInput")?.addEventListener("change",e=>{
@@ -2265,9 +2234,7 @@ function invoiceFindValue(text,labels){
 
 function cleanOCRToken(s){
   return String(s||"").toLowerCase()
-    .replace(/[^a-z0-9]+/g," ")
-    .replace(/\b[aed]\b/g," ")
-    .replace(/\s+/g," ")
+    .replace(/[^a-z0-9]+/g,"")
     .trim();
 }
 function numericFromWords(words,startIndex){
@@ -2289,47 +2256,70 @@ function levenshteinOCR(a,b){
   }
   return prev[b.length];
 }
-function labelMatchesOCR(line,variants){
-  const x=cleanOCRToken(line);
-  for(const v of variants){
-    const y=cleanOCRToken(v);
-    if(x.includes(y))return true;
-    // Allow one small OCR typo in a short label.
-    const compact=x.replace(/ /g,"");
-    const yc=y.replace(/ /g,"");
-    if(yc.length>=5 && compact.length<=yc.length+4){
-      const d=levenshteinOCR(compact,yc);
-      if(d<=Math.max(1,Math.floor(yc.length*.14)))return true;
+
+// IMPORTANT: RTA has many similar labels (Peak / Hala Peak, Cash / Careem,
+// App / Alipay, etc.). Never use a loose "contains" match here. A field is
+// accepted only when the complete label is found as one contiguous OCR word
+// sequence in the SAME row as its number. This prevents values being copied
+// into the wrong invoice field.
+function rtaExactLabelInRow(words,variants){
+  const normalized=words.map(w=>cleanOCRToken(w?.text));
+  for(const variant of variants){
+    const target=cleanOCRToken(variant);
+    if(!target)continue;
+    for(let i=0;i<normalized.length;i++){
+      let joined="";
+      for(let n=1;n<=Math.min(4,normalized.length-i);n++){
+        joined+=normalized[i+n-1];
+        if(joined===target)return {start:i,end:i+n-1,variant};
+        // Only allow an explicitly configured OCR spelling variant. Do not
+        // fuzzy-match arbitrary receipt words.
+      }
     }
   }
-  return false;
+  return null;
 }
+function rtaNumberAfterLabelSameRow(words,match){
+  if(!match)return null;
+  // The value must be to the RIGHT of the complete label, on this row.
+  // AED is ignored; the first numeric token after the label is the value.
+  for(let k=match.end+1;k<words.length;k++){
+    const raw=String(words[k]?.text||"").replace(/,/g,"");
+    if(/^aed$/i.test(raw.trim()))continue;
+    const m=raw.match(/-?\d+(?:\.\d+)?/);
+    if(m){
+      const n=Number(m[0]);
+      if(Number.isFinite(n))return n;
+    }
+  }
+  return null;
+}
+
 const REQUIRED_RTA_OCR_FIELDS=[
   "creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips",
   "bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak"
 ];
-
-// Every invoice field that belongs to the RTA Shift Summary is initialized to
-// 0.00/0 before OCR. This guarantees that the invoice never stays half-empty:
-// a value is replaced when the receipt reader finds it, otherwise it remains 0.
 function blankRTAOCRFields(){
   const out={};
   REQUIRED_RTA_OCR_FIELDS.forEach(id=>out[id]=0);
   return out;
 }
 
+// Exact RTA receipt labels. Additional spellings are ONLY for OCR spellings
+// that are known to represent the same label; arbitrary fuzzy matches are not
+// accepted because they can put a correct number in the wrong field.
 const RTA_OCR_LABELS={
   creditCard:["credit cards","credit card"],
   app:["app"],
   cash:["cash"],
   tips:["tips","tip"],
-  tolls:["total tollways","total tollway","tollways","tollway"],
+  tolls:["total tollways","total tollway"],
   shiftDiscount:["shift discount"],
   shiftTrips:["shift trips","shift trip"],
   bookings:["bookings","booking"],
   km:["kilometers hired","kilometer hired","kilometres hired","kilometre hired"],
-  careemDiscount:["careem discount","careew discount","careem discoun"],
-  paidCareem:["paid in careem","paid careem","paid in careen","paid in careem"],
+  careemDiscount:["careem discount"],
+  paidCareem:["paid in careem"],
   halaJunior:["hala juniors","hala junior"],
   halaPeak:["hala peak"],
   peak:["peak"]
@@ -2344,55 +2334,22 @@ function normalizeRTAOCRText(s){
     .replace(/\s+/g," ")
     .trim();
 }
-function rtaOCRCompact(s){return normalizeRTAOCRText(s).replace(/\s+/g,"");}
+function rtaOCRCompact(s){return cleanOCRToken(s);}
 function rtaOCRNumberFromText(s){
   const m=String(s||"").replace(/,/g,"").match(/-?\d+(?:\.\d+)?/);
   return m?Number(m[0]):null;
 }
 function rtaOCRLabelMatch(line,variant){
-  const x=normalizeRTAOCRText(line), y=normalizeRTAOCRText(variant);
-  if(!x||!y)return false;
-  if(x===y || x.includes(y))return true;
-  const yc=rtaOCRCompact(y);
-  if(!yc)return false;
-  // Compare small word windows, not the complete row. This catches thermal
-  // receipt OCR such as "Book ings", "Careew Discount" and "Careen".
-  const toks=x.split(/\s+/).filter(Boolean);
-  const want=y.split(/\s+/).filter(Boolean).length;
-  for(let n=Math.max(1,want-1);n<=Math.min(want+1,4);n++){
-    for(let i=0;i+n<=toks.length;i++){
-      const candidate=toks.slice(i,i+n).join("");
-      if(candidate===yc)return true;
-      const d=levenshteinOCR(candidate,yc);
-      if(yc.length>=5 && d<=Math.max(1,Math.floor(yc.length*.22)))return true;
-    }
-  }
-  return false;
+  const words=String(line||"").split(/\s+/).filter(Boolean).map(t=>({text:t}));
+  return !!rtaExactLabelInRow(words,[variant]);
 }
 function rtaOCRFindLabelIndex(words,variant){
-  const labelCompact=rtaOCRCompact(variant);
-  const want=normalizeRTAOCRText(variant).split(/\s+/).filter(Boolean).length;
-  for(let i=0;i<words.length;i++){
-    let joined="";
-    for(let n=1;n<=Math.min(5,words.length-i);n++){
-      joined+=rtaOCRCompact(words[i+n-1].text);
-      if(joined===labelCompact)return i+n-1;
-      if(n>=Math.max(1,want-1)){
-        const d=levenshteinOCR(joined,labelCompact);
-        if(labelCompact.length>=5 && d<=Math.max(1,Math.floor(labelCompact.length*.22)))return i+n-1;
-      }
-    }
-  }
-  return -1;
+  const m=rtaExactLabelInRow(words,[variant]);
+  return m?m.end:-1;
 }
 function rtaOCRExtractAfterLabel(words,variant){
-  const end=rtaOCRFindLabelIndex(words,variant);
-  if(end<0)return null;
-  for(let k=end+1;k<words.length;k++){
-    const n=rtaOCRNumberFromText(words[k].text);
-    if(n!==null && Number.isFinite(n))return n;
-  }
-  return null;
+  const m=rtaExactLabelInRow(words,[variant]);
+  return rtaNumberAfterLabelSameRow(words,m);
 }
 function parseInvoiceOCRData(data){
   const out=blankRTAOCRFields();
@@ -2402,7 +2359,6 @@ function parseInvoiceOCRData(data){
   const rows=[];
   for(const w of words){
     const top=Number(w.bbox.top||0),left=Number(w.bbox.left||0);
-    // Thermal receipt characters can have slightly different baselines.
     let row=rows.find(r=>Math.abs(r.top-top)<=20);
     if(!row){row={top,words:[]};rows.push(row);}
     row.words.push({...w,left,top});
@@ -2412,16 +2368,9 @@ function parseInvoiceOCRData(data){
 
   for(const [id,variants] of Object.entries(RTA_OCR_LABELS)){
     for(const row of rows){
-      const line=row.words.map(w=>w.text).join(" ");
-      if(!line)continue;
-      // Peak must not be taken from Hala Peak.
-      if(id==="peak" && /hala\s*peak/i.test(normalizeRTAOCRText(line)))continue;
-      let matchedVariant=null;
-      for(const v of variants){
-        if(rtaOCRLabelMatch(line,v)){matchedVariant=v;break;}
-      }
-      if(!matchedVariant)continue;
-      const n=rtaOCRExtractAfterLabel(row.words,matchedVariant);
+      const match=rtaExactLabelInRow(row.words,variants);
+      if(!match)continue;
+      const n=rtaNumberAfterLabelSameRow(row.words,match);
       if(n!==null && Number.isFinite(n)){out[id]=n;break;}
     }
   }
@@ -2432,20 +2381,11 @@ function parseInvoiceOCRText(text){
   const out=blankRTAOCRFields();
   const lines=String(text||"").split(/\r?\n/).map(normOCR).filter(Boolean);
   for(const [id,variants] of Object.entries(RTA_OCR_LABELS)){
-    for(let i=0;i<lines.length;i++){
-      const line=lines[i];
-      if(id==="peak" && /hala\s*peak/i.test(line))continue;
-      let matched=null;
-      for(const v of variants){if(rtaOCRLabelMatch(line,v)){matched=v;break;}}
-      if(!matched)continue;
-      const rest=line.slice(Math.max(0,line.toLowerCase().indexOf(matched.toLowerCase())+matched.length));
-      let n=rtaOCRNumberFromText(rest);
-      if(n===null){
-        for(let j=i+1;j<Math.min(i+3,lines.length);j++){
-          n=rtaOCRNumberFromText(lines[j]);
-          if(n!==null)break;
-        }
-      }
+    for(const line of lines){
+      const words=line.split(/\s+/).filter(Boolean).map(t=>({text:t}));
+      const match=rtaExactLabelInRow(words,variants);
+      if(!match)continue;
+      const n=rtaNumberAfterLabelSameRow(words,match);
       if(n!==null && Number.isFinite(n)){out[id]=n;break;}
     }
   }
