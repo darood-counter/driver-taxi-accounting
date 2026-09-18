@@ -51,6 +51,48 @@ input:focus{border-color:#ed166a}
 .secondary{border:0;border-radius:13px;background:#eef0f5;padding:12px 15px;font-weight:700;cursor:pointer}
 .result{margin-top:15px;background:#f5f6fa;border-radius:15px;padding:15px;font-weight:700}
 .status{font-size:14px;color:#6b7280;margin-top:10px;min-height:18px}
+.history-hero{background:#0d1033;color:#fff;border-radius:24px;padding:22px 20px;margin-bottom:14px}
+.history-kicker{font-size:12px;font-weight:800;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.history-hero h2{margin:0;font-size:28px;letter-spacing:-.5px}
+.history-hero p{margin:7px 0 0;color:#d7d9e7;font-size:13px;line-height:1.4}
+.history-filter-card{background:#fff;border-radius:22px;padding:16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.history-filter-title{font-size:17px;font-weight:900;margin-bottom:11px}
+.history-filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.history-filter-grid label{margin:0 0 6px;font-size:12px}
+.history-filter-grid input{padding:11px 10px;min-height:44px;font-size:14px}
+.history-search-row{display:flex;gap:8px;margin-top:10px}
+.history-search-row input{min-width:0;flex:1;padding:12px;border-radius:12px}
+.history-clear{border:0;border-radius:12px;background:#eef0f5;padding:0 14px;font-weight:800;cursor:pointer}
+.history-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+.history-stat{background:#fff;border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.history-stat small{display:block;color:#737783;font-size:11px;font-weight:700;margin-bottom:5px}
+.history-stat strong{font-size:19px;display:block}
+.history-stat .history-stat-sub{font-size:11px;color:#737783;margin-top:3px}
+.history-chart-card{background:#fff;border-radius:22px;padding:16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.history-chart-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.history-chart-head strong{font-size:17px}
+.history-chart-head span{font-size:11px;color:#737783}
+.history-chart{height:170px;display:flex;align-items:flex-end;gap:5px;overflow-x:auto;padding:12px 2px 0}
+.history-chart-col{min-width:28px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+.history-chart-bar-wrap{height:120px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.history-chart-bar{width:20px;min-height:4px;border-radius:6px 6px 2px 2px;background:#ed166a}
+.history-chart-label{font-size:9px;color:#737783;white-space:nowrap}
+.history-chart-value{font-size:9px;font-weight:800;white-space:nowrap}
+.history-table-card{background:#fff;border-radius:22px;padding:0;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.history-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.history-table{width:100%;min-width:720px;border-collapse:collapse;font-size:12px}
+.history-table th{background:#f4f5f8;color:#5f6470;font-size:11px;text-align:left;padding:11px 10px;white-space:nowrap;position:sticky;top:0}
+.history-table td{padding:11px 10px;border-top:1px solid #eceef3;white-space:nowrap}
+.history-table tr:hover td{background:#fafafd}
+.history-table .net-cell{font-weight:900}
+.history-table .serial{font-weight:900;color:#737783}
+.history-table .history-actions-cell{display:flex;gap:5px}
+.history-table .history-mini-btn{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:800;cursor:pointer}
+.history-table .edit-mini{background:#eef0f5}
+.history-table .delete-mini{background:#ffe7ef;color:#a3003f}
+.history-empty{background:#fff;border-radius:20px;padding:22px;text-align:center;color:#737783}
+.history-results-title{font-size:18px;font-weight:900;margin:4px 2px 10px}
+.history-range-note{font-size:12px;color:#737783;margin:-5px 2px 10px}
 .history-item{background:#fff;border-radius:20px;padding:16px;margin-bottom:12px}
 .history-top{display:flex;justify-content:space-between;gap:10px;font-weight:800}
 .history-net{font-size:24px;margin:9px 0}
@@ -202,6 +244,20 @@ input:focus{border-color:#ed166a}
   .history-net{font-size:21px;margin:7px 0}
   .history-actions{gap:6px}
   .history-actions button{padding:10px 7px;font-size:13px}
+  .history-hero{border-radius:20px;padding:18px 16px}
+  .history-hero h2{font-size:25px}
+  .history-filter-card{border-radius:18px;padding:14px}
+  .history-filter-grid{gap:8px}
+  .history-summary-grid{gap:7px}
+  .history-stat{border-radius:15px;padding:11px 9px}
+  .history-stat strong{font-size:16px}
+  .history-chart-card{border-radius:18px;padding:13px}
+  .history-chart{height:155px;gap:4px}
+  .history-chart-col{min-width:25px}
+  .history-chart-bar-wrap{height:108px}
+  .history-chart-bar{width:17px}
+  .history-table{min-width:720px}
+  .history-results-title{font-size:17px}
   .user-box{border-radius:16px;padding:15px}
   .profile-hero{
     border-radius:24px;
@@ -612,6 +668,13 @@ input:focus{border-color:#ed166a}
   .leave-type-main span{font-size:13px}
 }
 
+
+/* ===== Printable / PDF Invoice ===== */
+.print-invoice-btn{border:0;border-radius:9px;padding:7px 10px;background:#0d1033;color:#fff;font-weight:850;font-size:11px;cursor:pointer;white-space:nowrap}
+.history-table .print-mini{background:#0d1033;color:#fff}
+.saved-invoice-print{border:0;border-radius:9px;padding:7px 10px;background:#0d1033;color:#fff;font-weight:850;cursor:pointer;white-space:nowrap}
+@media(max-width:600px){.print-invoice-btn{padding:7px 8px;font-size:10px}.saved-invoice-print{padding:7px 8px;font-size:10px}}
+
 </style>
 </head>
 <body>
@@ -783,7 +846,28 @@ input:focus{border-color:#ed166a}
 
 <section id="historyPage" class="page">
 <button class="back" onclick="showPage('dashboardPage')">← Back</button>
-<h2 class="section-title">Invoice History</h2>
+<div class="history-hero">
+  <div>
+    <div class="history-kicker">📋 Invoice records</div>
+    <h2>Invoice History</h2>
+    <p>Search, filter by date range and view all your invoices in order.</p>
+  </div>
+</div>
+
+<div class="history-filter-card">
+  <div class="history-filter-title">🔎 Find invoices</div>
+  <div class="history-filter-grid">
+    <div><label for="historyFromDate">From Date</label><input type="date" id="historyFromDate" onchange="renderHistory()"></div>
+    <div><label for="historyToDate">To Date</label><input type="date" id="historyToDate" onchange="renderHistory()"></div>
+  </div>
+  <div class="history-search-row">
+    <input type="search" id="historySearch" placeholder="Search invoice no. or date..." oninput="renderHistory()">
+    <button type="button" class="history-clear" onclick="clearHistoryFilters()">Reset</button>
+  </div>
+</div>
+
+<div id="historySummary" class="history-summary-grid"></div>
+<div id="historyChart" class="history-chart-card"></div>
 <div id="historyList"></div>
 </section>
 
@@ -1665,6 +1749,64 @@ if(!confirm("Delete this invoice? This cannot be undone."))return;
 await deleteDoc(doc(db,"drivers",currentUser.uid,"invoices",id));
 };
 
+/* Create a clean, complete invoice sheet that the browser can print or save as PDF. */
+window.printInvoice=id=>{
+  const x=invoices.find(i=>String(i.id)===String(id));
+  if(!x){alert("Invoice not found.");return;}
+
+  const n2=v=>Number(v||0);
+  const date=String(x.date||"");
+  const setup=getChargeSetupForDate(date)||{};
+  const rtaRate=n2(setup.rtaCharges), fuelRate=n2(setup.fuelCharges), bookingRate=n2(setup.bookingCharges);
+  const shiftTripsAmount=round2(n2(x.shiftTrips)*rtaRate);
+  const bookingAmount=round2(n2(x.bookings)*bookingRate);
+  const kmAmount=round2(n2(x.km)*fuelRate);
+  const fixedDeductions=round2(n2(x.tips)+n2(x.halaJunior)+n2(x.halaPeak)+n2(x.peak)+n2(x.tolls)+n2(x.extraCharges));
+  const calculatedDeductions=round2(fixedDeductions+shiftTripsAmount+bookingAmount+kmAmount);
+  const total=round2(x.total);
+  const deductions=Number.isFinite(n2(x.deductions))?round2(x.deductions):calculatedDeductions;
+  const net=round2(x.net);
+  const driverName=String(driverData?.name||"Driver");
+  const driverId=String(driverData?.driverId||"—");
+  const mobile=String(driverData?.mobile||"—");
+  const safe=v=>String(v??"—").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+  const money2=v=>Number(v||0).toFixed(2);
+
+  const income=[
+    ["Credit Card",x.creditCard], ["App",x.app], ["Cash",x.cash],
+    ["Shift Discount",x.shiftDiscount], ["Careem Discount",x.careemDiscount], ["Paid in Careem",x.paidCareem]
+  ];
+  const deductionsRows=[
+    ["Tips",x.tips,""], ["Tollways",x.tolls,""],
+    ["Shift Trips",x.shiftTrips,shiftTripsAmount], ["Bookings",x.bookings,bookingAmount],
+    ["Kilometers Hired",x.km,kmAmount], ["Hala Juniors",x.halaJunior,""],
+    ["Hala Peak",x.halaPeak,""], ["Peak",x.peak,""], ["Others",x.extraCharges,""]
+  ];
+  const row=(label,value)=>`<div class="line"><span>${safe(label)}</span><strong>${money2(value)} AED</strong></div>`;
+  const calcRow=(label,qty,amount)=>`<div class="line"><span>${safe(label)} <em>${amount!==""?`× ${money2(qty)} @ ${label==="Shift Trips"?money2(rtaRate):label==="Bookings"?money2(bookingRate):money2(fuelRate)} AED`:""}</em></span><strong>${money2(amount!==""?amount:qty)} AED</strong></div>`;
+
+  const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invoice ${safe(x.invoiceNumber||"")}</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef0f5;font-family:Arial,Helvetica,sans-serif;color:#15192d}.sheet{width:min(820px,calc(100% - 28px));margin:24px auto;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.12)}
+.head{background:#0d1033;color:#fff;padding:28px}.brand{font-size:27px;font-weight:900;letter-spacing:-.6px}.sub{margin-top:5px;color:#d9dbea;font-size:12px}.headgrid{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;margin-top:24px}.invno{font-size:22px;font-weight:900}.date{font-size:13px;color:#d9dbea;margin-top:5px}.driver{text-align:right;font-size:12px;line-height:1.7;color:#e8e9f2}.body{padding:24px}.section{border:1px solid #e7e9ef;border-radius:18px;padding:16px;margin-bottom:15px}.section h3{margin:0 0 10px;font-size:15px}.line{display:flex;justify-content:space-between;gap:15px;padding:9px 0;border-bottom:1px dashed #e3e5eb;font-size:13px}.line:last-child{border-bottom:0}.line span{color:#555b6d}.line strong{font-size:13px}.line em{font-style:normal;color:#8a8f9c;font-size:10px;margin-left:5px}.rates{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.rate{background:#f5f6fa;border-radius:13px;padding:11px;text-align:center}.rate small{display:block;color:#747988;font-size:10px;font-weight:700}.rate b{display:block;margin-top:4px;font-size:14px}.totals{background:#f5f6fa;border-radius:18px;padding:15px}.totalrow{display:flex;justify-content:space-between;padding:8px 0;font-size:14px}.totalrow.net{border-top:2px solid #dfe2e9;margin-top:6px;padding-top:13px;font-size:20px;font-weight:900}.approved{display:inline-block;margin-top:12px;background:#e8f7ee;color:#24764a;padding:7px 12px;border-radius:999px;font-weight:900;font-size:12px}.foot{text-align:center;color:#858a98;font-size:10px;padding:0 24px 24px}.actions{position:sticky;bottom:0;background:#fff;padding:14px 24px;border-top:1px solid #e5e7ec;display:flex;gap:10px}.actions button{flex:1;border:0;border-radius:12px;padding:12px;font-weight:900;cursor:pointer}.print{background:#0d1033;color:#fff}.close{background:#eef0f5}
+@media(max-width:600px){.sheet{width:100%;margin:0;border-radius:0}.head{padding:22px 18px}.body{padding:16px}.headgrid{grid-template-columns:1fr}.driver{text-align:left}.rates{gap:6px}.rate{padding:9px 5px}.line{font-size:12px}.line strong{font-size:12px}.actions{padding:12px 16px}}
+@media print{body{background:#fff}.sheet{width:100%;margin:0;box-shadow:none;border-radius:0}.actions{display:none}.head{-webkit-print-color-adjust:exact;print-color-adjust:exact}.section,.totals{break-inside:avoid}.foot{padding-bottom:0}}
+</style></head><body>
+<div class="sheet"><div class="head"><div class="brand">Driver Taxi Accounting</div><div class="sub">Detailed Invoice Statement</div><div class="headgrid"><div><div class="invno">${safe(x.invoiceNumber||"Invoice")}</div><div class="date">Invoice Date: ${safe(date||"—")}</div></div><div class="driver"><strong>${safe(driverName)}</strong><br>Driver ID: ${safe(driverId)}<br>Mobile: ${safe(mobile)}</div></div></div>
+<div class="body">
+<div class="section"><h3>Income &amp; Credits</h3>${income.map(r=>row(r[0],r[1])).join("")}</div>
+<div class="section"><h3>Applied Charge Rates</h3><div class="rates"><div class="rate"><small>RTA / Shift Trips</small><b>${money2(rtaRate)} AED</b></div><div class="rate"><small>Fuel / KM</small><b>${money2(fuelRate)} AED</b></div><div class="rate"><small>Booking</small><b>${money2(bookingRate)} AED</b></div></div></div>
+<div class="section"><h3>Deductions &amp; Charges</h3>${deductionsRows.map(r=>r[2]!==""?calcRow(r[0],r[1],r[2]):row(r[0],r[1])).join("")}</div>
+<div class="totals"><div class="totalrow"><span>Total Amount</span><strong>${money2(total)} AED</strong></div><div class="totalrow"><span>Total Deductions</span><strong>${money2(deductions)} AED</strong></div><div class="totalrow net"><span>NET AMOUNT</span><strong>${money2(net)} AED</strong></div><span class="approved">✓ Invoice Saved</span></div>
+</div><div class="foot">This invoice contains the complete details saved for this invoice record.</div>
+<div class="actions"><button class="close" onclick="window.close()">Close</button><button class="print" onclick="window.print()">🖨️ Print / Save as PDF</button></div></div>
+<script>setTimeout(()=>window.print(),450);</script></body></html>`;
+
+  const w=window.open("","_blank","width=900,height=1000");
+  if(!w){alert("Please allow pop-ups to print the invoice.");return;}
+  w.document.open();w.document.write(html);w.document.close();
+};
 
 function renderSavedInvoices(){
   const box=document.getElementById("savedInvoiceList");
@@ -1685,8 +1827,8 @@ function renderSavedInvoices(){
     const v=k=>money(x[k]);
     const safeId=String(x.id||"").replace(/'/g,"\\'");
     const updateButton=String(x.id||"")===latestId
-      ? `<button class="saved-invoice-update" onclick="editInvoice('${safeId}')">✏️ Update</button>`
-      : "—";
+      ? `<div style="display:flex;gap:5px;align-items:center;justify-content:center"><button class="saved-invoice-update" onclick="editInvoice('${safeId}')">✏️ Update</button><button class="saved-invoice-print" onclick="printInvoice('${safeId}')">🖨️</button></div>`
+      : `<button class="saved-invoice-print" onclick="printInvoice('${safeId}')">🖨️ Print</button>`;
     return `<tr>
       <td class="invoice-no-cell">${displaySerial}</td>
       <td class="invoice-date-cell">${x.date||"—"}</td>
@@ -1711,18 +1853,90 @@ function renderSavedInvoices(){
   </div>`;
 }
 
+function historyEscape(value){
+  return String(value??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+
+window.clearHistoryFilters=()=>{
+  const from=document.getElementById("historyFromDate"),to=document.getElementById("historyToDate"),search=document.getElementById("historySearch");
+  if(from)from.value=""; if(to)to.value=""; if(search)search.value="";
+  renderHistory();
+};
+
+function getHistoryFilteredInvoices(){
+  const from=document.getElementById("historyFromDate")?.value||"";
+  const to=document.getElementById("historyToDate")?.value||"";
+  const q=(document.getElementById("historySearch")?.value||"").trim().toLowerCase();
+  let rows=[...invoices];
+  if(from)rows=rows.filter(x=>String(x.date||"")>=from);
+  if(to)rows=rows.filter(x=>String(x.date||"")<=to);
+  if(q){
+    rows=rows.filter(x=>{
+      const hay=[x.invoiceNumber,x.date,x.id].map(v=>String(v??"").toLowerCase()).join(" ");
+      return hay.includes(q);
+    });
+  }
+  return rows.sort((a,b)=>{
+    const dc=String(b.date||"").localeCompare(String(a.date||""));
+    if(dc!==0)return dc;
+    return recordUpdatedTime(b)-recordUpdatedTime(a);
+  });
+}
+
+function renderHistorySummary(rows){
+  const el=document.getElementById("historySummary"); if(!el)return;
+  const total=rows.reduce((s,x)=>s+Number(x.total||0),0);
+  const deductions=rows.reduce((s,x)=>s+Number(x.deductions||0),0);
+  const net=rows.reduce((s,x)=>s+Number(x.net||0),0);
+  const avg=rows.length?net/rows.length:0;
+  el.innerHTML=`
+    <div class="history-stat"><small>Invoices</small><strong>${rows.length}</strong><div class="history-stat-sub">in selected range</div></div>
+    <div class="history-stat"><small>Total</small><strong>${money(total)} AED</strong><div class="history-stat-sub">before deductions</div></div>
+    <div class="history-stat"><small>Net</small><strong>${money(net)} AED</strong><div class="history-stat-sub">Avg ${money(avg)} / invoice</div></div>`;
+}
+
+function renderHistoryChart(rows){
+  const box=document.getElementById("historyChart"); if(!box)return;
+  if(!rows.length){box.innerHTML="";return;}
+  const byDate={};
+  rows.forEach(x=>{const d=String(x.date||"Unknown");byDate[d]=(byDate[d]||0)+Number(x.net||0);});
+  const points=Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0]));
+  const max=Math.max(...points.map(p=>Math.abs(p[1])),1);
+  const cols=points.map(([date,value])=>{
+    const h=Math.max(4,Math.round(Math.abs(value)/max*112));
+    const label=date.length>=10?date.slice(8,10)+"/"+date.slice(5,7):date;
+    return `<div class="history-chart-col" title="${historyEscape(date)} — ${money(value)} AED"><div class="history-chart-value">${money(value)}</div><div class="history-chart-bar-wrap"><div class="history-chart-bar" style="height:${h}px"></div></div><div class="history-chart-label">${historyEscape(label)}</div></div>`;
+  }).join("");
+  box.innerHTML=`<div class="history-chart-head"><strong>Net by date</strong><span>${points.length} date${points.length===1?"":"s"}</span></div><div class="history-chart">${cols}</div>`;
+}
+
 function renderHistory(){
-const box=document.getElementById("historyList");
-if(!invoices.length){box.innerHTML='<div class="form-card">No invoices saved yet.</div>';return}
-box.innerHTML=[...invoices].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(x=>`
-<div class="history-item">
-<div class="history-top"><span>${x.invoiceNumber||"Invoice"}</span><span>${x.date||""}</span></div>
-<div class="history-net">${money(x.net)} AED</div>
-<div class="small">Total ${money(x.total)} · Deductions ${money(x.deductions)}</div>
-<div class="history-actions">
-<button class="edit-btn" onclick="editInvoice('${x.id}')">✏️ Edit</button>
-<button class="delete-btn" onclick="deleteInvoice('${x.id}')">🗑 Delete</button>
-</div></div>`).join("");
+  const box=document.getElementById("historyList"); if(!box)return;
+  const rows=getHistoryFilteredInvoices();
+  renderHistorySummary(rows);
+  renderHistoryChart(rows);
+  const from=document.getElementById("historyFromDate")?.value||"";
+  const to=document.getElementById("historyToDate")?.value||"";
+  const search=(document.getElementById("historySearch")?.value||"").trim();
+  if(!invoices.length){box.innerHTML='<div class="history-empty">No invoices saved yet.</div>';return;}
+  if(!rows.length){box.innerHTML='<div class="history-empty">No invoice found for the selected date range / search.</div>';return;}
+  const rangeText=from||to?`Showing ${from||"all dates"} to ${to||"all dates"}`:"Showing all dates";
+  const tableRows=rows.map((x,index)=>{
+    const safeId=historyEscape(x.id);
+    return `<tr>
+      <td class="serial">${rows.length-index}</td>
+      <td>${historyEscape(x.date||"—")}</td>
+      <td><strong>${historyEscape(x.invoiceNumber||"Invoice")}</strong></td>
+      <td>${money(x.creditCard)}</td><td>${money(x.app)}</td><td>${money(x.cash)}</td>
+      <td>${money(x.tips)}</td><td>${money(x.tolls)}</td><td>${money(x.shiftDiscount)}</td>
+      <td>${money(x.shiftTrips)}</td><td>${money(x.bookings)}</td><td>${money(x.km)}</td>
+      <td>${money(x.careemDiscount)}</td><td>${money(x.paidCareem)}</td><td>${money(x.halaJunior)}</td>
+      <td>${money(x.halaPeak)}</td><td>${money(x.peak)}</td><td>${money(x.extraCharges)}</td>
+      <td>${money(x.total)} AED</td><td>${money(x.deductions)} AED</td><td class="net-cell">${money(x.net)} AED</td>
+      <td><div class="history-actions-cell"><button class="history-mini-btn edit-mini" onclick="editInvoice('${safeId}')">✏️ Edit</button><button class="history-mini-btn print-mini" onclick="printInvoice('${safeId}')">🖨️ Print</button><button class="history-mini-btn delete-mini" onclick="deleteInvoice('${safeId}')">🗑</button></div></td>
+    </tr>`;
+  }).join("");
+  box.innerHTML=`<div class="history-results-title">Invoice Records <span class="small">(${rows.length})</span></div><div class="history-range-note">${rangeText}${search?` · Search: “${historyEscape(search)}”`:""}</div><div class="history-table-card"><div class="history-table-wrap"><table class="history-table"><thead><tr><th>No.</th><th>Date</th><th>Invoice No.</th><th>Credit Card</th><th>App</th><th>Cash</th><th>Tips</th><th>Tollways</th><th>Shift Discount</th><th>Shift Trips</th><th>Bookings</th><th>Kilometers</th><th>Careem Discount</th><th>Paid in Careem</th><th>Hala Juniors</th><th>Hala Peak</th><th>Peak</th><th>Others</th><th>Total</th><th>Deductions</th><th>Net</th><th>Action</th></tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
 }
 
 const CHARGE_DAYS=Array.from({length:31},(_,i)=>i+1);
