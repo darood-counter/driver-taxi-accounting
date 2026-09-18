@@ -2110,7 +2110,9 @@ async function processInvoiceScan(file){
     // Start with a clean zero-filled object so every required invoice field
     // always receives a value, even when the receipt itself shows 0.00.
     let filled=blankRTAOCRFields();
+    const ocrSeen=Object.create(null);
     const passes=[
+      {psm:"4",mode:"normal"},
       {psm:"6",mode:"normal"},
       {psm:"6",mode:"gray"},
       {psm:"11",mode:"full"}
@@ -2131,13 +2133,14 @@ async function processInvoiceScan(file){
       const fromData=parseInvoiceOCRData(r?.data);
       for(const id of REQUIRED_RTA_OCR_FIELDS){
         const v=Number(fromData[id]);
-        if(Number.isFinite(v) && (v!==0 || filled[id]===0)) filled[id]=v;
+        if(!Number.isFinite(v)) continue;
+        if(!ocrSeen[id]){ filled[id]=v; ocrSeen[id]=true; }
       }
       // Once all fields have non-zero readings OR the remaining fields are
       // explicitly present as zero, still run the last pass only when needed.
       if(pi<passes.length-1){
-        const missingOrZero=REQUIRED_RTA_OCR_FIELDS.filter(id=>Number(filled[id])===0).length;
-        if(missingOrZero<=2 && pi===1)break;
+        const missingFields=REQUIRED_RTA_OCR_FIELDS.filter(id=>!ocrSeen[id]).length;
+        if(missingFields<=1 && pi>=1)break;
       }
     }
 
@@ -2377,7 +2380,7 @@ const RTA_TEMPLATE={
   // normalized vertical centers measured from the complete receipt page
   rows:{
     creditCard:{no:2,label:"Credit Cards",y:.35615},
-    app:{no:5,label:"APP",y:.44262},
+    app:{no:5,label:"APP",y:.40943},
     cash:{no:8,label:"Cash",y:.45984},
     tips:{no:10,label:"Tips",y:.49426},
     tolls:{no:13,label:"Total Tollways",y:.54467},
@@ -2411,7 +2414,7 @@ function rtaStrictTemplateValue(data,id){
 
   // The RTA rows are close together, so use a deliberately narrow vertical
   // band. We never search above/below the assigned row.
-  const bandHalf=Math.max(11,Math.min(21,H*.0072));
+  const bandHalf=Math.max(12,Math.min(24,H*.0078));
   const band=words.filter(w=>{
     const top=Number(w.bbox?.top||0), bottom=Number(w.bbox?.bottom||top);
     const cy=(top+bottom)/2;
