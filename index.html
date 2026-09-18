@@ -2527,6 +2527,25 @@ function selectDashboardDate(value){
   const input=document.getElementById("dashboardDateSelect");
   if(input&&value)input.value=value;
   updateDashboard();
+  // After the selected date is rendered, move the chart to that exact date.
+  requestAnimationFrame(()=>scrollDashboardChartToDate(value,{smooth:true,force:true}));
+}
+
+function scrollDashboardChartToDate(dateKey,{smooth=true,force=false}={}){
+  if(!dateKey)return;
+  const viewport=document.querySelector(".chart-scroll");
+  const chart=document.getElementById("chart");
+  if(!viewport||!chart)return;
+  const col=chart.querySelector('.chart-col[data-date="'+CSS.escape(String(dateKey))+'"]');
+  if(!col)return;
+  // Keep the selected/latest day comfortably visible instead of jumping to an
+  // arbitrary position at the end of the chart.
+  const left=col.offsetLeft-(viewport.clientWidth/2)+(col.offsetWidth/2);
+  const maxLeft=Math.max(0,chart.scrollWidth-viewport.clientWidth);
+  const target=Math.max(0,Math.min(left,maxLeft));
+  if(force || Math.abs(viewport.scrollLeft-target)>4){
+    viewport.scrollTo({left:target,behavior:smooth?"smooth":"auto"});
+  }
 }
 
 function clearDashboardDateSelection(){
@@ -2629,6 +2648,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   arr.forEach((x,i)=>{
     const col=document.createElement("div");
     col.className="chart-col";
+    col.dataset.date=x.key;
     if(dashboardSelectedDate===x.key)col.classList.add("selected");
     const value=document.createElement("div");
     value.className="chart-value";
@@ -2655,6 +2675,20 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       chart.appendChild(callout);
     }
   });
+
+  // Automatically follow the latest date that actually has invoice data.
+  // This makes the chart advance one day at a time as new records arrive.
+  const cycleStart=cycle?.startKey||start&&dateKeyLocal(start);
+  const cycleEnd=cycle?.endKey||end&&dateKeyLocal(end);
+  const dataDates=arr.filter(x=>{
+    const hasData=invoices.some(inv=>String(inv.date||"")===x.key);
+    return hasData && (!cycleStart||x.key>=cycleStart) && (!cycleEnd||x.key<=cycleEnd);
+  });
+  const latestData=dataDates.length?dataDates[dataDates.length-1]:null;
+  const followDate=dashboardSelectedDate||latestData?.key||arr[arr.length-1]?.key;
+  if(followDate){
+    requestAnimationFrame(()=>scrollDashboardChartToDate(followDate,{smooth:true}));
+  }
 }
 
 onAuthStateChanged(auth,async user=>{
