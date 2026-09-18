@@ -538,6 +538,7 @@ input:focus{border-color:#ed166a}
 .leave-day.disabled{color:#d9dde1;cursor:not-allowed}
 .leave-day.today{background:#d9def1;color:#111827;font-weight:900}
 .leave-day.selected{background:#cfd6f1;color:#111827;font-weight:900;box-shadow:inset 0 0 0 2px #7c86b5}
+.leave-day.range{background:#e9ecf8;color:#27313d;border-radius:12px}.leave-day.range-start,.leave-day.range-end{background:#cfd6f1;color:#111827;font-weight:900;box-shadow:inset 0 0 0 2px #7c86b5}.leave-range-note{background:#f6f7fa;border-radius:13px;padding:10px 12px;margin:10px 0;color:#535865;font-size:13px;font-weight:800}.leave-record-range{font-size:14px;font-weight:900;margin-top:5px}.leave-record-days{font-weight:900;color:#111827}.leave-record-approved{display:inline-flex;align-items:center;padding:5px 9px;border-radius:9px;background:#e8f7ee;color:#16804b;font-size:11px;font-weight:900;margin-top:8px}
 .leave-request-btn{width:100%;border:0;border-radius:22px;background:#ed166a;color:#fff;padding:16px 18px;font-size:17px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px}
 .leave-section-title{font-size:20px;font-weight:900;color:#737783;margin:0 0 11px}
 .leave-empty{background:#fff;border-radius:22px;padding:30px 18px;text-align:center;color:#737783;margin-bottom:22px}
@@ -926,7 +927,7 @@ input:focus{border-color:#ed166a}
 
     <div id="leaveStep2" style="display:none">
       <h1 id="leaveStep2Title">Request a local leave</h1>
-      <p class="sub">Please select the day you want to take off. <b style="color:#ed166a">*</b></p>
+      <p class="sub">Select the start date and end date. For Local leave, select one day only. <b style="color:#ed166a">*</b></p>
       <div class="leave-selected-note" id="leaveSelectedType">Local leave</div>
       <div class="leave-calendar-card flow-calendar">
         <div class="leave-calendar-head">
@@ -1091,7 +1092,7 @@ const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
 let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;
-let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
+let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
 const n=id=>Number(document.getElementById(id)?.value||0);
@@ -2004,36 +2005,42 @@ function leaveSameMonth(a,b){
   const da=leaveDateObj(a),db=leaveDateObj(b);
   return da.getFullYear()===db.getFullYear() && da.getMonth()===db.getMonth();
 }
-function leaveRenderDays(containerId,titleId,selectedDate=""){
+function leaveRecordStart(r){return r.startDate||r.date||"";}
+function leaveRecordEnd(r){return r.endDate||r.date||r.startDate||"";}
+function leaveDaysBetween(start,end){
+  if(!start||!end)return 0;
+  const a=leaveDateObj(start),b=leaveDateObj(end);
+  return Math.max(0,Math.round((b-a)/86400000)+1);
+}
+function leaveDateInRange(key,start,end){return !!(start&&end&&key>=start&&key<=end)}
+function leaveRenderDays(containerId,titleId,selectedDate="",selectedEndDate=""){
   const box=document.getElementById(containerId),title=document.getElementById(titleId);
   if(!box||!title)return;
   const y=leaveCalendarMonth.getFullYear(),m=leaveCalendarMonth.getMonth();
   title.textContent=leaveMonthTitle(leaveCalendarMonth);
-  const first=new Date(y,m,1).getDay();
-  const days=new Date(y,m+1,0).getDate();
-  const today=leaveTodayKey();
+  const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),today=leaveTodayKey();
   let html="";
-  for(let i=0;i<first;i++)html+='<button class="leave-day empty" tabindex="-1" aria-hidden="true"></button>';
+  for(let i=0;i<first;i++)html+='<button type="button" class="leave-day empty" tabindex="-1" aria-hidden="true"></button>';
   for(let day=1;day<=days;day++){
     const key=`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    const isPast=key<today;
-    const isToday=key===today;
-    const isSelected=key===selectedDate;
-    const existing=leaveRecords.find(r=>r.date===key);
+    const isPast=key<today,isToday=key===today;
+    const inSelected=leaveDateInRange(key,selectedDate,selectedEndDate||selectedDate);
+    const isStart=key===selectedDate,isEnd=key===(selectedEndDate||selectedDate);
+    const existing=leaveRecords.some(r=>leaveDateInRange(key,leaveRecordStart(r),leaveRecordEnd(r)));
     const cls=["leave-day"];
-    if(isPast)cls.push("past");
-    if(isToday)cls.push("today");
-    if(isSelected)cls.push("selected");
+    if(isPast)cls.push("past"); if(isToday)cls.push("today");
+    if(inSelected)cls.push("range"); if(isStart)cls.push("range-start"); if(isEnd)cls.push("range-end");
     if(existing)cls.push("disabled");
-    const disabled=isPast||!!existing;
+    const disabled=isPast||existing;
     const handler=containerId==="leaveCalendarDays"?"selectLeaveHomeDate":"selectLeaveDate";
     html+=`<button type="button" class="${cls.join(" ")}" ${disabled?'disabled':''} onclick="${handler}('${key}')">${day}</button>`;
   }
   box.innerHTML=html;
 }
+
 function renderLeaveCalendar(){
-  leaveRenderDays("leaveCalendarDays","leaveMonthTitle",leaveHomeSelectedDate);
-  leaveRenderDays("leaveFlowCalendarDays","leaveFlowMonthTitle",leaveSelectedDate);
+  leaveRenderDays("leaveCalendarDays","leaveMonthTitle",leaveHomeSelectedDate,"");
+  leaveRenderDays("leaveFlowCalendarDays","leaveFlowMonthTitle",leaveSelectedDate,leaveSelectedEndDate);
 }
 window.changeLeaveMonth=direction=>{
   leaveCalendarMonth.setMonth(leaveCalendarMonth.getMonth()+Number(direction||0));
@@ -2043,7 +2050,7 @@ window.leaveGoHome=()=>{
   const home=document.getElementById("leavesHomeView"),flow=document.getElementById("leaveFlowView");
   if(home)home.style.display="block";
   if(flow)flow.classList.remove("active");
-  leaveTypeSelected="";leaveTypeDescription="";leaveTypeIcon="";leaveSelectedDate="";
+  leaveTypeSelected="";leaveTypeDescription="";leaveTypeIcon="";leaveSelectedDate="";leaveSelectedEndDate="";
   const success=document.getElementById("leaveSuccess");
   if(success)success.classList.remove("show");
   renderLeaveCalendar();renderLeaveHome();
@@ -2051,143 +2058,98 @@ window.leaveGoHome=()=>{
   if(page)page.scrollIntoView({behavior:"smooth",block:"start"});
 };
 function renderUpcomingLeaves(){
-  const box=document.getElementById("upcomingLeaves");
-  if(!box)return;
+  const box=document.getElementById("upcomingLeaves"); if(!box)return;
   const today=leaveTodayKey();
-  const rows=[...leaveRecords].filter(r=>String(r.date||"")>=today).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).slice(0,3);
-  if(!rows.length){
-    box.innerHTML='<div class="leave-empty">You don’t have any planned leaves.</div>';
-    return;
-  }
-  box.innerHTML=rows.map(r=>`
+  const rows=[...leaveRecords].filter(r=>leaveRecordEnd(r)>=today).sort((a,b)=>leaveRecordStart(a).localeCompare(leaveRecordStart(b))).slice(0,3);
+  if(!rows.length){box.innerHTML='<div class="leave-empty">You don’t have any planned leaves.</div>';return;}
+  box.innerHTML=rows.map(r=>{const st=leaveRecordStart(r),en=leaveRecordEnd(r),days=Number(r.days)||leaveDaysBetween(st,en);return `
     <div class="leave-record">
-      <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-date">${leaveFormatDate(r.date)}</div></div>
-      <span class="leave-record-status">Planned • 1 Day</span>
-    </div>`).join("");
+      <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-approved">✓ Approved</div></div>
+      <div class="leave-record-range">${leaveFormatDate(st)}${en!==st?` – ${leaveFormatDate(en)}`:""}</div>
+      <span class="leave-record-status"><span class="leave-record-days">${days} ${days===1?"Day":"Days"}</span></span>
+    </div>`}).join("");
 }
 function renderAllLeaves(){
-  const box=document.getElementById("allLeavesList");
-  const count=document.getElementById("allLeavesCount");
+  const box=document.getElementById("allLeavesList"),count=document.getElementById("allLeavesCount");
   if(count)count.textContent=`${leaveRecords.length} ${leaveRecords.length===1?"record":"records"}`;
   const totalDays=document.getElementById("leaveTotalDays");
-  if(totalDays)totalDays.textContent=`Total leave days: ${leaveRecords.length}`;
+  const total=leaveRecords.reduce((sum,r)=>sum+(Number(r.days)||leaveDaysBetween(leaveRecordStart(r),leaveRecordEnd(r))),0);
+  if(totalDays)totalDays.textContent=`Total leave days: ${total}`;
   if(!box)return;
-  const rows=[...leaveRecords].sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
-  if(!rows.length){box.innerHTML='<div class="leave-empty">No leave records yet.</div>';return}
-  box.innerHTML=rows.map(r=>`
-    <div class="leave-record">
-      <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-date">${leaveFormatDate(r.date)}</div></div>
-      <span class="leave-record-status">${String(r.date||"")<leaveTodayKey()?"Past":"Planned"} • 1 Day</span>
+  const rows=[...leaveRecords].sort((a,b)=>leaveRecordStart(b).localeCompare(leaveRecordStart(a)));
+  if(!rows.length){box.innerHTML='<div class="leave-empty">No leave records yet.</div>';return;}
+  box.innerHTML=rows.map(r=>{
+    const st=leaveRecordStart(r),en=leaveRecordEnd(r),days=Number(r.days)||leaveDaysBetween(st,en);
+    return `<div class="leave-record">
+      <div class="leave-record-top"><div class="leave-record-name">${r.icon||"🗓️"} ${r.type||"Leave"}</div><div class="leave-record-approved">✓ Approved</div></div>
+      <div class="leave-record-range">${leaveFormatDate(st)}${en!==st?` – ${leaveFormatDate(en)}`:""}</div>
+      <span class="leave-record-status"><span class="leave-record-days">${days} ${days===1?"Day":"Days"}</span></span>
       <div class="leave-record-actions"><button class="leave-delete" onclick="deleteLeaveRecord('${String(r.id||"").replace(/'/g,"\\'")}')">🗑 Delete</button></div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
-function renderLeaveHome(){
-  renderUpcomingLeaves();
-  renderAllLeaves();
-}
+function renderLeaveHome(){renderUpcomingLeaves();renderAllLeaves();}
+
 window.toggleAllLeaves=()=>{
   const v=document.getElementById("allLeavesView");
   if(v)v.classList.toggle("show");
 };
 window.startLeaveRequest=()=>{
-  leaveTypeSelected="";leaveTypeDescription="";leaveTypeIcon="";leaveSelectedDate="";
-  document.getElementById("leavesHomeView").style.display="none";
-  document.getElementById("leaveFlowView").classList.add("active");
-  document.getElementById("leaveStep1").style.display="block";
-  document.getElementById("leaveStep2").style.display="none";
-  document.getElementById("leaveStepCount").textContent="1/2";
-  document.getElementById("leaveProgressBar").style.width="50%";
-  leaveCalendarMonth=new Date();
-  renderLeaveCalendar();
-  document.getElementById("leavesPage")?.scrollIntoView({behavior:"smooth",block:"start"});
+  leaveTypeSelected="";leaveTypeDescription="";leaveTypeIcon="";leaveSelectedDate="";leaveSelectedEndDate="";
+  document.getElementById("leavesHomeView").style.display="none"; document.getElementById("leaveFlowView").classList.add("active");
+  document.getElementById("leaveStep1").style.display="block"; document.getElementById("leaveStep2").style.display="none";
+  document.getElementById("leaveStepCount").textContent="1/2"; document.getElementById("leaveProgressBar").style.width="50%";
+  leaveCalendarMonth=new Date(); renderLeaveCalendar(); document.getElementById("leavesPage")?.scrollIntoView({behavior:"smooth",block:"start"});
 };
 window.selectLeaveType=(type,description,icon)=>{
   leaveTypeSelected=type;leaveTypeDescription=description;leaveTypeIcon=icon;
-  document.getElementById("leaveStep1").style.display="none";
-  document.getElementById("leaveStep2").style.display="block";
-  document.getElementById("leaveStepCount").textContent="2/2";
-  document.getElementById("leaveProgressBar").style.width="100%";
-  document.getElementById("leaveStep2Title").textContent=`Request a ${type.toLowerCase()}`;
-  document.getElementById("leaveSelectedType").textContent=`${icon} ${type}`;
-  document.getElementById("leavePolicyText").textContent=type==="Local leave"
-    ? "Local leave: maximum 2 approved/planned local leave days in the same calendar month."
-    : description;
-  document.getElementById("leaveContinueBtn").disabled=true;
-  document.getElementById("leaveSuccess").classList.remove("show");
-  leaveSelectedDate="";
-  leaveCalendarMonth=new Date();
-  renderLeaveCalendar();
+  document.getElementById("leaveStep1").style.display="none";document.getElementById("leaveStep2").style.display="block";
+  document.getElementById("leaveStepCount").textContent="2/2";document.getElementById("leaveProgressBar").style.width="100%";
+  document.getElementById("leaveStep2Title").textContent=`Request a ${type.toLowerCase()}`;document.getElementById("leaveSelectedType").textContent=`${icon} ${type}`;
+  document.getElementById("leavePolicyText").textContent=type==="Local leave"?"Select one day for Local leave. Other leave types can use a date range.":"Select the start date, then the end date. Days are calculated automatically.";
+  document.getElementById("leaveContinueBtn").disabled=true;document.getElementById("leaveSuccess").classList.remove("show");
+  leaveSelectedDate="";leaveSelectedEndDate="";leaveCalendarMonth=new Date();renderLeaveCalendar();
 };
-window.leaveBackToStep1=()=>{
-  document.getElementById("leaveStep2").style.display="none";
-  document.getElementById("leaveStep1").style.display="block";
-  document.getElementById("leaveStepCount").textContent="1/2";
-  document.getElementById("leaveProgressBar").style.width="50%";
-};
-window.leaveBackToHome=()=>{ leaveGoHome(); };
-window.selectLeaveHomeDate=date=>{
-  const today=leaveTodayKey();
-  if(date<today)return;
-  if(leaveRecords.some(r=>r.date===date))return;
-  leaveHomeSelectedDate=date;
-  renderLeaveCalendar();
-};
+window.leaveBackToStep1=()=>{document.getElementById("leaveStep2").style.display="none";document.getElementById("leaveStep1").style.display="block";document.getElementById("leaveStepCount").textContent="1/2";document.getElementById("leaveProgressBar").style.width="50%";};
+window.leaveBackToHome=()=>{leaveGoHome();};
+window.selectLeaveHomeDate=date=>{if(date<leaveTodayKey())return;leaveHomeSelectedDate=date;renderLeaveCalendar();};
 window.selectLeaveDate=date=>{
-  const today=leaveTodayKey();
-  if(date<today)return;
-  if(leaveRecords.some(r=>r.date===date))return;
-  if(leaveTypeSelected==="Local leave"){
-    const monthCount=leaveRecords.filter(r=>r.type==="Local leave"&&leaveSameMonth(r.date,date)).length;
-    if(monthCount>=2){
-      document.getElementById("leavePolicyText").textContent="Local leave limit reached: you already have 2 local leave records in this month.";
-      document.getElementById("leaveContinueBtn").disabled=true;
-      return;
-    }
+  const today=leaveTodayKey(); if(date<today)return;
+  const occupied=leaveRecords.some(r=>leaveDateInRange(date,leaveRecordStart(r),leaveRecordEnd(r))); if(occupied)return;
+  if(!leaveSelectedDate||leaveSelectedEndDate){
+    leaveSelectedDate=date;leaveSelectedEndDate="";
+    document.getElementById("leaveContinueBtn").disabled=true;
+    document.getElementById("leavePolicyText").textContent=leaveTypeSelected==="Local leave"?`Selected ${leaveFormatDate(date)}. Tap Continue to save this 1-day leave.`:`Start: ${leaveFormatDate(date)}. Now select the end date.`;
+  }else{
+    if(date<leaveSelectedDate){leaveSelectedEndDate=leaveSelectedDate;leaveSelectedDate=date;}else{leaveSelectedEndDate=date;}
+    const days=leaveDaysBetween(leaveSelectedDate,leaveSelectedEndDate);
+    if(leaveTypeSelected==="Local leave"&&days!==1){leaveSelectedEndDate=leaveSelectedDate;document.getElementById("leavePolicyText").textContent="Local leave is only 1 day. Please select one day only.";document.getElementById("leaveContinueBtn").disabled=false;}
+    else{document.getElementById("leavePolicyText").textContent=`Selected: ${leaveFormatDate(leaveSelectedDate)}${leaveSelectedEndDate!==leaveSelectedDate?` – ${leaveFormatDate(leaveSelectedEndDate)}`:""} • ${days} ${days===1?"Day":"Days"}`;document.getElementById("leaveContinueBtn").disabled=false;}
   }
-  leaveSelectedDate=date;
-  document.getElementById("leaveContinueBtn").disabled=false;
-  document.getElementById("leavePolicyText").textContent=leaveTypeSelected==="Local leave"
-    ? "Local leave: maximum 2 approved/planned local leave days in the same calendar month."
-    : leaveTypeDescription;
   renderLeaveCalendar();
 };
 window.submitLeaveRequest=async()=>{
-  if(!currentUser){alert("Please login first.");return}
+  if(!currentUser){alert("Please login first.");return;}
   if(!leaveTypeSelected||!leaveSelectedDate)return;
-  const today=leaveTodayKey();
-  if(leaveSelectedDate<today)return;
-  if(leaveRecords.some(r=>r.date===leaveSelectedDate)){
-    document.getElementById("leavePolicyText").textContent="This date already has a leave record.";
-    return;
-  }
-  if(leaveTypeSelected==="Local leave"){
-    const count=leaveRecords.filter(r=>r.type==="Local leave"&&leaveSameMonth(r.date,leaveSelectedDate)).length;
-    if(count>=2){
-      document.getElementById("leavePolicyText").textContent="Local leave limit reached for this month.";
-      return;
-    }
-  }
-  const btn=document.getElementById("leaveContinueBtn");
-  btn.disabled=true;btn.textContent="Saving...";
-  const record={id:`leave_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,type:leaveTypeSelected,description:leaveTypeDescription,icon:leaveTypeIcon,date:leaveSelectedDate,createdAt:new Date().toISOString()};
+  const endDate=leaveSelectedEndDate||leaveSelectedDate,days=leaveDaysBetween(leaveSelectedDate,endDate);
+  if(!days||endDate<leaveSelectedDate)return;
+  if(leaveTypeSelected==="Local leave"&&days!==1){document.getElementById("leavePolicyText").textContent="Local leave is only 1 day.";return;}
+  const overlaps=leaveRecords.some(r=>{const a=leaveRecordStart(r),b=leaveRecordEnd(r);return leaveDateInRange(leaveSelectedDate,a,b)||leaveDateInRange(endDate,a,b)||(leaveSelectedDate<=a&&endDate>=b);});
+  if(overlaps){document.getElementById("leavePolicyText").textContent="One or more selected dates already have a leave record.";return;}
+  if(leaveTypeSelected==="Local leave"){const count=leaveRecords.filter(r=>r.type==="Local leave"&&leaveSameMonth(leaveRecordStart(r),leaveSelectedDate)).length;if(count>=2){document.getElementById("leavePolicyText").textContent="Local leave limit reached for this month.";return;}}
+  const btn=document.getElementById("leaveContinueBtn");btn.disabled=true;btn.textContent="Saving...";
+  const record={id:`leave_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,type:leaveTypeSelected,description:leaveTypeDescription,icon:leaveTypeIcon,date:leaveSelectedDate,startDate:leaveSelectedDate,endDate:endDate,days,status:"Approved",createdAt:new Date().toISOString()};
   try{
     const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{};
-    const records=Array.isArray(existing.leaveRecords)?existing.leaveRecords:leaveRecords;
-    const next=[...records,record];
-    await setDoc(ref,{leaveRecords:next},{merge:true});
-    driverData={...driverData,leaveRecords:next};
-    leaveRecords=next;
-    renderLeaveHome();
-    document.getElementById("leaveSuccess").textContent=`Leave saved successfully for ${leaveFormatDate(leaveSelectedDate)}.`;
-    document.getElementById("leaveSuccess").classList.add("show");
-    btn.textContent="Saved";
+    const records=Array.isArray(existing.leaveRecords)?existing.leaveRecords:leaveRecords,next=[...records,record];
+    await setDoc(ref,{leaveRecords:next},{merge:true}); driverData={...driverData,leaveRecords:next};leaveRecords=next;
+    renderLeaveCalendar();renderLeaveHome();
+    document.getElementById("leaveSuccess").textContent=`✓ Approved — ${days} ${days===1?"Day":"Days"} • ${leaveFormatDate(leaveSelectedDate)}${endDate!==leaveSelectedDate?` – ${leaveFormatDate(endDate)}`:""}`;
+    document.getElementById("leaveSuccess").classList.add("show");btn.textContent="Saved";
     setTimeout(()=>{showPage("leavesPage");leaveGoHome();},500);
-  }catch(e){
-    console.error("Leave save error:",e);
-    document.getElementById("leavePolicyText").textContent="Unable to save leave: "+(e.message||"Error");
-    btn.disabled=false;btn.textContent="Continue";
-  }
+  }catch(e){console.error("Leave save error:",e);document.getElementById("leavePolicyText").textContent="Unable to save leave: "+(e.message||"Error");btn.disabled=false;btn.textContent="Continue";}
 };
+
 window.deleteLeaveRecord=async(id)=>{
   if(!currentUser||!id)return;
   const record=leaveRecords.find(r=>String(r.id)===String(id));
