@@ -846,13 +846,6 @@ input:focus{border-color:#ed166a}
 
 <section id="historyPage" class="page">
 <button class="back" onclick="showPage('dashboardPage')">← Back</button>
-<div class="history-hero">
-  <div>
-    <div class="history-kicker">📋 Invoice records</div>
-    <h2>Invoice History</h2>
-    <p>Search, filter by date range and view all your invoices in order.</p>
-  </div>
-</div>
 
 <div class="history-filter-card">
   <div class="history-filter-title">🔎 Find invoices</div>
@@ -866,8 +859,6 @@ input:focus{border-color:#ed166a}
   </div>
 </div>
 
-<div id="historySummary" class="history-summary-grid"></div>
-<div id="historyChart" class="history-chart-card"></div>
 <div id="historyList"></div>
 </section>
 
@@ -1796,7 +1787,7 @@ window.printInvoice=id=>{
 <div class="sheet"><div class="head"><div class="brand">Driver Taxi Accounting</div><div class="sub">Detailed Invoice Statement</div><div class="headgrid"><div><div class="invno">${safe(x.invoiceNumber||"Invoice")}</div><div class="date">Invoice Date: ${safe(date||"—")}</div></div><div class="driver"><strong>${safe(driverName)}</strong><br>Driver ID: ${safe(driverId)}<br>Mobile: ${safe(mobile)}</div></div></div>
 <div class="body">
 <div class="section"><h3>Income &amp; Credits</h3>${income.map(r=>row(r[0],r[1])).join("")}</div>
-<div class="section"><h3>Applied Charge Rates</h3><div class="rates"><div class="rate"><small>RTA / Shift Trips</small><b>${money2(rtaRate)} AED</b></div><div class="rate"><small>Fuel / KM</small><b>${money2(fuelRate)} AED</b></div><div class="rate"><small>Booking</small><b>${money2(bookingRate)} AED</b></div></div></div>
+
 <div class="section"><h3>Deductions &amp; Charges</h3>${deductionsRows.map(r=>r[2]!==""?calcRow(r[0],r[1],r[2]):row(r[0],r[1])).join("")}</div>
 <div class="totals"><div class="totalrow"><span>Total Amount</span><strong>${money2(total)} AED</strong></div><div class="totalrow"><span>Total Deductions</span><strong>${money2(deductions)} AED</strong></div><div class="totalrow net"><span>NET AMOUNT</span><strong>${money2(net)} AED</strong></div><span class="approved">✓ Invoice Saved</span></div>
 </div><div class="foot">This invoice contains the complete details saved for this invoice record.</div>
@@ -1884,38 +1875,9 @@ function getHistoryFilteredInvoices(){
   });
 }
 
-function renderHistorySummary(rows){
-  const el=document.getElementById("historySummary"); if(!el)return;
-  const total=rows.reduce((s,x)=>s+Number(x.total||0),0);
-  const deductions=rows.reduce((s,x)=>s+Number(x.deductions||0),0);
-  const net=rows.reduce((s,x)=>s+Number(x.net||0),0);
-  const avg=rows.length?net/rows.length:0;
-  el.innerHTML=`
-    <div class="history-stat"><small>Invoices</small><strong>${rows.length}</strong><div class="history-stat-sub">in selected range</div></div>
-    <div class="history-stat"><small>Total</small><strong>${money(total)} AED</strong><div class="history-stat-sub">before deductions</div></div>
-    <div class="history-stat"><small>Net</small><strong>${money(net)} AED</strong><div class="history-stat-sub">Avg ${money(avg)} / invoice</div></div>`;
-}
-
-function renderHistoryChart(rows){
-  const box=document.getElementById("historyChart"); if(!box)return;
-  if(!rows.length){box.innerHTML="";return;}
-  const byDate={};
-  rows.forEach(x=>{const d=String(x.date||"Unknown");byDate[d]=(byDate[d]||0)+Number(x.net||0);});
-  const points=Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0]));
-  const max=Math.max(...points.map(p=>Math.abs(p[1])),1);
-  const cols=points.map(([date,value])=>{
-    const h=Math.max(4,Math.round(Math.abs(value)/max*112));
-    const label=date.length>=10?date.slice(8,10)+"/"+date.slice(5,7):date;
-    return `<div class="history-chart-col" title="${historyEscape(date)} — ${money(value)} AED"><div class="history-chart-value">${money(value)}</div><div class="history-chart-bar-wrap"><div class="history-chart-bar" style="height:${h}px"></div></div><div class="history-chart-label">${historyEscape(label)}</div></div>`;
-  }).join("");
-  box.innerHTML=`<div class="history-chart-head"><strong>Net by date</strong><span>${points.length} date${points.length===1?"":"s"}</span></div><div class="history-chart">${cols}</div>`;
-}
-
 function renderHistory(){
   const box=document.getElementById("historyList"); if(!box)return;
   const rows=getHistoryFilteredInvoices();
-  renderHistorySummary(rows);
-  renderHistoryChart(rows);
   const from=document.getElementById("historyFromDate")?.value||"";
   const to=document.getElementById("historyToDate")?.value||"";
   const search=(document.getElementById("historySearch")?.value||"").trim();
