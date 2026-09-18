@@ -1332,20 +1332,45 @@ updatePreview();
 
 function updatePreview(){
 const d={};ids.forEach(id=>d[id]=n(id));
-const total=d.creditCard+d.app+d.cash+d.shiftDiscount+d.careemDiscount+d.paidCareem;
+const total=round2(
+  round2(d.creditCard)+
+  round2(d.app)+
+  round2(d.cash)+
+  round2(d.shiftDiscount)+
+  round2(d.careemDiscount)+
+  round2(d.paidCareem)
+);
 const invoiceDate=document.getElementById("invDate").value;
 const latestChargeSetup=getChargeSetupForDate(invoiceDate);
 updateInvoiceRateCard();
-const shiftTripsCharge=Number(latestChargeSetup?.rtaCharges)||0;
-const bookingCharge=Number(latestChargeSetup?.bookingCharges)||0;
-const fuelCharge=Number(latestChargeSetup?.fuelCharges)||0;
-const deductions=d.tips+d.halaJunior+d.halaPeak+d.peak+d.tolls+
-(d.shiftTrips*shiftTripsCharge)+
-(d.bookings*bookingCharge)+
-(d.km*fuelCharge)+
-d.extraCharges;
-const net=total-deductions;
-document.getElementById("invoicePreview").textContent=`Total: ${money(total)} AED · Deductions: ${money(deductions)} AED · Net: ${money(net)} AED`;
+
+const shiftTripsCharge=round2(latestChargeSetup?.rtaCharges);
+const bookingCharge=round2(latestChargeSetup?.bookingCharges);
+const fuelCharge=round2(latestChargeSetup?.fuelCharges);
+
+const shiftTripsAmount=round2(round2(d.shiftTrips)*shiftTripsCharge);
+const bookingAmount=round2(round2(d.bookings)*bookingCharge);
+const kmAmount=round2(round2(d.km)*fuelCharge);
+
+const fixedDeductions=round2(
+  round2(d.tips)+
+  round2(d.halaJunior)+
+  round2(d.halaPeak)+
+  round2(d.peak)+
+  round2(d.tolls)+
+  round2(d.extraCharges)
+);
+
+const deductions=round2(
+  fixedDeductions+
+  shiftTripsAmount+
+  bookingAmount+
+  kmAmount
+);
+const net=round2(total-deductions);
+
+document.getElementById("invoicePreview").textContent=
+  `Total: ${money(total)} AED · Deductions: ${money(deductions)} AED · Net: ${money(net)} AED`;
 }
 ids.forEach(id=>document.getElementById(id).addEventListener("input",updatePreview));
 document.getElementById("invDate")?.addEventListener("change",()=>{
