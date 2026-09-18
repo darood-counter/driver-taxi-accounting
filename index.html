@@ -904,6 +904,7 @@ input:focus{border-color:#ed166a}
     </div>
 
     <div id="leaveStep1">
+      <div class="leave-step1-back-wrap"><button type="button" class="leave-flow-back" onclick="leaveBackToHome()">← Back</button></div>
       <h1>Request a new leave</h1>
       <p class="sub">What kind of leave you need?</p>
       <div class="leave-type-list">
@@ -927,7 +928,7 @@ input:focus{border-color:#ed166a}
 
     <div id="leaveStep2" style="display:none">
       <h1 id="leaveStep2Title">Request a local leave</h1>
-      <p class="sub">Select the start date and end date. For Local leave, select one day only. <b style="color:#ed166a">*</b></p>
+      <p class="sub">Select the start date first, then select the end date. All dates in the selected range will be saved. <b style="color:#ed166a">*</b></p>
       <div class="leave-selected-note" id="leaveSelectedType">Local leave</div>
       <div class="leave-calendar-card flow-calendar">
         <div class="leave-calendar-head">
@@ -942,7 +943,7 @@ input:focus{border-color:#ed166a}
       </div>
       <div class="leave-policy" id="leavePolicyText"></div>
       <div class="leave-flow-actions">
-        <button type="button" class="leave-flow-back" onclick="leaveBackToStep1()">← Back</button>
+        <button type="button" class="leave-flow-back" onclick="leaveBackToHome()">← Back</button>
         <button type="button" class="leave-continue" id="leaveContinueBtn" onclick="submitLeaveRequest()" disabled>Continue</button>
       </div>
       <div class="leave-success" id="leaveSuccess"></div>
@@ -2123,7 +2124,7 @@ window.selectLeaveType=(type,description,icon)=>{
   document.getElementById("leaveStep1").style.display="none";document.getElementById("leaveStep2").style.display="block";
   document.getElementById("leaveStepCount").textContent="2/2";document.getElementById("leaveProgressBar").style.width="100%";
   document.getElementById("leaveStep2Title").textContent=`Request a ${type.toLowerCase()}`;document.getElementById("leaveSelectedType").textContent=`${icon} ${type}`;
-  document.getElementById("leavePolicyText").textContent=type==="Local leave"?"Select one day for Local leave. Other leave types can use a date range.":"Select the start date, then the end date. Days are calculated automatically.";
+  document.getElementById("leavePolicyText").textContent="Select the start date first, then the end date. All dates in the range will be saved and days will be calculated automatically.";
   document.getElementById("leaveContinueBtn").disabled=true;document.getElementById("leaveSuccess").classList.remove("show");
   leaveSelectedDate="";leaveSelectedEndDate="";leaveCalendarMonth=new Date();renderLeaveCalendar();
 };
@@ -2131,30 +2132,42 @@ window.leaveBackToStep1=()=>{document.getElementById("leaveStep2").style.display
 window.leaveBackToHome=()=>{leaveGoHome();};
 window.selectLeaveHomeDate=date=>{if(date<leaveTodayKey())return;leaveHomeSelectedDate=date;renderLeaveCalendar();};
 window.selectLeaveDate=date=>{
-  const today=leaveTodayKey(); if(date<today)return;
-  const occupied=leaveRecords.some(r=>leaveRecordDates(r).includes(date)||leaveDateInRange(date,leaveRecordStart(r),leaveRecordEnd(r))); if(occupied)return;
-  if(!leaveSelectedDate||leaveSelectedEndDate){
-    leaveSelectedDate=date;leaveSelectedEndDate="";
+  const today=leaveTodayKey();
+  if(date<today)return;
+  const occupied=leaveRecords.some(r=>leaveRecordDates(r).includes(date)||leaveDateInRange(date,leaveRecordStart(r),leaveRecordEnd(r)));
+  if(occupied)return;
+
+  // First tap = start date. Second tap = end date.
+  // If the second date is earlier, the two dates are automatically ordered.
+  // A third tap starts a completely new range.
+  if(!leaveSelectedDate || leaveSelectedEndDate){
+    leaveSelectedDate=date;
+    leaveSelectedEndDate="";
     document.getElementById("leaveContinueBtn").disabled=true;
-    document.getElementById("leavePolicyText").textContent=leaveTypeSelected==="Local leave"?`Selected ${leaveFormatDate(date)}. Tap Continue to save this 1-day leave.`:`Start: ${leaveFormatDate(date)}. Now select the end date.`;
+    document.getElementById("leavePolicyText").textContent=`Start: ${leaveFormatDate(date)}. Now select the end date.`;
   }else{
-    if(date<leaveSelectedDate){leaveSelectedEndDate=leaveSelectedDate;leaveSelectedDate=date;}else{leaveSelectedEndDate=date;}
+    if(date<leaveSelectedDate){
+      leaveSelectedEndDate=leaveSelectedDate;
+      leaveSelectedDate=date;
+    }else{
+      leaveSelectedEndDate=date;
+    }
+
     const days=leaveDaysBetween(leaveSelectedDate,leaveSelectedEndDate);
-    if(leaveTypeSelected==="Local leave"&&days!==1){leaveSelectedEndDate=leaveSelectedDate;document.getElementById("leavePolicyText").textContent="Local leave is only 1 day. Please select one day only.";document.getElementById("leaveContinueBtn").disabled=false;}
-    else{document.getElementById("leavePolicyText").textContent=`Selected: ${leaveFormatDate(leaveSelectedDate)}${leaveSelectedEndDate!==leaveSelectedDate?` – ${leaveFormatDate(leaveSelectedEndDate)}`:""} • ${days} ${days===1?"Day":"Days"}`;document.getElementById("leaveContinueBtn").disabled=false;}
+    document.getElementById("leavePolicyText").textContent=`Selected: ${leaveFormatDate(leaveSelectedDate)} – ${leaveFormatDate(leaveSelectedEndDate)} • ${days} ${days===1?"Day":"Days"}`;
+    document.getElementById("leaveContinueBtn").disabled=false;
   }
   renderLeaveCalendar();
 };
+
 window.submitLeaveRequest=async()=>{
   if(!currentUser){alert("Please login first.");return;}
   if(!leaveTypeSelected||!leaveSelectedDate)return;
   const endDate=leaveSelectedEndDate||leaveSelectedDate,days=leaveDaysBetween(leaveSelectedDate,endDate);
   if(!days||endDate<leaveSelectedDate)return;
-  if(leaveTypeSelected==="Local leave"&&days!==1){document.getElementById("leavePolicyText").textContent="Local leave is only 1 day.";return;}
   const selectedDates=leaveDatesBetween(leaveSelectedDate,endDate);
   const overlaps=leaveRecords.some(r=>{const savedDates=leaveRecordDates(r);return selectedDates.some(d=>savedDates.includes(d))||leaveDateInRange(leaveSelectedDate,leaveRecordStart(r),leaveRecordEnd(r))||leaveDateInRange(endDate,leaveRecordStart(r),leaveRecordEnd(r))||(leaveSelectedDate<=leaveRecordStart(r)&&endDate>=leaveRecordEnd(r));});
   if(overlaps){document.getElementById("leavePolicyText").textContent="One or more selected dates already have a leave record.";return;}
-  if(leaveTypeSelected==="Local leave"){const count=leaveRecords.filter(r=>r.type==="Local leave"&&leaveSameMonth(leaveRecordStart(r),leaveSelectedDate)).length;if(count>=2){document.getElementById("leavePolicyText").textContent="Local leave limit reached for this month.";return;}}
   const btn=document.getElementById("leaveContinueBtn");btn.disabled=true;btn.textContent="Saving...";
   const record={id:`leave_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,type:leaveTypeSelected,description:leaveTypeDescription,icon:leaveTypeIcon,date:leaveSelectedDate,startDate:leaveSelectedDate,endDate:endDate,dates:selectedDates,days:selectedDates.length,status:"Approved",createdAt:new Date().toISOString()};
   try{
