@@ -654,11 +654,11 @@ input:focus{border-color:#ed166a}
 
 <div class="invoice-fields">
 <div class="invoice-field"><label for="invDate">Date</label><input type="date" id="invDate" ></div>
-<div class="invoice-field"><label for="creditCard">Credit Card</label><input type="number" id="creditCard" step="0.01"></div>
-<div class="invoice-field"><label for="app">App</label><input type="number" id="app" step="0.01"></div>
+<div class="invoice-field"><label for="creditCard">Credit Cards</label><input type="number" id="creditCard" step="0.01"></div>
+<div class="invoice-field"><label for="app">APP</label><input type="number" id="app" step="0.01"></div>
 <div class="invoice-field"><label for="cash">Cash</label><input type="number" id="cash" step="0.01"></div>
 <div class="invoice-field"><label for="tips">Tips</label><input type="number" id="tips" step="0.01"></div>
-<div class="invoice-field"><label for="tolls">Tollways</label><input type="number" id="tolls" step="0.01"></div>
+<div class="invoice-field"><label for="tolls">Total Tollways</label><input type="number" id="tolls" step="0.01"></div>
 <div class="invoice-field"><label for="shiftDiscount">Shift Discount</label><input type="number" id="shiftDiscount" step="0.01"></div>
 <div class="invoice-field"><label for="shiftTrips">Shift Trips</label><input type="number" id="shiftTrips" step="0.01"></div>
 <div class="invoice-field"><label for="bookings">Bookings</label><input type="number" id="bookings" step="0.01"></div>
@@ -2151,7 +2151,7 @@ async function processInvoiceScan(file){
     if(count){
       closeInvoiceScanner();
       const st=document.getElementById("invoiceStatus");
-      st.textContent=`${count} RTA fields filled. Fields not found on the receipt were set to 0.00/0. Please check before saving.`;
+      st.textContent=`${count} RTA fields filled. Fields not found on the receipt were set to 0.00/0. Others remains manual and is never filled from Total Extras.`;
     }else{
       s.textContent="RTA receipt could not be read. All required fields can still be entered manually.";
     }
@@ -2271,9 +2271,12 @@ function rtaExactLabelInRow(words,variants){
       let joined="";
       for(let n=1;n<=Math.min(4,normalized.length-i);n++){
         joined+=normalized[i+n-1];
-        if(joined===target)return {start:i,end:i+n-1,variant};
-        // Only allow an explicitly configured OCR spelling variant. Do not
-        // fuzzy-match arbitrary receipt words.
+        if(joined===target){
+          // Never allow the short "peak" label to match the second part of
+          // the exact "hala peak" label.
+          if(target==="peak" && i>0 && normalized[i-1]==="hala") continue;
+          return {start:i,end:i+n-1,variant};
+        }
       }
     }
   }
@@ -2283,7 +2286,7 @@ function rtaNumberAfterLabelSameRow(words,match){
   if(!match)return null;
   // The value must be to the RIGHT of the complete label, on this row.
   // AED is ignored; the first numeric token after the label is the value.
-  for(let k=match.end+1;k<words.length;k++){
+  for(let k=match.end+1;k<Math.min(words.length,match.end+4);k++){
     const raw=String(words[k]?.text||"").replace(/,/g,"");
     if(/^aed$/i.test(raw.trim()))continue;
     const m=raw.match(/-?\d+(?:\.\d+)?/);
@@ -2309,18 +2312,18 @@ function blankRTAOCRFields(){
 // that are known to represent the same label; arbitrary fuzzy matches are not
 // accepted because they can put a correct number in the wrong field.
 const RTA_OCR_LABELS={
-  creditCard:["credit cards","credit card"],
+  creditCard:["credit cards"],
   app:["app"],
   cash:["cash"],
-  tips:["tips","tip"],
-  tolls:["total tollways","total tollway"],
+  tips:["tips"],
+  tolls:["total tollways"],
   shiftDiscount:["shift discount"],
-  shiftTrips:["shift trips","shift trip"],
-  bookings:["bookings","booking"],
-  km:["kilometers hired","kilometer hired","kilometres hired","kilometre hired"],
+  shiftTrips:["shift trips"],
+  bookings:["bookings"],
+  km:["kilometers hired"],
   careemDiscount:["careem discount"],
   paidCareem:["paid in careem"],
-  halaJunior:["hala juniors","hala junior"],
+  halaJunior:["hala juniors"],
   halaPeak:["hala peak"],
   peak:["peak"]
 };
@@ -2359,7 +2362,7 @@ function parseInvoiceOCRData(data){
   const rows=[];
   for(const w of words){
     const top=Number(w.bbox.top||0),left=Number(w.bbox.left||0);
-    let row=rows.find(r=>Math.abs(r.top-top)<=20);
+    let row=rows.find(r=>Math.abs(r.top-top)<=12);
     if(!row){row={top,words:[]};rows.push(row);}
     row.words.push({...w,left,top});
   }
