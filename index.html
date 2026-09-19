@@ -1608,11 +1608,10 @@ function setDashboardDatePickerBounds(){
   const input=document.getElementById("dashboardDateSelect");
   if(!input)return;
   const today=dateKeyLocal(new Date());
-  const start=getDashboardHistoryStartDate();
-  input.min=start;
+  // Historical dates remain selectable. Only future dates are blocked.
+  input.removeAttribute("min");
   input.max=today;
   const current=dashboardSelectedDate||today;
-  if(current<start)dashboardSelectedDate=start;
   if(current>today)dashboardSelectedDate=today;
   input.value=dashboardSelectedDate||today;
 }
@@ -2662,13 +2661,12 @@ function getCurrentDashboardCycle(){
 
 function selectDashboardDate(value){
   const today=dateKeyLocal(new Date());
-  const historyStart=getDashboardHistoryStartDate();
   if(value && value>today)value=today;
-  if(value && value<historyStart)value=historyStart;
   dashboardSelectedDate=value||"";
   const input=document.getElementById("dashboardDateSelect");
   if(input){
-    input.min=historyStart;
+    // Do not limit the past; only prevent selecting a future date.
+    input.removeAttribute("min");
     input.max=today;
     if(value)input.value=value;
   }
@@ -2698,7 +2696,7 @@ function clearDashboardDateSelection(){
   dashboardSelectedDate="";
   const input=document.getElementById("dashboardDateSelect");
   if(input){
-    input.min=getDashboardHistoryStartDate();
+    input.removeAttribute("min");
     input.max=dateKeyLocal(new Date());
     input.value=dateKeyLocal(new Date());
   }
@@ -2796,9 +2794,15 @@ function updateDashboard(){
     // For Cycle 2 this means Range 1 or Range 2, not both ranges combined.
     const cStart=dateKeyLocal(cycle.activeRangeStart||cycle.start);
     const cEnd=dateKeyLocal(cycle.activeRangeEnd||cycle.end);
+    const todayKey=dateKeyLocal(new Date());
+    // If viewing history, show only sales up to the selected date.
+    // In the normal/current view, show only sales up to today.
+    const visibleEnd = dashboardSelectedDate
+      ? (dashboardSelectedDate<cEnd ? dashboardSelectedDate : cEnd)
+      : (todayKey<cEnd ? todayKey : cEnd);
     cycleInvoices=invoices.filter(x=>{
       const k=invoiceDateKey(x);
-      return k && k>=cStart && k<=cEnd;
+      return k && k>=cStart && k<=visibleEnd;
     });
   }else{
     const selected=dashboardSelectedDate;
@@ -2878,9 +2882,8 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     startKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth(),1));
     endKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth()+1,0));
   }
-  // Never show dates after the date currently selected. If no date is
-  // selected, today's date is the visible upper limit. This keeps the chart
-  // strictly on the selected date's past portion of its active range.
+  // Never render future dates. When a historical date is selected,
+  // the chart ends exactly on that selected date.
   const visibleUntil=dashboardSelectedDate||todayKey;
   if(endKey>visibleUntil)endKey=visibleUntil;
   if(startKey>endKey)startKey=endKey;
@@ -2945,11 +2948,11 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     badge.title=cycle?((cycle.setup?.cycleLabel||"Current Cycle")+" • "+badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})):badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
     const dateInput=document.getElementById("dashboardDateSelect");
     if(dateInput){
-      const historyStart=getDashboardHistoryStartDate();
-      dateInput.min=historyStart;
+      // Historical dates are allowed; only future dates are disabled.
+      dateInput.removeAttribute("min");
       dateInput.max=todayKey;
       const currentValue=dashboardSelectedDate||todayKey;
-      if(currentValue>=historyStart && currentValue<=todayKey){
+      if(currentValue<=todayKey){
         dateInput.value=currentValue;
       }else{
         dateInput.value=todayKey;
@@ -2984,10 +2987,8 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     wrap.className="bar-wrap";
     const bar=document.createElement("div");
     bar.className="bar";
-    const isSelected=dashboardSelectedDate===x.key;
     const height=x.hasSales?Math.max(3,(x.value/max)*100):3;
-    // Keep the selected date visually highlighted even when its Net Amount is 0.
-    bar.style.background=(x.hasSales||isSelected)?"#2563eb":"#dfe3ea";
+    bar.style.background=x.hasSales?"#2563eb":"#dfe3ea";
     bar.style.height=height+"%";
     bar.title=x.hasSales?`${x.date.toLocaleDateString("en-GB")}: Net ${money(x.value)} AED · Sale ${money(x.saleTotal)} AED`:`${x.date.toLocaleDateString("en-GB")}: No positive Net Sale`;
     wrap.appendChild(bar);
@@ -2998,10 +2999,8 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     col.append(value,wrap,date);
     chart.appendChild(col);
 
-    // Clicking any date makes that date the active dashboard date. The
-    // dashboard then resolves the Charge Setup cycle/range for that exact
-    // date, so historical dates automatically open their own cycle.
     col.addEventListener("click",()=>{
+      // Clicking any date makes that date the dashboard "as-of" date.
       selectDashboardDate(x.key);
     });
 
@@ -3009,7 +3008,6 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
       callout.textContent=money(x.value)+" AED";
-      callout.setAttribute("aria-label",`${x.date.toLocaleDateString("en-GB")}: ${money(x.value)} AED`);
       callout.style.left=(8+i*56+23)+"px";
       const ratio=Math.min(1,Math.max(0,x.value)/max);
       callout.style.top=(plotTop+(1-ratio)*plotHeight-4)+"px";
@@ -3089,7 +3087,7 @@ dashboardSelectedDate="";
 const dashboardDateInput=document.getElementById("dashboardDateSelect");
 if(dashboardDateInput){
   dashboardDateInput.value=today;
-  dashboardDateInput.min=getDashboardHistoryStartDate();
+  dashboardDateInput.removeAttribute("min");
   dashboardDateInput.max=today;
 }
 document.getElementById("targetDate").value=today;
