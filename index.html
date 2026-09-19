@@ -2649,7 +2649,22 @@ function updateDashboard(){
   if(avgEl)avgEl.textContent=money(avg)+" AED";
   if(labelEl){
     if(cycle){
-      const range=cycle.start.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" – "+cycle.end.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+      // Keep the cycle label live: use the actual invoice dates available
+      // inside this cycle, while never extending beyond today or the
+      // configured cycle boundaries.
+      const cycleStartKey=dateKeyLocal(cycle.start);
+      const cycleEndKey=dateKeyLocal(cycle.end);
+      const todayKey=dateKeyLocal(new Date());
+      const cycleDataDates=invoices
+        .map(x=>invoiceDateKey(x)||String(x?.date||"").slice(0,10))
+        .filter(k=>k>=cycleStartKey && k<=cycleEndKey && k<=todayKey)
+        .sort();
+      const liveStartKey=cycleDataDates.length?cycleDataDates[0]:cycleStartKey;
+      const liveEndKey=cycleDataDates.length?cycleDataDates[cycleDataDates.length-1]:
+        (cycleEndKey<todayKey?cycleEndKey:todayKey);
+      const liveStart=new Date(liveStartKey+"T00:00:00");
+      const liveEnd=new Date(liveEndKey+"T00:00:00");
+      const range=liveStart.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" – "+liveEnd.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
       const prefix=dashboardSelectedDate?"Collections - Selected Cycle":"Collections - Current Cycle";
       labelEl.textContent=prefix+" ("+range+")";
     }else if(dashboardSelectedDate){
@@ -2712,7 +2727,9 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     });
     const value=dayInvoices.reduce((sum,x)=>sum+(Number(x.net)||0),0);
     const saleTotal=dayInvoices.reduce((sum,x)=>sum+(Number(x.total)||0),0);
-    const hasSales=dayInvoices.length>0;
+    // A blue candle is shown only when that date has an actual positive
+    // Net Sale. Invoice records with 0.00 Net remain neutral.
+    const hasSales=value>0;
     arr.push({key,value,saleTotal,hasSales,date:new Date(d)});
   }
   // Scale the candle height and Y-axis from the DAILY NET AMOUNT.
