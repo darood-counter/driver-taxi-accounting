@@ -774,7 +774,7 @@ input:focus{border-color:#ed166a}
   <div class="period" id="dashboardCycleLabel">Collections - Current Cycle</div>
   <label class="cycle-date-badge" id="dashboardCycleBadge" aria-label="Select date">
     <span class="cycle-badge-day">--</span><span class="cycle-badge-month">---</span>
-    <input type="date" id="dashboardDateSelect" onchange="selectDashboardDate(this.value)" aria-label="Select dashboard date">
+    <input type="date" id="dashboardDateSelect" onchange="window.selectDashboardDate(this.value)" oninput="window.selectDashboardDate(this.value)" aria-label="Select dashboard date">
   </label>
 </div>
 <div class="total-row">
@@ -2659,20 +2659,41 @@ function getCurrentDashboardCycle(){
   return getDashboardCycleForDate(key);
 }
 
-function selectDashboardDate(value){
+window.selectDashboardDate=function(value){
   const today=dateKeyLocal(new Date());
-  if(value && value>today)value=today;
-  dashboardSelectedDate=value||"";
+  const selected=String(value||"").trim();
+  if(!selected)return;
+  const safeDate=selected>today?today:selected;
+
+  // This is the single source of truth for the Dashboard date.
+  dashboardSelectedDate=safeDate;
+
   const input=document.getElementById("dashboardDateSelect");
   if(input){
-    // Do not limit the past; only prevent selecting a future date.
     input.removeAttribute("min");
     input.max=today;
-    if(value)input.value=value;
+    input.value=safeDate;
   }
+
+  // Update the small date badge immediately, before the chart redraw.
+  const badge=document.getElementById("dashboardCycleBadge");
+  if(badge){
+    const d=new Date(safeDate+"T00:00:00");
+    const dayEl=badge.querySelector(".cycle-badge-day");
+    const monthEl=badge.querySelector(".cycle-badge-month");
+    if(dayEl)dayEl.textContent=String(d.getDate()).padStart(2,"0");
+    if(monthEl)monthEl.textContent=d.toLocaleDateString("en-GB",{month:"short"});
+  }
+
+  // Rebuild the complete Dashboard using the selected date:
+  // cycle/range + totals + days + candles + selected-date marker.
   updateDashboard();
-  // After the selected date is rendered, move the chart to that exact date.
-  requestAnimationFrame(()=>scrollDashboardChartToDate(value,{smooth:true,force:true}));
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      scrollDashboardChartToDate(safeDate,{smooth:false,force:true});
+    });
+  });
 }
 
 function scrollDashboardChartToDate(dateKey,{smooth=true,force=false}={}){
@@ -3089,7 +3110,30 @@ if(dashboardDateInput){
   dashboardDateInput.value=today;
   dashboardDateInput.removeAttribute("min");
   dashboardDateInput.max=today;
+
+  // Android/mobile date pickers can update the native input without
+  // reliably executing an inline onchange handler. Bind both events
+  // directly so the Dashboard always receives the selected date.
+  const handleDashboardDateChange=()=>{
+    const selected=dashboardDateInput.value;
+    if(selected) window.selectDashboardDate(selected);
+  };
+  dashboardDateInput.addEventListener("change",handleDashboardDateChange);
+  dashboardDateInput.addEventListener("input",handleDashboardDateChange);
 }
+document.addEventListener("change",function(event){
+  const el=event.target;
+  if(el && el.id==="dashboardDateSelect" && el.value){
+    window.selectDashboardDate(el.value);
+  }
+});
+document.addEventListener("input",function(event){
+  const el=event.target;
+  if(el && el.id==="dashboardDateSelect" && el.value){
+    window.selectDashboardDate(el.value);
+  }
+});
+
 document.getElementById("targetDate").value=today;
 editingTargetDate=null;
 document.getElementById("saveTargetTableBtn").textContent="Save / Update";
