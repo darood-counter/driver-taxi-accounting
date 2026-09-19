@@ -1277,7 +1277,7 @@ window.logout=async()=>{
   try{ if(unsubscribeDriver){unsubscribeDriver();unsubscribeDriver=null;} }catch(e){}
   try{ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;} }catch(e){}
   savedTargetRecords=[];
-  savedChargeRecords=[]; editingChargeDate=null; monthlyCycleRecords={}; monthlyCycleSyncKey="";
+  savedChargeRecords=[]; editingChargeDate=null; monthlyCycleRecords={}; monthlyCycleSyncKey=""; cycleCompletionRecords={};
   leaveRecords=[];
   try{ await signOut(auth); }catch(e){}
   showAuth();
@@ -2680,11 +2680,40 @@ function getDashboardDayStats(cycle){
       if(k&&k>=startKey&&k<=endKey)allLeaveDates.add(k);
     });
   });
-  const leaveDays=allLeaveDates.size;
-  const workDays=Math.max(0,elapsedDays-elapsedLeaveDays);
-  // Every leave day reduces Days Remaining too, including a leave scheduled later in the active range.
-  const remainingDays=Math.max(0,totalDays-workDays-leaveDays);
+  // Leave only reduces the counters on/after the actual leave date.
+  // A future leave must not reduce Days Remaining before that date arrives.
+  const leaveDays=elapsedLeaveDays;
+  const workDays=Math.max(0,elapsedDays-leaveDays);
+  const remainingDays=Math.max(0,totalDays-elapsedDays);
   return {totalDays,workDays,leaveDays,remainingDays,elapsedDays};
+}
+
+async function saveCycleCompletionIfNeeded(cycle,dayStats){
+  if(!currentUser||!cycle||!dayStats||dayStats.remainingDays!==0)return;
+  const startKey=dateKeyLocal(cycle.activeRangeStart||cycle.start);
+  const endKey=dateKeyLocal(cycle.activeRangeEnd||cycle.end);
+  if(!startKey||!endKey)return;
+  const key=startKey+"_"+endKey;
+  if(cycleCompletionRecords[key])return;
+  const record={
+    id:key,
+    cycleNumber:Number(cycle.activeCycleNumber||1),
+    rangeNumber:Number(cycle.activeRangeNumber||1),
+    startDate:startKey,
+    endDate:endKey,
+    totalDays:Number(dayStats.totalDays)||0,
+    daysWork:Number(dayStats.workDays)||0,
+    leaveDays:Number(dayStats.leaveDays)||0,
+    daysRemaining:0,
+    completedOn:endKey,
+    savedAt:new Date().toISOString()
+  };
+  try{
+    const next={...cycleCompletionRecords,[key]:record};
+    await setDoc(doc(db,"drivers",currentUser.uid),{cycleCompletionRecords:next},{merge:true});
+    cycleCompletionRecords=next;
+    driverData={...driverData,cycleCompletionRecords:next};
+  }catch(e){console.error("Cycle completion record save error:",e)}
 }
 
 function getTargetPercentForDailyAverage(dailyAvg,dateKey){
@@ -2725,6 +2754,7 @@ function updateDashboard(){
   const total=cycleInvoices.reduce((s,x)=>s+(Number(x.net)||0),0);
   const deductions=cycleInvoices.reduce((s,x)=>s+(Number(x.deductions)||0),0);
   const dayStats=getDashboardDayStats(cycle);
+  if(cycle)saveCycleCompletionIfNeeded(cycle,dayStats);
   const avg=dayStats.workDays>0 ? total/dayStats.workDays : 0;
   const target=getTargetPercentForDailyAverage(avg,dashboardSelectedDate||dateKeyLocal(new Date()));
   if(totalEl)totalEl.textContent=money(total);
@@ -2972,6 +3002,7 @@ unsubscribeDriver=onSnapshot(ref,driverSnap=>{
   savedTargetRecords=Array.isArray(fresh.targetRecords)?fresh.targetRecords.map(r=>({...r})):Object.values(fresh.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
   savedChargeRecords=Object.values(fresh.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
   monthlyCycleRecords={...(fresh.monthlyCycleRecords||{})};
+cycleCompletionRecords={...(fresh.cycleCompletionRecords||{})};
   leaveRecords=Array.isArray(fresh.leaveRecords)?fresh.leaveRecords.map(r=>({...r})):[];
   renderSavedCharges();
   renderSavedTargets();
@@ -2991,6 +3022,7 @@ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
 savedTargetRecords=Array.isArray(driverData.targetRecords)?driverData.targetRecords.map(r=>({...r})):Object.values(driverData.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
 savedChargeRecords=Object.values(driverData.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
 monthlyCycleRecords={...(driverData.monthlyCycleRecords||{})};
+cycleCompletionRecords={...(driverData.cycleCompletionRecords||{})};
 monthlyCycleSyncKey="";
 leaveRecords=Array.isArray(driverData.leaveRecords)?driverData.leaveRecords.map(r=>({...r})):[];
 renderSavedCharges();
