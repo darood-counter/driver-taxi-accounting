@@ -2458,7 +2458,11 @@ let dashboardSelectedDate="";
 
 function dateKeyLocal(date){
   const d=new Date(date);
-  return new Date(d.getFullYear(),d.getMonth(),d.getDate()).toISOString().slice(0,10);
+  if(Number.isNaN(d.getTime()))return "";
+  // IMPORTANT: keep the calendar date in the user's local timezone.
+  // Using toISOString() here shifts midnight backwards in UAE (UTC+4),
+  // which made cycle/chart dates appear one day early.
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
 
 function invoiceDateKey(invoice){
@@ -2731,7 +2735,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     const row=daily.get(key)||{value:0,saleTotal:0,count:0};
     // A blue candle means this day has a real positive Net Sale.
     // Zero/negative Net Amount remains a neutral candle.
-    const hasSales=row.value>0;
+    const hasSales=Number.isFinite(row.value) && row.value>0;
     arr.push({key,value:row.value,saleTotal:row.saleTotal,count:row.count,hasSales,date:new Date(d)});
   }
 
