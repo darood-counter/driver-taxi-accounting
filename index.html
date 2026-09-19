@@ -2683,7 +2683,7 @@ function getDashboardDayStats(cycle){
   const leaveDays=allLeaveDates.size;
   const workDays=Math.max(0,elapsedDays-elapsedLeaveDays);
   // Every leave day reduces Days Remaining too, including a leave scheduled later in the active range.
-  const remainingDays=Math.max(0,totalDays-elapsedDays-leaveDays);
+  const remainingDays=Math.max(0,totalDays-workDays-leaveDays);
   return {totalDays,workDays,leaveDays,remainingDays,elapsedDays};
 }
 
