@@ -2133,23 +2133,23 @@ function reportOverview(title,totalSale,netSale,workDays,salary){return `<div cl
 function setReportMode(mode){reportMode=mode;renderReports()}
 function renderDailyReport(){
  const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');const today=dateKeyLocal(new Date());reportDailyDate=reportDailyDate||today;
- controls.innerHTML=`<div><label for="reportDailyDate">Date</label><input type="date" id="reportDailyDate" max="${today}" value="${reportDailyDate}" onchange="reportDailyDate=this.value;renderReports()"></div>`;
+ controls.innerHTML=`<div><label for="reportDailyDate">Date</label><input type="date" id="reportDailyDate" max="${today}" value="${reportDailyDate}" onchange="window.setReportDailyDate(this.value)"></div>`;
  const rows=(Array.isArray(invoices)?invoices:[]).filter(x=>invoiceDateKey(x)===reportDailyDate),netSale=rows.reduce((s,x)=>s+(Number(x.net)||0),0),totalSale=rows.reduce((s,x)=>s+(Number(x.total)||0),0),deductions=rows.reduce((s,x)=>s+(Number(x.deductions)||0),0);const cycle=getDashboardCycleForDate(reportDailyDate);
  details.innerHTML=reportOverview('Daily Report · '+reportDailyDate,totalSale,netSale,rows.length,0)+`<div class="report-range-note">Invoices: ${rows.length} · Deductions: ${money(deductions)} AED</div>`+(cycle?reportCycleCard(getReportCycleStats({start:cycle.activeRangeStart||cycle.start,end:cycle.activeRangeEnd||cycle.end},cycle.activeCycleNumber||1)):`<div class="report-empty">Is date ke liye saved cycle setup nahi mila.</div>`);
 }
 function renderMonthlyReport(){
  const controls=document.getElementById('reportControls'),grid=document.getElementById('reportMonthGrid'),details=document.getElementById('reportDetails');
  const years=getReportYears();reportYear=years.includes(reportYear)?reportYear:(years[0]||new Date().getFullYear());
- controls.innerHTML=`<div class="report-control-row"><div><label for="reportYear">Year</label><select id="reportYear" onchange="reportYear=Number(this.value);renderReports()">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div></div>`;
+ controls.innerHTML=`<div class="report-control-row"><div><label for="reportYear">Year</label><select id="reportYear" onchange="window.setReportYear(this.value)">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div></div>`;
  const reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(reportYear,i+1)));
  const valid=reports.filter(r=>r.cycles.length);
- details.innerHTML=valid.length?`<div class="report-section-title">${reportYear} · Monthly Ledger</div><table class="report-ledger-table"><thead><tr><th>Month</th><th>Working Days</th><th>Net Sale</th><th>Salary</th></tr></thead><tbody>${reports.map((r,i)=>r.cycles.length?`<tr class="ledger-link" onclick="reportSelectedMonth='${r.month}';renderMonthlyReport()"><td><b>${reportMonthName(i+1)}</b><div class="report-ledger-sub">${r.cycles.length} cycle${r.cycles.length>1?'s':''}</div></td><td>${r.workDays}</td><td>${money(r.netSale)}</td><td>${money(r.salary)} AED</td></tr>`:'').join('')}<tr class="ledger-total"><td>Total</td><td>${valid.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(valid.reduce((s,r)=>s+r.netSale,0))}</td><td>${money(valid.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table>`:`<div class="report-ledger-empty">اس سال کے لیے ابھی کوئی Monthly report data موجود نہیں۔</div>`;
+ details.innerHTML=valid.length?`<div class="report-section-title">${reportYear} · Monthly Ledger</div><table class="report-ledger-table"><thead><tr><th>Month</th><th>Working Days</th><th>Net Sale</th><th>Salary</th></tr></thead><tbody>${reports.map((r,i)=>r.cycles.length?`<tr class="ledger-link" onclick="window.setReportMonth('${r.month}')"><td><b>${reportMonthName(i+1)}</b><div class="report-ledger-sub">${r.cycles.length} cycle${r.cycles.length>1?'s':''}</div></td><td>${r.workDays}</td><td>${money(r.netSale)}</td><td>${money(r.salary)} AED</td></tr>`:'').join('')}<tr class="ledger-total"><td>Total</td><td>${valid.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(valid.reduce((s,r)=>s+r.netSale,0))}</td><td>${money(valid.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table>`:`<div class="report-ledger-empty">اس سال کے لیے ابھی کوئی Monthly report data موجود نہیں۔</div>`;
  if(valid.length){const r=reports.find(x=>x.month===reportSelectedMonth&&x.cycles.length)||valid[0];details.innerHTML+=`<div class="report-section-title" style="margin-top:16px">${reportMonthName(Number(r.month.slice(5,7)))} ${reportYear} · Cycle Ledger</div>${r.cycles.map(reportCycleCard).join('')}`;}
 }
 function renderYearlyReport(){
  const controls=document.getElementById('reportControls'),grid=document.getElementById('reportMonthGrid'),details=document.getElementById('reportDetails');
  const years=getReportYears();reportYear=years.includes(reportYear)?reportYear:(years[0]||new Date().getFullYear());
- controls.innerHTML=`<div class="report-control-row"><div><label for="reportYear">Year</label><select id="reportYear" onchange="reportYear=Number(this.value);renderReports()">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div></div>`;
+ controls.innerHTML=`<div class="report-control-row"><div><label for="reportYear">Year</label><select id="reportYear" onchange="window.setReportYear(this.value)">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div></div>`;
  const reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(reportYear,i+1))).filter(r=>r.cycles.length);
  const totalSale=reports.reduce((s,r)=>s+r.totalSale,0),netSale=reports.reduce((s,r)=>s+r.netSale,0),salary=reports.reduce((s,r)=>s+r.salary,0),days=reports.reduce((s,r)=>s+r.workDays,0);
  details.innerHTML=reports.length?reportOverview(reportYear+' · Yearly Report',totalSale,netSale,days,salary)+`<div class="report-section-title">${reportYear} · Year Ledger</div><table class="report-ledger-table"><thead><tr><th>Month</th><th>Cycles</th><th>Working Days</th><th>Net Sale</th><th>Salary</th></tr></thead><tbody>${reports.map(r=>`<tr><td>${reportMonthName(Number(r.month.slice(5,7)))}</td><td>${r.cycles.length}</td><td>${r.workDays}</td><td>${money(r.netSale)}</td><td>${money(r.salary)} AED</td></tr>`).join('')}<tr class="ledger-total"><td>Total</td><td>${reports.reduce((s,r)=>s+r.cycles.length,0)}</td><td>${days}</td><td>${money(netSale)}</td><td>${money(salary)} AED</td></tr></tbody></table>`:`<div class="report-ledger-empty">اس سال کے لیے کوئی report data موجود نہیں۔</div>`;
@@ -2172,6 +2172,15 @@ function renderReports(){
   if(title)title.textContent=(tabs[reportMode]||'Report')+' Report';
   if(reportMode==='daily')renderDailyReport();else if(reportMode==='yearly')renderYearlyReport();else if(reportMode==='overall')renderOverallReport();else renderMonthlyReport();
 }
+function setReportDailyDate(value){reportDailyDate=String(value||'');renderReports()}
+function setReportYear(value){reportYear=Number(value);renderReports()}
+function setReportMonth(value){reportSelectedMonth=String(value||'');renderMonthlyReport()}
+window.setReportMode=setReportMode;
+window.setReportDailyDate=setReportDailyDate;
+window.setReportYear=setReportYear;
+window.setReportMonth=setReportMonth;
+window.renderReports=renderReports;
+window.printReports=printReports;
 function printReports(){if(!reportMode)return;renderReports();window.print()}
 
 function renderHistory(){
