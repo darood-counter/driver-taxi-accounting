@@ -841,9 +841,6 @@ input:focus{border-color:#ed166a}
 <section id="invoicePage" class="page">
 <button class="back" onclick="showPage('dashboardPage')">← Back</button>
 <div class="form-card">
-<div class="invoice-title-row"><h2 id="invoiceTitle">New Invoice</h2><button type="button" class="scan-invoice-btn" id="scanInvoiceBtn" onclick="openInvoiceScanner()">📷 Scan Invoice</button></div>
-<div class="small">Invoice Number is automatic. You can edit any saved invoice later.</div>
-
 <div class="invoice-rate-card" id="invoiceRateCard">
   <div class="invoice-rate-item">
     <div class="invoice-rate-icon">RTA</div>
@@ -861,6 +858,9 @@ input:focus{border-color:#ed166a}
     <strong id="invoiceBookingRate">0.00 AED</strong>
   </div>
 </div>
+
+<div class="invoice-title-row"><h2 id="invoiceTitle">New Invoice</h2><button type="button" class="scan-invoice-btn" id="scanInvoiceBtn" onclick="openInvoiceScanner()">📷 Scan Invoice</button></div>
+<div class="small">Invoice Number is automatic. You can edit any saved invoice later.</div>
 
 <div class="invoice-fields">
 <div class="invoice-field"><label for="invDate">Date</label><input type="date" id="invDate" ></div>
@@ -1248,19 +1248,22 @@ const isProfile=pageId==="profilePage";
 const isTarget=pageId==="targetPage";
 const isCharge=pageId==="calculatorPage";
 const isLeaves=pageId==="leavesPage";
+const isInvoice=pageId==="invoicePage";
 if(topbar&&leftBtn&&brand&&bell){
-  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves);
-  leftBtn.textContent=(isLeaves)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
-  leftBtn.classList.toggle("leave-top-back",isLeaves);
+  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves||isInvoice);
+  leftBtn.textContent=(isLeaves||isInvoice)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
+  leftBtn.classList.toggle("leave-top-back",isLeaves||isInvoice);
   leftBtn.onclick=(isLeaves)
     ? ()=>{
         const flow=document.getElementById("leaveFlowView");
         if(flow && flow.classList.contains("active")) leaveBackToHome();
         else showPage("dashboardPage");
       }
-    : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu());
-  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":"Driver's")));
-  bell.style.display=(isProfile||isTarget||isCharge||isLeaves)?"none":"block";
+    : (isInvoice
+      ? ()=>showPage("dashboardPage")
+      : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu()));
+  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":(isInvoice?"New Invoice":"Driver's"))));
+  bell.style.display=(isProfile||isTarget||isCharge||isLeaves||isInvoice)?"none":"block";
   bell.textContent="🔔";
   bell.onclick=null;
 }
