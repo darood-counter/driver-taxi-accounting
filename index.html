@@ -2878,9 +2878,11 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     startKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth(),1));
     endKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth()+1,0));
   }
-  // Never render future dates. The chart therefore grows automatically as
-  // today's date advances or a new invoice is saved.
-  if(endKey>todayKey)endKey=todayKey;
+  // Never show dates after the date currently selected. If no date is
+  // selected, today's date is the visible upper limit. This keeps the chart
+  // strictly on the selected date's past portion of its active range.
+  const visibleUntil=dashboardSelectedDate||todayKey;
+  if(endKey>visibleUntil)endKey=visibleUntil;
   if(startKey>endKey)startKey=endKey;
 
   // Build a reliable daily Net Amount map from the actual invoice date.
