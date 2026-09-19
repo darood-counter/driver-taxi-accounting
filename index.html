@@ -56,7 +56,7 @@ main{padding:0 22px}
 .days{display:none}
 .avg{margin-top:42px;border-left:6px solid #ed166a;padding-left:14px}
 .avg-label{font-size:15px;margin-bottom:8px}.avg-value{font-size:32px;font-weight:800}
-.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:34px}
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:25px}
 .quick{background:#fff;border:0;border-radius:20px;padding:17px 8px;font-weight:700;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .quick span{display:block;font-size:27px;margin-bottom:9px}
 .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -218,12 +218,13 @@ input:focus{border-color:#ed166a}
   .avg{margin-top:25px;border-left-width:4px;padding-left:10px}
   .avg-label{font-size:13px;margin-bottom:5px}
   .avg-value{font-size:25px}
-  .quick-grid{gap:8px;margin-bottom:25px}
+  .quick-grid{grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:25px}
   .quick{
     border-radius:16px;
     padding:13px 5px;
     font-size:12px;
-    min-height:84px;
+    min-height:0;
+    height:auto;
   }
   .quick span{font-size:23px;margin-bottom:6px}
   .summary-grid{gap:8px}
@@ -357,7 +358,7 @@ input:focus{border-color:#ed166a}
   .total{font-size:29px}
   .money-icon{width:52px;height:52px}
   .chart{height:160px}
-  .quick{min-height:80px;font-size:11px}
+  .quick{min-height:0;height:auto;font-size:11px;padding:11px 3px}
   .summary strong{font-size:18px}
 }
 
@@ -758,6 +759,13 @@ input:focus{border-color:#ed166a}
 <h1 class="hello" id="helloText">Hey, Driver!</h1>
 <h2 class="section-title">Highlights</h2>
 <div class="notice"><div class="notice-icon">▣</div><div class="notice-text">Accounting notifications</div><div class="badge" id="invoiceBadge">0 ›</div></div>
+<h2 class="section-title">Quick Actions</h2>
+<div class="quick-grid">
+<button class="quick" onclick="showPage('invoicePage')"><span>＋</span>New Invoice</button>
+<button class="quick" onclick="showPage('calculatorPage')"><span>💰</span>Charge Setup</button>
+<button class="quick" onclick="showPage('targetPage')"><span>🎯</span>Target Setup</button>
+<button class="quick" onclick="showPage('leavesPage')"><span>🗓️</span>Leaves</button>
+</div>
 <h2 class="section-title">My Collections</h2>
 <section class="card">
 <div class="dashboard-cycle-controls">
@@ -779,13 +787,6 @@ input:focus{border-color:#ed166a}
 </div>
 <div class="avg"><div class="avg-label">Daily Avg</div><div class="avg-value" id="avgAmount">0.00 AED</div></div>
 </section>
-<h2 class="section-title">Quick Actions</h2>
-<div class="quick-grid">
-<button class="quick" onclick="showPage('invoicePage')"><span>＋</span>New Invoice</button>
-<button class="quick" onclick="showPage('calculatorPage')"><span>🧮</span>Charge Setup</button>
-<button class="quick" onclick="showPage('targetPage')"><span>🎯</span>Target Setup</button>
-<button class="quick" onclick="showPage('leavesPage')"><span>🗓️</span>Leaves</button>
-</div>
 <h2 class="section-title">My Summary</h2>
 <div class="summary-grid">
 <div class="summary"><small>Target</small><strong id="sumTarget">0%</strong></div>
