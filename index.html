@@ -2924,9 +2924,10 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     startKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth(),1));
     endKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth()+1,0));
   }
-  // Never render future dates. When a historical date is selected,
-  // the chart ends exactly on that selected date.
-  const visibleUntil=dashboardSelectedDate||todayKey;
+  // Never render future dates. Candle selection must NOT hide the
+  // candles that come after the clicked date; selection only highlights
+  // the chosen candle while the chart keeps its full visible range.
+  const visibleUntil=todayKey;
   if(endKey>visibleUntil)endKey=visibleUntil;
   if(startKey>endKey)startKey=endKey;
 
