@@ -1226,7 +1226,7 @@ measurementId:"G-0HWWENTGX6"
 const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
-let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="";
+let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="",cycleCompletionRecords={};
 let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
