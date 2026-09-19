@@ -1585,6 +1585,34 @@ function getLatestChargeSetup(){
   return [...records].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
 }
 
+function getDashboardHistoryStartDate(){
+  const records=Array.isArray(savedChargeRecords)?savedChargeRecords:[];
+  const dates=records
+    .map(r=>String(r?.date||""))
+    .filter(Boolean)
+    .sort();
+  if(dates.length)return dates[0];
+
+  const invoiceDates=(Array.isArray(invoices)?invoices:[])
+    .map(x=>invoiceDateKey(x))
+    .filter(Boolean)
+    .sort();
+  return invoiceDates[0]||dateKeyLocal(new Date());
+}
+
+function setDashboardDatePickerBounds(){
+  const input=document.getElementById("dashboardDateSelect");
+  if(!input)return;
+  const today=dateKeyLocal(new Date());
+  const start=getDashboardHistoryStartDate();
+  input.min=start;
+  input.max=today;
+  const current=dashboardSelectedDate||today;
+  if(current<start)dashboardSelectedDate=start;
+  if(current>today)dashboardSelectedDate=today;
+  input.value=dashboardSelectedDate||today;
+}
+
 function getTargetSetupForDate(invoiceDate){
   const records=Array.isArray(savedTargetRecords)?savedTargetRecords:[];
   if(!records.length||!invoiceDate)return null;
@@ -2619,10 +2647,16 @@ function getCurrentDashboardCycle(){
 
 function selectDashboardDate(value){
   const today=dateKeyLocal(new Date());
+  const historyStart=getDashboardHistoryStartDate();
   if(value && value>today)value=today;
+  if(value && value<historyStart)value=historyStart;
   dashboardSelectedDate=value||"";
   const input=document.getElementById("dashboardDateSelect");
-  if(input&&value)input.value=value;
+  if(input){
+    input.min=historyStart;
+    input.max=today;
+    if(value)input.value=value;
+  }
   updateDashboard();
   // After the selected date is rendered, move the chart to that exact date.
   requestAnimationFrame(()=>scrollDashboardChartToDate(value,{smooth:true,force:true}));
@@ -2648,7 +2682,11 @@ function scrollDashboardChartToDate(dateKey,{smooth=true,force=false}={}){
 function clearDashboardDateSelection(){
   dashboardSelectedDate="";
   const input=document.getElementById("dashboardDateSelect");
-  if(input)input.value=dateKeyLocal(new Date());
+  if(input){
+    input.min=getDashboardHistoryStartDate();
+    input.max=dateKeyLocal(new Date());
+    input.value=dateKeyLocal(new Date());
+  }
   updateDashboard();
 }
 
@@ -2890,10 +2928,15 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     badge.title=cycle?((cycle.setup?.cycleLabel||"Current Cycle")+" • "+badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})):badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
     const dateInput=document.getElementById("dashboardDateSelect");
     if(dateInput){
-      dateInput.min=startKey;
-      dateInput.max=endKey;
+      const historyStart=getDashboardHistoryStartDate();
+      dateInput.min=historyStart;
+      dateInput.max=todayKey;
       const currentValue=dashboardSelectedDate||todayKey;
-      dateInput.value=(currentValue>=startKey&&currentValue<=endKey)?currentValue:endKey;
+      if(currentValue>=historyStart && currentValue<=todayKey){
+        dateInput.value=currentValue;
+      }else{
+        dateInput.value=todayKey;
+      }
     }
   }
 
@@ -3030,10 +3073,14 @@ try{renderLeaveHome();}catch(e){console.error("Leaves startup render error:",e);
 resetChargeSetup();
 renderSavedTargets();
 
-const today=new Date().toISOString().slice(0,10);
+const today=dateKeyLocal(new Date());
 dashboardSelectedDate="";
 const dashboardDateInput=document.getElementById("dashboardDateSelect");
-if(dashboardDateInput){dashboardDateInput.value=today;dashboardDateInput.max=today;}
+if(dashboardDateInput){
+  dashboardDateInput.value=today;
+  dashboardDateInput.min=getDashboardHistoryStartDate();
+  dashboardDateInput.max=today;
+}
 document.getElementById("targetDate").value=today;
 editingTargetDate=null;
 document.getElementById("saveTargetTableBtn").textContent="Save / Update";
