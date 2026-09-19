@@ -789,7 +789,7 @@ input:focus{border-color:#ed166a}
 <h2 class="section-title">My Summary</h2>
 <div class="summary-grid">
 <div class="summary"><small>Target</small><strong id="sumTarget">0%</strong></div>
-<div class="summary"><small>Target Amount</small><strong id="sumTargetAmount">0 AED</strong></div>
+<div class="summary"><small>Commission</small><strong id="sumCommission">0 AED</strong></div>
 <div class="summary"><small>Deductions</small><strong id="sumDeductions">0 AED</strong></div>
 <div class="summary"><small>Net Amount</small><strong id="sumNet">0 AED</strong></div>
 <div class="summary"><small>Days Work</small><strong id="sumDaysWork">0</strong></div>
@@ -1227,7 +1227,7 @@ measurementId:"G-0HWWENTGX6"
 const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
-let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="";
+let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="";
 let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
@@ -1275,6 +1275,7 @@ if(pageId==="invoicePage"){
 
 window.logout=async()=>{
   try{ if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;} }catch(e){}
+  try{ if(unsubscribeDriver){unsubscribeDriver();unsubscribeDriver=null;} }catch(e){}
   try{ if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;} }catch(e){}
   savedTargetRecords=[];
   savedChargeRecords=[]; editingChargeDate=null; monthlyCycleRecords={}; monthlyCycleSyncKey="";
@@ -2653,34 +2654,47 @@ function clearDashboardDateSelection(){
 }
 
 function getDashboardDayStats(cycle){
-  if(!cycle)return {totalDays:0,workDays:0,leaveDays:0,remainingDays:0};
+  if(!cycle)return {totalDays:0,workDays:0,leaveDays:0,remainingDays:0,elapsedDays:0};
   const startKey=dateKeyLocal(cycle.activeRangeStart||cycle.start);
   const endKey=dateKeyLocal(cycle.activeRangeEnd||cycle.end);
-  if(!startKey||!endKey||startKey>endKey)return {totalDays:0,workDays:0,leaveDays:0,remainingDays:0};
+  if(!startKey||!endKey||startKey>endKey)return {totalDays:0,workDays:0,leaveDays:0,remainingDays:0,elapsedDays:0};
 
-  // A working day is a calendar date on which at least one invoice was saved.
-  // Multiple invoices on the same date still count as one working day.
-  const workDates=new Set();
-  invoices.forEach(inv=>{
-    const k=invoiceDateKey(inv);
-    if(k&&k>=startKey&&k<=endKey)workDates.add(k);
-  });
+  // Days Work is based on calendar days elapsed in the active range, not on
+  // whether an invoice exists. A leave day is removed from Days Work as well.
+  const asOfKey=dashboardSelectedDate||dateKeyLocal(new Date());
+  const elapsedEndKey=asOfKey<startKey?null:(asOfKey>endKey?endKey:asOfKey);
+  const totalDays=leaveDaysBetween(startKey,endKey);
+  if(!elapsedEndKey)return {totalDays,workDays:0,leaveDays:0,remainingDays:totalDays,elapsedDays:0};
 
-  // Count each leave calendar date once, only when it falls inside the active range.
+  const elapsedDays=leaveDaysBetween(startKey,elapsedEndKey);
   const leaveDates=new Set();
   (Array.isArray(leaveRecords)?leaveRecords:[]).forEach(record=>{
     leaveRecordDates(record).forEach(k=>{
-      if(k&&k>=startKey&&k<=endKey)leaveDates.add(k);
+      if(k&&k>=startKey&&k<=elapsedEndKey)leaveDates.add(k);
     });
   });
 
-  const start=new Date(startKey+"T00:00:00");
-  const end=new Date(endKey+"T00:00:00");
-  const totalDays=Math.max(0,Math.round((end-start)/86400000)+1);
-  const workDays=workDates.size;
   const leaveDays=leaveDates.size;
-  const remainingDays=Math.max(0,totalDays-workDays-leaveDays);
-  return {totalDays,workDays,leaveDays,remainingDays};
+  const workDays=Math.max(0,elapsedDays-leaveDays);
+  // Leave reduces both counters by one for each leave date.
+  const remainingDays=Math.max(0,totalDays-elapsedDays-leaveDays);
+  return {totalDays,workDays,leaveDays,remainingDays,elapsedDays};
+}
+
+function getTargetPercentForDailyAverage(dailyAvg,dateKey){
+  const target=getTargetSetupForDate(dateKey);
+  if(!target)return 0;
+  const amounts=Array.isArray(target.amounts)?target.amounts:[];
+  const percentages=Array.isArray(target.percentages)?target.percentages:TARGET_PERCENTAGES;
+  let matched=0;
+  amounts.forEach((amount,i)=>{
+    const threshold=Number(amount);
+    if(Number.isFinite(threshold)&&threshold>0&&dailyAvg>=threshold){
+      const pct=Number(percentages[i]);
+      if(Number.isFinite(pct))matched=pct;
+    }
+  });
+  return matched;
 }
 
 function updateDashboard(){
@@ -2704,8 +2718,9 @@ function updateDashboard(){
   }
   const total=cycleInvoices.reduce((s,x)=>s+(Number(x.net)||0),0);
   const deductions=cycleInvoices.reduce((s,x)=>s+(Number(x.deductions)||0),0);
-  const avg=cycleInvoices.length?total/cycleInvoices.length:0;
-  const target=Number(driverData.targetPercent||0);
+  const dayStats=getDashboardDayStats(cycle);
+  const avg=dayStats.workDays>0 ? total/dayStats.workDays : 0;
+  const target=getTargetPercentForDailyAverage(avg,dashboardSelectedDate||dateKeyLocal(new Date()));
   if(totalEl)totalEl.textContent=money(total);
   if(avgEl)avgEl.textContent=money(avg)+" AED";
   if(labelEl){
@@ -2729,11 +2744,12 @@ function updateDashboard(){
   const deductionsEl=document.getElementById("sumDeductions");
   const sumNetEl=document.getElementById("sumNet");
   if(targetEl)targetEl.textContent=target+"%";
-  if(targetAmountEl)targetAmountEl.textContent=money(total*target/100)+" AED";
+  const commissionEl=document.getElementById("sumCommission");
+  if(commissionEl)commissionEl.textContent=money(total*target/100)+" AED";
   if(deductionsEl)deductionsEl.textContent=money(deductions)+" AED";
   if(sumNetEl)sumNetEl.textContent=money(total)+" AED";
 
-  const dayStats=getDashboardDayStats(cycle);
+
   const daysWorkEl=document.getElementById("sumDaysWork");
   const daysRemainingEl=document.getElementById("sumDaysRemaining");
   if(daysWorkEl)daysWorkEl.textContent=String(dayStats.workDays);
@@ -2922,6 +2938,8 @@ onAuthStateChanged(auth,async user=>{
 try{
 if(!user){
   currentUser=null;
+  try{if(unsubscribeDriver){unsubscribeDriver();unsubscribeDriver=null;}}catch(e){}
+  try{if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;}}catch(e){}
   try{if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}}catch(e){}
   savedTargetRecords=[];
   showAuth();
@@ -2940,6 +2958,22 @@ document.getElementById("profileEmail").textContent=driverData.email||user.email
 const profileName=driverData.name||"Driver";
 document.getElementById("profileHeroName").textContent=profileName;
 document.getElementById("profileAvatar").textContent=(profileName.trim().charAt(0)||"D").toUpperCase();
+if(unsubscribeDriver){unsubscribeDriver();unsubscribeDriver=null;}
+unsubscribeDriver=onSnapshot(ref,driverSnap=>{
+  if(!driverSnap.exists())return;
+  const fresh=driverSnap.data()||{};
+  driverData={...driverData,...fresh};
+  savedTargetRecords=Array.isArray(fresh.targetRecords)?fresh.targetRecords.map(r=>({...r})):Object.values(fresh.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
+  savedChargeRecords=Object.values(fresh.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
+  monthlyCycleRecords={...(fresh.monthlyCycleRecords||{})};
+  leaveRecords=Array.isArray(fresh.leaveRecords)?fresh.leaveRecords.map(r=>({...r})):[];
+  renderSavedCharges();
+  renderSavedTargets();
+  try{renderLeaveHome();renderLeaveCalendar();}catch(e){}
+  updateInvoiceRateCard();
+  updateDashboard();
+},error=>console.error("Driver realtime listener error:",error));
+
 if(unsubscribeInvoices)unsubscribeInvoices();
 unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
 invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();renderSavedInvoices();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();
