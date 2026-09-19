@@ -2531,45 +2531,59 @@ function queueMonthlyCycleRecord(monthKey){
 function makeCycleSegment(year, monthIndex, fromDay, toDay){
   const from=Number(fromDay), to=Number(toDay);
   if(!Number.isInteger(from)||!Number.isInteger(to))return null;
-  const start=new Date(year,monthIndex-1,from);
-  if(start.getMonth()!==((monthIndex-1)%12+12)%12)return null;
-  let end=new Date(year,monthIndex-1,to);
-  // A range such as 20 → 5 continues into the following calendar month.
-  if(end<start) end=new Date(year,monthIndex,to);
+  const baseMonth=((Number(monthIndex)-1)%12+12)%12;
+  const baseYear=Number(year)+Math.floor((Number(monthIndex)-1)/12);
+  const daysInBaseMonth=new Date(baseYear,baseMonth+1,0).getDate();
+  if(from<1||from>31||to<1||to>31)return null;
+  // Never let an impossible day (31 in a 30-day month, or 29–31 in a
+  // non-leap February) roll into the following month. Ignore that day.
+  const safeFrom=Math.min(from,daysInBaseMonth);
+  const start=new Date(baseYear,baseMonth,safeFrom);
+  let endMonth=baseMonth, endYear=baseYear;
+  if(to<from){ endMonth+=1; if(endMonth>11){endMonth=0;endYear+=1;} }
+  const daysInEndMonth=new Date(endYear,endMonth+1,0).getDate();
+  const safeTo=Math.min(to,daysInEndMonth);
+  const end=new Date(endYear,endMonth,safeTo);
+  if(end<start)return null;
   return {start,end};
+}
+
+function buildDashboardCycleForAnchor(setup, anchorYear, anchorMonth){
+  if(!setup)return null;
+  const ranges=Array.isArray(setup.ranges)?setup.ranges:[];
+  const r1=ranges[0];
+  if(!r1)return null;
+  const c1=makeCycleSegment(anchorYear,anchorMonth,r1.from,r1.to);
+  if(!c1)return null;
+  let c2=null;
+  if(Number(setup.cycleType||1)===2 && ranges[1]){
+    const r2=ranges[1];
+    // The second saved range starts immediately after Cycle 1's end month.
+    // Example: 17→1 followed by 2→16 means 17 Sep→16 Oct.
+    const startMonth=new Date(c1.end.getFullYear(),c1.end.getMonth(),1);
+    let c2Start=makeCycleSegment(startMonth.getFullYear(),startMonth.getMonth()+1,r2.from,r2.to);
+    // If the second range would overlap Cycle 1, place it in the next month.
+    if(c2Start && c2Start.start<=c1.end){
+      c2Start=makeCycleSegment(startMonth.getFullYear(),startMonth.getMonth()+2,r2.from,r2.to);
+    }
+    if(c2Start)c2=c2Start;
+  }
+  return {setup,start:c1.start,end:c2?c2.end:c1.end,cycle1Start:c1.start,cycle1End:c1.end,cycle2Start:c2?.start||null,cycle2End:c2?.end||null};
 }
 
 function getDashboardCycleForDate(dateKey){
   if(!dateKey)return null;
+  const selected=new Date(dateKey+"T00:00:00");
   const setup=getChargeSetupForDate(dateKey);
   if(!setup)return null;
-  const selected=new Date(dateKey+"T00:00:00");
-  const type=Number(setup.cycleType||1);
-  const ranges=Array.isArray(setup.ranges)?setup.ranges:[];
-  const r1=ranges[0];
-  if(!r1)return null;
-
-  // Cycle 1 is the anchor. A cycle group always starts on Cycle 1's start
-  // date and remains the same group even if Cycle 2 crosses into the next month.
   const candidates=[];
+  // The invoice supplies the month/year. Test that month plus the adjacent
+  // month because a two-range cycle can cross the calendar-month boundary.
   for(let offset=-1;offset<=1;offset++){
     const anchor=new Date(selected.getFullYear(),selected.getMonth()+offset,1);
-    const c1=makeCycleSegment(anchor.getFullYear(),anchor.getMonth()+1,r1.from,r1.to);
-    if(!c1)continue;
-    let c2=null;
-    if(type===2 && ranges[1]){
-      const r2=ranges[1];
-      const c2Month=c1.end.getMonth();
-      const c2Year=c1.end.getFullYear();
-      let c2Start=new Date(c2Year,c2Month,Number(r2.from));
-      if(c2Start<=c1.end)c2Start=new Date(c2Year,c2Month+1,Number(r2.from));
-      let c2End=new Date(c2Start.getFullYear(),c2Start.getMonth(),Number(r2.to));
-      if(c2End<c2Start)c2End=new Date(c2Start.getFullYear(),c2Start.getMonth()+1,Number(r2.to));
-      c2={start:c2Start,end:c2End};
-    }
-    const groupEnd=c2?c2.end:c1.end;
-    if(selected>=c1.start && selected<=groupEnd){
-      candidates.push({setup,start:c1.start,end:groupEnd,cycle1Start:c1.start,cycle1End:c1.end,cycle2Start:c2?.start||null,cycle2End:c2?.end||null,selectedKey:dateKey});
+    const cycle=buildDashboardCycleForAnchor(setup,anchor.getFullYear(),anchor.getMonth()+1);
+    if(cycle && selected>=cycle.start && selected<=cycle.end){
+      candidates.push(cycle);
     }
   }
   if(!candidates.length)return null;
@@ -2738,7 +2752,16 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     if(monthEl)monthEl.textContent=badgeDate.toLocaleDateString("en-GB",{month:"short"});
     badge.title=cycle ? ((cycle.setup?.cycleLabel||"Current Cycle")+" • "+badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})) : badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
     const dateInput=document.getElementById("dashboardDateSelect");
-    if(dateInput){dateInput.value=dashboardSelectedDate||dateKeyLocal(new Date());dateInput.max=dateKeyLocal(new Date());}
+    if(dateInput){
+      const todayKey=dateKeyLocal(new Date());
+      const cycleMin=cycle?dateKeyLocal(cycle.start):todayKey;
+      const cycleMax=cycle?dateKeyLocal(cycle.end):todayKey;
+      dateInput.min=cycleMin;
+      dateInput.max=cycleMax<todayKey?cycleMax:todayKey;
+      const currentValue=dashboardSelectedDate||todayKey;
+      if(currentValue>=dateInput.min && currentValue<=dateInput.max) dateInput.value=currentValue;
+      else dateInput.value=dateInput.max;
+    }
   }
 
   const avgOverlay=document.getElementById("chartAverageOverlay");
