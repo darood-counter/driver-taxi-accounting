@@ -772,10 +772,10 @@ input:focus{border-color:#ed166a}
 <section class="card">
 <div class="dashboard-cycle-controls">
   <div class="period" id="dashboardCycleLabel">Collections - Current Cycle</div>
-  <label class="cycle-date-badge" id="dashboardCycleBadge" aria-label="Select date">
+  <button type="button" class="cycle-date-badge" id="dashboardCycleBadge" aria-label="Select date">
     <span class="cycle-badge-day">--</span><span class="cycle-badge-month">---</span>
-    <input type="date" id="dashboardDateSelect" onchange="window.selectDashboardDate(this.value)" oninput="window.selectDashboardDate(this.value)" aria-label="Select dashboard date">
-  </label>
+    <input type="date" id="dashboardDateSelect" onchange="selectDashboardDate(this.value)" aria-label="Select dashboard date">
+  </button>
 </div>
 <div class="total-row">
   <div><span class="total" id="totalAmount">0.00</span> <span class="currency">AED</span></div>
@@ -1608,10 +1608,11 @@ function setDashboardDatePickerBounds(){
   const input=document.getElementById("dashboardDateSelect");
   if(!input)return;
   const today=dateKeyLocal(new Date());
-  // Historical dates remain selectable. Only future dates are blocked.
-  input.removeAttribute("min");
+  const start=getDashboardHistoryStartDate();
+  input.min=start;
   input.max=today;
   const current=dashboardSelectedDate||today;
+  if(current<start)dashboardSelectedDate=start;
   if(current>today)dashboardSelectedDate=today;
   input.value=dashboardSelectedDate||today;
 }
@@ -2659,41 +2660,21 @@ function getCurrentDashboardCycle(){
   return getDashboardCycleForDate(key);
 }
 
-window.selectDashboardDate=function(value){
+function selectDashboardDate(value){
   const today=dateKeyLocal(new Date());
-  const selected=String(value||"").trim();
-  if(!selected)return;
-  const safeDate=selected>today?today:selected;
-
-  // This is the single source of truth for the Dashboard date.
-  dashboardSelectedDate=safeDate;
-
+  const historyStart=getDashboardHistoryStartDate();
+  if(value && value>today)value=today;
+  if(value && value<historyStart)value=historyStart;
+  dashboardSelectedDate=value||"";
   const input=document.getElementById("dashboardDateSelect");
   if(input){
-    input.removeAttribute("min");
+    input.min=historyStart;
     input.max=today;
-    input.value=safeDate;
+    if(value)input.value=value;
   }
-
-  // Update the small date badge immediately, before the chart redraw.
-  const badge=document.getElementById("dashboardCycleBadge");
-  if(badge){
-    const d=new Date(safeDate+"T00:00:00");
-    const dayEl=badge.querySelector(".cycle-badge-day");
-    const monthEl=badge.querySelector(".cycle-badge-month");
-    if(dayEl)dayEl.textContent=String(d.getDate()).padStart(2,"0");
-    if(monthEl)monthEl.textContent=d.toLocaleDateString("en-GB",{month:"short"});
-  }
-
-  // Rebuild the complete Dashboard using the selected date:
-  // cycle/range + totals + days + candles + selected-date marker.
   updateDashboard();
-
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      scrollDashboardChartToDate(safeDate,{smooth:false,force:true});
-    });
-  });
+  // After the selected date is rendered, move the chart to that exact date.
+  requestAnimationFrame(()=>scrollDashboardChartToDate(value,{smooth:true,force:true}));
 }
 
 function scrollDashboardChartToDate(dateKey,{smooth=true,force=false}={}){
@@ -2717,7 +2698,7 @@ function clearDashboardDateSelection(){
   dashboardSelectedDate="";
   const input=document.getElementById("dashboardDateSelect");
   if(input){
-    input.removeAttribute("min");
+    input.min=getDashboardHistoryStartDate();
     input.max=dateKeyLocal(new Date());
     input.value=dateKeyLocal(new Date());
   }
@@ -2815,12 +2796,7 @@ function updateDashboard(){
     // For Cycle 2 this means Range 1 or Range 2, not both ranges combined.
     const cStart=dateKeyLocal(cycle.activeRangeStart||cycle.start);
     const cEnd=dateKeyLocal(cycle.activeRangeEnd||cycle.end);
-    const todayKey=dateKeyLocal(new Date());
-    // If viewing history, show only sales up to the selected date.
-    // In the normal/current view, show only sales up to today.
-    const visibleEnd = dashboardSelectedDate
-      ? (dashboardSelectedDate<cEnd ? dashboardSelectedDate : cEnd)
-      : (todayKey<cEnd ? todayKey : cEnd);
+    const visibleEnd = dashboardSelectedDate ? (dashboardSelectedDate<cEnd ? dashboardSelectedDate : cEnd) : cEnd;
     cycleInvoices=invoices.filter(x=>{
       const k=invoiceDateKey(x);
       return k && k>=cStart && k<=visibleEnd;
@@ -2903,10 +2879,9 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     startKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth(),1));
     endKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth()+1,0));
   }
-  // Never render future dates. When a historical date is selected,
-  // the chart ends exactly on that selected date.
-  const visibleUntil=dashboardSelectedDate||todayKey;
-  if(endKey>visibleUntil)endKey=visibleUntil;
+  // Never render future dates. The chart therefore grows automatically as
+  // today's date advances or a new invoice is saved.
+  if(endKey>todayKey)endKey=todayKey;
   if(startKey>endKey)startKey=endKey;
 
   // Build a reliable daily Net Amount map from the actual invoice date.
@@ -2935,7 +2910,9 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     arr.push({key,value:row.value,saleTotal:row.saleTotal,count:row.count,hasSales,date:new Date(d)});
   }
 
-  const maxNet=Math.max(...arr.map(x=>Math.max(0,x.value)),0);
+  const allRangeDaily=new Map();
+  invoices.forEach(inv=>{const k=invoiceDateKey(inv);if(!k||k<startKey||k>endKey)return;const n=Number(inv?.net);if(Number.isFinite(n))allRangeDaily.set(k,(allRangeDaily.get(k)||0)+n);});
+  const maxNet=Math.max(...Array.from(allRangeDaily.values()).map(x=>Math.max(0,x)),0);
   const niceStep=(()=>{
     if(maxNet<=0)return 100;
     const raw=maxNet/4;
@@ -2969,11 +2946,11 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     badge.title=cycle?((cycle.setup?.cycleLabel||"Current Cycle")+" • "+badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})):badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
     const dateInput=document.getElementById("dashboardDateSelect");
     if(dateInput){
-      // Historical dates are allowed; only future dates are disabled.
-      dateInput.removeAttribute("min");
+      const historyStart=getDashboardHistoryStartDate();
+      dateInput.min=historyStart;
       dateInput.max=todayKey;
       const currentValue=dashboardSelectedDate||todayKey;
-      if(currentValue<=todayKey){
+      if(currentValue>=historyStart && currentValue<=todayKey){
         dateInput.value=currentValue;
       }else{
         dateInput.value=todayKey;
@@ -3020,10 +2997,21 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     col.append(value,wrap,date);
     chart.appendChild(col);
 
-    col.addEventListener("click",()=>{
-      // Clicking any date makes that date the dashboard "as-of" date.
-      selectDashboardDate(x.key);
-    });
+    if(x.hasSales){
+      col.addEventListener("click",()=>{
+        col.classList.remove("active-click");
+        void col.offsetWidth;
+        col.classList.add("active-click");
+        const oldTip=col.querySelector(".chart-click-value");
+        if(oldTip)oldTip.remove();
+        const tip=document.createElement("div");
+        tip.className="chart-click-value";
+        tip.textContent=money(x.value)+" AED";
+        tip.style.bottom=(height+2)+"%";
+        wrap.appendChild(tip);
+        setTimeout(()=>{tip.remove();col.classList.remove("active-click")},1800);
+      });
+    }
 
     if(dashboardSelectedDate===x.key){
       const callout=document.createElement("div");
@@ -3108,32 +3096,9 @@ dashboardSelectedDate="";
 const dashboardDateInput=document.getElementById("dashboardDateSelect");
 if(dashboardDateInput){
   dashboardDateInput.value=today;
-  dashboardDateInput.removeAttribute("min");
+  dashboardDateInput.min=getDashboardHistoryStartDate();
   dashboardDateInput.max=today;
-
-  // Android/mobile date pickers can update the native input without
-  // reliably executing an inline onchange handler. Bind both events
-  // directly so the Dashboard always receives the selected date.
-  const handleDashboardDateChange=()=>{
-    const selected=dashboardDateInput.value;
-    if(selected) window.selectDashboardDate(selected);
-  };
-  dashboardDateInput.addEventListener("change",handleDashboardDateChange);
-  dashboardDateInput.addEventListener("input",handleDashboardDateChange);
 }
-document.addEventListener("change",function(event){
-  const el=event.target;
-  if(el && el.id==="dashboardDateSelect" && el.value){
-    window.selectDashboardDate(el.value);
-  }
-});
-document.addEventListener("input",function(event){
-  const el=event.target;
-  if(el && el.id==="dashboardDateSelect" && el.value){
-    window.selectDashboardDate(el.value);
-  }
-});
-
 document.getElementById("targetDate").value=today;
 editingTargetDate=null;
 document.getElementById("saveTargetTableBtn").textContent="Save / Update";
