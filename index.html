@@ -839,7 +839,6 @@ input:focus{border-color:#ed166a}
 </div>
 
 <section id="invoicePage" class="page">
-<button class="back" onclick="showPage('dashboardPage')">← Back</button>
 <div class="form-card">
 <div class="invoice-rate-card" id="invoiceRateCard">
   <div class="invoice-rate-item">
@@ -859,7 +858,7 @@ input:focus{border-color:#ed166a}
   </div>
 </div>
 
-<div class="invoice-title-row"><h2 id="invoiceTitle">New Invoice</h2><button type="button" class="scan-invoice-btn" id="scanInvoiceBtn" onclick="openInvoiceScanner()">📷 Scan Invoice</button></div>
+<div class="invoice-title-row"><button type="button" class="back invoice-back-top" onclick="showPage('dashboardPage')">← Back</button><button type="button" class="scan-invoice-btn" id="scanInvoiceBtn" onclick="openInvoiceScanner()">📷 Scan Invoice</button></div>
 <div class="small">Invoice Number is automatic. You can edit any saved invoice later.</div>
 
 <div class="invoice-fields">
