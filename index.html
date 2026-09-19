@@ -758,16 +758,34 @@ input:focus{border-color:#ed166a}
   .daily-report-table td{padding:8px 6px}
   .daily-report-summary-table td{padding:9px 10px}
 }
+/* ===== Monthly Report ===== */
+.monthly-report-page{padding-bottom:30px}
+.monthly-report-selector{background:#fff;border-radius:18px;padding:14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.monthly-report-selector label{display:block;font-size:12px;font-weight:800;color:#737783;margin-bottom:6px}
+.monthly-report-selector input{width:100%;min-height:46px;padding:10px 12px;border:1px solid #d7d9df;border-radius:12px;font-size:16px;outline:none;background:#fff}
+.monthly-report-cycle-note{padding:12px 14px;border-top:1px solid #e7e9ee;color:#5f6470;font-size:11px;line-height:1.55}
+.monthly-report-table{width:100%;min-width:2050px;border-collapse:collapse;font-size:11px}
+.monthly-report-table th{background:#f4f5f8;color:#5f6470;text-align:center;padding:10px 7px;border-right:1px solid #e2e4e9;white-space:nowrap;font-size:10px}
+.monthly-report-table td{padding:9px 7px;border-top:1px solid #eceef3;border-right:1px solid #eceef3;text-align:right;white-space:nowrap;font-weight:700}
+.monthly-report-table td:first-child,.monthly-report-table th:first-child{text-align:left}
+.monthly-report-table .sale-col{background:#fbfcfe}.monthly-report-table .deduct-col{background:#fffafb}.monthly-report-table .net-col{font-weight:900;background:#f7fbf8}
+.monthly-report-table .total-row td{background:#eef0f5;font-weight:900;border-top:2px solid #cfd3db}.monthly-report-table .total-row .net-col{background:#e7f5ec}
+.monthly-report-section-title{padding:12px 14px;background:#f7f8fa;font-size:12px;font-weight:900;border-top:1px solid #e7e9ee}
+@media(max-width:600px){.monthly-report-table{min-width:2050px;font-size:10px}.monthly-report-table th{padding:9px 5px;font-size:9px}.monthly-report-table td{padding:8px 5px}}
 @media print{
   body.daily-report-print-mode *{visibility:hidden!important}
+  body.monthly-report-print-mode *{visibility:hidden!important}
   body.daily-report-print-mode #dailyReportPage,body.daily-report-print-mode #dailyReportPage *{visibility:visible!important}
+  body.monthly-report-print-mode #monthlyReportPage,body.monthly-report-print-mode #monthlyReportPage *{visibility:visible!important}
   body.daily-report-print-mode #dailyReportPage{position:absolute!important;left:0!important;top:0!important;width:100%!important;padding:0!important;margin:0!important}
+  body.monthly-report-print-mode #monthlyReportPage{position:absolute!important;left:0!important;top:0!important;width:100%!important;padding:0!important;margin:0!important}
   body.daily-report-print-mode .daily-report-selector,body.daily-report-print-mode .daily-report-head,body.daily-report-print-mode #dailyReportBackBtn,body.daily-report-print-mode .daily-report-print{display:none!important}
+  body.monthly-report-print-mode .monthly-report-selector,body.monthly-report-print-mode .daily-report-head,body.monthly-report-print-mode #monthlyReportBackBtn,body.monthly-report-print-mode .daily-report-print{display:none!important}
   body.daily-report-print-mode .daily-report-ledger{box-shadow:none!important;border-radius:0!important;margin:0!important}
-  body.daily-report-print-mode .daily-report-table-wrap{overflow:visible!important}
-  body.daily-report-print-mode .daily-report-table{min-width:0!important;width:100%!important;font-size:7px!important}
+  body.daily-report-print-mode .daily-report-table-wrap,body.monthly-report-print-mode .daily-report-table-wrap{overflow:visible!important}
+  body.daily-report-print-mode .daily-report-table,body.monthly-report-print-mode .monthly-report-table{min-width:0!important;width:100%!important;font-size:7px!important}
   body.daily-report-print-mode .daily-report-table th,body.daily-report-print-mode .daily-report-table td{padding:4px 3px!important;white-space:normal!important}
-  body.daily-report-print-mode .daily-report-summary-table{font-size:9px!important}
+  body.daily-report-print-mode .daily-report-summary-table,body.monthly-report-print-mode .daily-report-summary-table{font-size:9px!important}
   @page{size:landscape;margin:8mm}
 }
 </style>
@@ -982,6 +1000,19 @@ input:focus{border-color:#ed166a}
   <input type="date" id="dailyReportDate" onchange="renderDailyReport()">
 </div>
 <div id="dailyReportContent"><div class="daily-report-empty">Date select کرنے کے بعد Daily Report یہاں دکھائی جائے گی۔</div></div>
+</section>
+
+<section id="monthlyReportPage" class="page monthly-report-page">
+<button class="back" id="monthlyReportBackBtn" onclick="showPage('dashboardPage')">← Back</button>
+<div class="daily-report-head">
+  <h1>Monthly Report</h1>
+  <p>مہینہ منتخب کریں۔ اس پورے مہینے کے تمام invoices کو Cycle 1 اور Cycle 2 کے حساب سے جمع کرکے مکمل ledger detail دکھائی جائے گی۔</p>
+</div>
+<div class="monthly-report-selector">
+  <label for="monthlyReportMonth">Select Month</label>
+  <input type="month" id="monthlyReportMonth" onchange="renderMonthlyReport()">
+</div>
+<div id="monthlyReportContent"><div class="daily-report-empty">Month select کرنے کے بعد Monthly Report یہاں دکھائی جائے گی۔</div></div>
 </section>
 
 <section id="calculatorPage" class="page">
@@ -1281,6 +1312,7 @@ input:focus{border-color:#ed166a}
 <button onclick="showPage('leavesPage');toggleMenu()">🗓️ Leaves</button>
 <button onclick="showPage('historyPage');toggleMenu()">📋 Invoice History</button>
 <button onclick="showPage('dailyReportPage');toggleMenu()">📊 Daily Report</button>
+<button onclick="showPage('monthlyReportPage');toggleMenu()">📅 Monthly Report</button>
 <button onclick="showPage('profilePage');toggleMenu()">👤 Profile</button>
 <button onclick="logout()">↪ Logout</button>
 </nav>
@@ -1328,24 +1360,26 @@ const isCharge=pageId==="calculatorPage";
 const isLeaves=pageId==="leavesPage";
 const isInvoice=pageId==="invoicePage";
 const isDailyReport=pageId==="dailyReportPage";
+const isMonthlyReport=pageId==="monthlyReportPage";
 if(topbar&&leftBtn&&brand&&bell){
-  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves||isInvoice||isDailyReport);
-  leftBtn.textContent=(isLeaves||isInvoice||isDailyReport)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
-  leftBtn.classList.toggle("leave-top-back",isLeaves||isInvoice||isDailyReport);
+  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves||isInvoice||isDailyReport||isMonthlyReport);
+  leftBtn.textContent=(isLeaves||isInvoice||isDailyReport||isMonthlyReport)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
+  leftBtn.classList.toggle("leave-top-back",isLeaves||isInvoice||isDailyReport||isMonthlyReport);
   leftBtn.onclick=(isLeaves)
     ? ()=>{
         const flow=document.getElementById("leaveFlowView");
         if(flow && flow.classList.contains("active")) leaveBackToHome();
         else showPage("dashboardPage");
       }
-    : ((isInvoice||isDailyReport) ? ()=>showPage("dashboardPage") : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu()));
-  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":(isDailyReport?"Daily Report":"Driver's"))));
-  bell.style.display=(isProfile||isTarget||isCharge||isLeaves||isInvoice||isDailyReport)?"none":"block";
+    : ((isInvoice||isDailyReport||isMonthlyReport) ? ()=>showPage("dashboardPage") : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu()));
+  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":(isMonthlyReport?"Monthly Report":(isDailyReport?"Daily Report":"Driver's"))))) ;
+  bell.style.display=(isProfile||isTarget||isCharge||isLeaves||isInvoice||isDailyReport||isMonthlyReport)?"none":"block";
   bell.textContent="🔔";
   bell.onclick=null;
 }
 if(pageId==="historyPage")renderHistory();
 if(pageId==="dailyReportPage")initDailyReport();
+if(pageId==="monthlyReportPage")initMonthlyReport();
 if(pageId==="leavesPage"){try{leaveCalendarMonth=new Date();renderLeaveCalendar();renderLeaveHome();}catch(e){console.error("Leaves render error:",e);}}
 if(pageId==="invoicePage"){
   updateInvoiceRateCard();
@@ -2215,7 +2249,6 @@ window.renderDailyReport=()=>{
   const rowsHtml=rows.map((x,i)=>{
     const t=dailyReportInvoiceTotals(x);
     return `<tr>
-      <td class="invoice-cell">${dailyReportEscape(x.invoiceNumber||"Invoice")}</td>
       <td class="date-cell">${dailyReportEscape(dailyReportDateText(dateKey))}</td>
       <td class="cycle-cell">${dailyReportEscape(cycleInfo.label)}</td>
       <td class="sale-col">${cell(x.creditCard)}</td><td class="sale-col">${cell(x.app)}</td><td class="sale-col">${cell(x.cash)}</td>
@@ -2230,7 +2263,7 @@ window.renderDailyReport=()=>{
   }).join("");
 
   const totalRow=`<tr class="total-row">
-    <td colspan="3">TOTAL (${rows.length} invoice${rows.length===1?"":"s"})</td>
+    <td colspan="2">TOTAL (${rows.length} invoice${rows.length===1?"":"s"})</td>
     <td>${cell(rows.reduce((a,x)=>a+round2(x.creditCard),0))}</td>
     <td>${cell(rows.reduce((a,x)=>a+round2(x.app),0))}</td>
     <td>${cell(rows.reduce((a,x)=>a+round2(x.cash),0))}</td>
@@ -2281,13 +2314,161 @@ window.renderDailyReport=()=>{
     </div>
     <div class="daily-report-table-wrap"><table class="daily-report-table">
       <thead><tr>
-        <th>Invoice No.</th><th>Date</th><th>Cycle / Day</th>
+        <th>Date</th><th>Cycle / Day</th>
         <th>Credit Card</th><th>App</th><th>Cash</th><th>Shift Discount</th><th>Careem Discount</th><th>Paid in Careem</th><th>Total Sale</th>
         <th>Tips</th><th>Tollways</th><th>Shift Trips Qty</th><th>Shift Trips AED</th><th>Bookings Qty</th><th>Bookings AED</th><th>KM</th><th>KM AED</th><th>Hala Juniors</th><th>Hala Peak</th><th>Peak</th><th>Others</th><th>Total Deduction</th><th>Net Sale</th>
       </tr></thead><tbody>${rowsHtml}${totalRow}</tbody>
     </table></div>
     ${summary}
     <div class="daily-report-note">${rows.length} invoice${rows.length===1?"":"s"} شامل ہیں۔ Shift Trips / Bookings / KM کی AED deductions اسی تاریخ کے موجودہ Charge Setup rates کے مطابق رکھی گئی ہیں، جبکہ Total Deduction اور Net Sale محفوظ invoice values کے مطابق ہیں۔</div>
+  </div>`;
+};
+
+function monthlyReportMonthText(monthKey){
+  if(!monthKey)return "—";
+  const d=new Date(monthKey+"-01T00:00:00");
+  if(Number.isNaN(d.getTime()))return monthKey;
+  return d.toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+}
+function monthlyReportMonthBounds(monthKey){
+  const [y,m]=String(monthKey||"").split("-").map(Number);
+  if(!y||!m)return null;
+  return {start:`${y}-${String(m).padStart(2,"0")}-01`,end:dateKeyLocal(new Date(y,m,0))};
+}
+
+// Monthly reporting follows the same business rule as the saved cycle records:
+// the report month belongs to the month in which Cycle 1 starts. If Cycle 2
+// crosses into the following calendar month, it still remains inside this
+// same monthly report. Cycle 2's two ranges are combined into one financial
+// row; their individual totals are mentioned only in the description.
+function monthlyReportCycleForMonth(monthKey){
+  const candidates=[];
+  (Array.isArray(savedChargeRecords)?savedChargeRecords:[]).forEach(setup=>{
+    if(!setup?.date||String(setup.date).slice(0,7)!==String(monthKey))return;
+    const d=new Date(String(setup.date)+"T00:00:00");
+    if(Number.isNaN(d.getTime()))return;
+    const cycle=buildDashboardCycleForAnchor(setup,d.getFullYear(),d.getMonth()+1);
+    if(!cycle)return;
+    candidates.push({setup,cycle});
+  });
+  candidates.sort((a,b)=>String(b.setup.date).localeCompare(String(a.setup.date)));
+  return candidates[0]||null;
+}
+function monthlyReportRowsInRange(start,end){
+  if(!start||!end)return [];
+  return (Array.isArray(invoices)?invoices:[]).filter(x=>{
+    const d=invoiceDateKey(x)||x.date||"";
+    return d&&d>=start&&d<=end;
+  });
+}
+function monthlyReportAggregate(rows){
+  const totals=rows.map(dailyReportInvoiceTotals);
+  const sumField=(field)=>round2(totals.reduce((a,b)=>a+(Number(b[field])||0),0));
+  const raw=(field)=>round2(rows.reduce((a,x)=>a+round2(x[field]),0));
+  return {
+    creditCard:raw("creditCard"),app:raw("app"),cash:raw("cash"),shiftDiscount:raw("shiftDiscount"),careemDiscount:raw("careemDiscount"),paidCareem:raw("paidCareem"),
+    total:sumField("total"),tips:raw("tips"),tolls:raw("tolls"),shiftTrips:raw("shiftTrips"),shiftTripsAmount:sumField("shiftTripsAmount"),bookings:raw("bookings"),bookingAmount:sumField("bookingAmount"),km:raw("km"),kmAmount:sumField("kmAmount"),
+    halaJunior:raw("halaJunior"),halaPeak:raw("halaPeak"),peak:raw("peak"),extraCharges:raw("extraCharges"),deductions:sumField("deductions"),net:sumField("net"),count:rows.length
+  };
+}
+function monthlyReportCommissionForRows(rows, targetDate){
+  if(!rows.length)return 0;
+  const target=getTargetSetupForDate(targetDate||invoiceDateKey(rows[0]));
+  if(!target)return 0;
+  const agg=monthlyReportAggregate(rows);
+  const amounts=Array.isArray(target.amounts)?target.amounts:[];
+  const percentages=Array.isArray(target.percentages)?target.percentages:TARGET_PERCENTAGES;
+  let matched=0;
+  amounts.forEach((amount,i)=>{
+    const threshold=Number(amount), pct=Number(percentages[i]);
+    if(Number.isFinite(threshold)&&threshold>0&&agg.net>=threshold&&Number.isFinite(pct))matched=pct;
+  });
+  return matched;
+}
+function monthlyReportRangeText(start,end){
+  if(!start||!end)return "Range not found";
+  const a=new Date(start+"T00:00:00"),b=new Date(end+"T00:00:00");
+  const fmt=d=>d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+  return `${fmt(a)} – ${fmt(b)}`;
+}
+function monthlyReportTargetDescription(label,rows,targetDate,rangeParts=[]){
+  const agg=monthlyReportAggregate(rows);
+  const pct=monthlyReportCommissionForRows(rows,targetDate);
+  const ranges=rangeParts.length?` • ${rangeParts.join(" • ")}`:"";
+  return `${label}${ranges} • Total Sale ${money(agg.total)} AED • Total Deduction ${money(agg.deductions)} AED • Net Sale ${money(agg.net)} AED • Target/Commission ${money(pct)}%`;
+}
+function initMonthlyReport(){
+  const input=document.getElementById("monthlyReportMonth");
+  if(!input)return;
+  const today=new Date();
+  const monthKey=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
+  const dates=(Array.isArray(savedChargeRecords)?savedChargeRecords:[]).map(x=>String(x.date||"")).filter(Boolean).sort();
+  input.max=monthKey;
+  if(dates.length)input.min=dates[0].slice(0,7);
+  if(!input.value)input.value=dates.length?dates[dates.length-1].slice(0,7):monthKey;
+  renderMonthlyReport();
+}
+window.printMonthlyReport=()=>{
+  const content=document.getElementById("monthlyReportContent");
+  if(!content||!content.querySelector(".daily-report-ledger"))return;
+  document.body.classList.add("monthly-report-print-mode");
+  setTimeout(()=>{try{window.print();}finally{setTimeout(()=>document.body.classList.remove("monthly-report-print-mode"),300)}},50);
+};
+window.renderMonthlyReport=()=>{
+  const box=document.getElementById("monthlyReportContent"),input=document.getElementById("monthlyReportMonth");
+  if(!box||!input)return;
+  const monthKey=String(input.value||"");
+  if(!monthKey){box.innerHTML='<div class="daily-report-empty">Month select کریں۔</div>';return;}
+
+  const cycleInfo=monthlyReportCycleForMonth(monthKey);
+  if(!cycleInfo){
+    box.innerHTML=`<div class="daily-report-ledger"><div class="daily-report-ledger-head"><div class="daily-report-ledger-title">Monthly Ledger</div><div class="daily-report-date">${dailyReportEscape(monthlyReportMonthText(monthKey))}</div><button class="daily-report-print" type="button" onclick="printMonthlyReport()">🖨️</button></div><div class="daily-report-empty">اس مہینے کے لیے Charge Setup موجود نہیں ہے، اس لیے درست Monthly Report تیار نہیں کی جا سکتی۔</div></div>`;
+    return;
+  }
+
+  const {cycle,setup}=cycleInfo;
+  const type=Number(setup.cycleType||1);
+  const r1Start=dateKeyLocal(cycle.cycle1Start), r1End=dateKeyLocal(cycle.cycle1End);
+  const r1Rows=monthlyReportRowsInRange(r1Start,r1End);
+  const r1=monthlyReportAggregate(r1Rows);
+  const p1=monthlyReportCommissionForRows(r1Rows,r1Start);
+
+  let r2Rows=[],r2=null,p2=0,r2Start="",r2End="";
+  if(type===2 && cycle.cycle2Start && cycle.cycle2End){
+    r2Start=dateKeyLocal(cycle.cycle2Start); r2End=dateKeyLocal(cycle.cycle2End);
+    r2Rows=monthlyReportRowsInRange(r2Start,r2End);
+    r2=monthlyReportAggregate(r2Rows);
+    p2=monthlyReportCommissionForRows(r2Rows,r2Start);
+  }
+
+  const combinedRows=type===2?[...r1Rows,...r2Rows]:r1Rows;
+  const combined=monthlyReportAggregate(combinedRows);
+  const cell=v=>money(v);
+  const row=(label,a,p,cls="")=>`<tr class="${cls}"><td><strong>${label}</strong><br><small>${a.count} record${a.count===1?"":"s"}</small></td>
+    <td class="sale-col">${cell(a.creditCard)}</td><td class="sale-col">${cell(a.app)}</td><td class="sale-col">${cell(a.cash)}</td><td class="sale-col">${cell(a.shiftDiscount)}</td><td class="sale-col">${cell(a.careemDiscount)}</td><td class="sale-col">${cell(a.paidCareem)}</td><td class="sale-col">${cell(a.total)}</td>
+    <td class="deduct-col">${cell(a.tips)}</td><td class="deduct-col">${cell(a.tolls)}</td><td class="deduct-col">${cell(a.shiftTrips)}</td><td class="deduct-col">${cell(a.shiftTripsAmount)}</td><td class="deduct-col">${cell(a.bookings)}</td><td class="deduct-col">${cell(a.bookingAmount)}</td><td class="deduct-col">${cell(a.km)}</td><td class="deduct-col">${cell(a.kmAmount)}</td><td class="deduct-col">${cell(a.halaJunior)}</td><td class="deduct-col">${cell(a.halaPeak)}</td><td class="deduct-col">${cell(a.peak)}</td><td class="deduct-col">${cell(a.extraCharges)}</td><td class="deduct-col">${cell(a.deductions)}</td><td class="net-col">${cell(a.net)}</td><td>${money(p)}%</td></tr>`;
+
+  const summaryGroup=(title,a,p)=>`<tr class="group"><td colspan="2">${title}</td></tr><tr><td>Credit Card</td><td>${money(a.creditCard)} AED</td></tr><tr><td>App</td><td>${money(a.app)} AED</td></tr><tr><td>Cash</td><td>${money(a.cash)} AED</td></tr><tr><td>Shift Discount</td><td>${money(a.shiftDiscount)} AED</td></tr><tr><td>Careem Discount</td><td>${money(a.careemDiscount)} AED</td></tr><tr><td>Paid in Careem</td><td>${money(a.paidCareem)} AED</td></tr><tr><td><strong>Total Sale</strong></td><td><strong>${money(a.total)} AED</strong></td></tr><tr class="group"><td colspan="2">${title} — TOTAL DEDUCTION</td></tr><tr><td>Tips</td><td>${money(a.tips)} AED</td></tr><tr><td>Tollways</td><td>${money(a.tolls)} AED</td></tr><tr><td>Shift Trips</td><td>${money(a.shiftTripsAmount)} AED</td></tr><tr><td>Bookings</td><td>${money(a.bookingAmount)} AED</td></tr><tr><td>Kilometers Hired</td><td>${money(a.kmAmount)} AED</td></tr><tr><td>Hala Juniors</td><td>${money(a.halaJunior)} AED</td></tr><tr><td>Hala Peak</td><td>${money(a.halaPeak)} AED</td></tr><tr><td>Peak</td><td>${money(a.peak)} AED</td></tr><tr><td>Others / Extra Charges</td><td>${money(a.extraCharges)} AED</td></tr><tr><td><strong>Total Deduction</strong></td><td><strong>${money(a.deductions)} AED</strong></td></tr><tr class="net-total"><td>NET SALE</td><td>${money(a.net)} AED</td></tr><tr><td>Commission / Target %</td><td>${money(p)}%</td></tr>`;
+
+  if(type===1){
+    box.innerHTML=`<div class="daily-report-ledger">
+      <div class="daily-report-ledger-head"><div class="daily-report-ledger-title">Monthly Ledger</div><div class="daily-report-date">${dailyReportEscape(monthlyReportMonthText(monthKey))}</div><div class="daily-report-cycle">Cycle 1 • ${monthlyReportRangeText(r1Start,r1End)}</div><button class="daily-report-print" type="button" onclick="printMonthlyReport()">🖨️</button></div>
+      <div class="daily-report-table-wrap"><table class="monthly-report-table"><thead><tr><th>Cycle / Total</th><th>Credit Card</th><th>App</th><th>Cash</th><th>Shift Discount</th><th>Careem Discount</th><th>Paid in Careem</th><th>Total Sale</th><th>Tips</th><th>Tollways</th><th>Shift Trips Qty</th><th>Shift Trips AED</th><th>Bookings Qty</th><th>Bookings AED</th><th>KM</th><th>KM AED</th><th>Hala Juniors</th><th>Hala Peak</th><th>Peak</th><th>Others</th><th>Total Deduction</th><th>Net Sale</th><th>Commission %</th></tr></thead><tbody>${row("Cycle 1",r1,p1,"total-row")}</tbody></table></div>
+      <div class="monthly-report-cycle-note"><strong>Cycle 1 / Target 1:</strong> ${dailyReportEscape(monthlyReportTargetDescription("",r1Rows,r1Start,[`Range: ${monthlyReportRangeText(r1Start,r1End)}`]))}</div>
+      <div class="daily-report-summary"><table class="daily-report-summary-table"><tbody>${summaryGroup("CYCLE 1 / TARGET 1 — مکمل تفصیل",r1,p1)}</tbody></table></div>
+      <div class="daily-report-note">یہ 1-Range Cycle 1 رپورٹ ہے۔ تمام saved records اسی ایک Cycle 1 total میں شامل ہیں۔</div>
+    </div>`;
+    return;
+  }
+
+  const range1Text=`Range 1: ${monthlyReportRangeText(r1Start,r1End)} — ${money(r1.net)} AED Net Sale`;
+  const range2Text=`Range 2: ${monthlyReportRangeText(r2Start,r2End)} — ${money(r2.net)} AED Net Sale`;
+  box.innerHTML=`<div class="daily-report-ledger">
+    <div class="daily-report-ledger-head"><div class="daily-report-ledger-title">Monthly Ledger</div><div class="daily-report-date">${dailyReportEscape(monthlyReportMonthText(monthKey))}</div><div class="daily-report-cycle">Cycle 2 • 2 Ranges</div><button class="daily-report-print" type="button" onclick="printMonthlyReport()">🖨️</button></div>
+    <div class="daily-report-table-wrap"><table class="monthly-report-table"><thead><tr><th>Cycle / Total</th><th>Credit Card</th><th>App</th><th>Cash</th><th>Shift Discount</th><th>Careem Discount</th><th>Paid in Careem</th><th>Total Sale</th><th>Tips</th><th>Tollways</th><th>Shift Trips Qty</th><th>Shift Trips AED</th><th>Bookings Qty</th><th>Bookings AED</th><th>KM</th><th>KM AED</th><th>Hala Juniors</th><th>Hala Peak</th><th>Peak</th><th>Others</th><th>Total Deduction</th><th>Net Sale</th><th>Commission %</th></tr></thead><tbody>${row("Cycle 2 — Combined Total",combined,p2,"total-row")}</tbody></table></div>
+    <div class="monthly-report-cycle-note"><strong>Cycle 2 کی تفصیل:</strong><br>${dailyReportEscape(range1Text)}<br>${dailyReportEscape(range2Text)}<br><strong>Cycle 2 Combined Total:</strong> ${money(combined.total)} AED Total Sale • ${money(combined.deductions)} AED Total Deduction • ${money(combined.net)} AED Net Sale • Target/Commission ${money(p2)}%۔</div>
+    <div class="daily-report-summary"><table class="daily-report-summary-table"><tbody>${summaryGroup("CYCLE 2 — دونوں Ranges کا Combined Total",combined,p2)}</tbody></table></div>
+    <div class="daily-report-note">Cycle 2 کے Range 1 اور Range 2 الگ financial rows میں نہیں دکھائے گئے۔ دونوں کی detail صرف Description میں ہے، جبکہ ledger میں ایک ہی Combined Total دیا گیا ہے۔</div>
   </div>`;
 };
 
@@ -3380,7 +3561,7 @@ cycleCompletionRecords={...(fresh.cycleCompletionRecords||{})};
 
 if(unsubscribeInvoices)unsubscribeInvoices();
 unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
-invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();renderSavedInvoices();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();
+invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();renderSavedInvoices();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();if(document.getElementById("dailyReportPage").classList.contains("active"))renderDailyReport();if(document.getElementById("monthlyReportPage").classList.contains("active"))renderMonthlyReport();
 },error=>{console.error("Invoice listener error:",error);document.getElementById("authError").textContent="Unable to load invoices: "+(error.message||"Firebase error");});
 
 if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
