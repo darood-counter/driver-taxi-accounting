@@ -2581,19 +2581,36 @@ function getDashboardCycleForDate(dateKey){
   const setup=getChargeSetupForDate(dateKey);
   if(!setup)return null;
   const candidates=[];
-  // The invoice supplies the month/year. Test that month plus the adjacent
-  // month because a two-range cycle can cross the calendar-month boundary.
   for(let offset=-1;offset<=1;offset++){
     const anchor=new Date(selected.getFullYear(),selected.getMonth()+offset,1);
     const cycle=buildDashboardCycleForAnchor(setup,anchor.getFullYear(),anchor.getMonth()+1);
-    if(cycle && selected>=cycle.start && selected<=cycle.end){
-      candidates.push(cycle);
-    }
+    if(cycle && selected>=cycle.start && selected<=cycle.end)candidates.push(cycle);
   }
   if(!candidates.length)return null;
-  return candidates.sort((a,b)=>b.start-a.start)[0];
+  const cycle=candidates.sort((a,b)=>b.start-a.start)[0];
+  if(Number(setup.cycleType||1)===2 && cycle.cycle2Start && cycle.cycle2End){
+    if(selected>=cycle.cycle1Start && selected<=cycle.cycle1End){
+      cycle.activeCycleNumber=2;
+      cycle.activeRangeNumber=1;
+      cycle.activeRangeStart=cycle.cycle1Start;
+      cycle.activeRangeEnd=cycle.cycle1End;
+    }else{
+      cycle.activeCycleNumber=2;
+      cycle.activeRangeNumber=2;
+      cycle.activeRangeStart=cycle.cycle2Start;
+      cycle.activeRangeEnd=cycle.cycle2End;
+    }
+  }else{
+    cycle.activeCycleNumber=1;
+    cycle.activeRangeNumber=1;
+    cycle.activeRangeStart=cycle.cycle1Start;
+    cycle.activeRangeEnd=cycle.cycle1End;
+  }
+  return cycle;
 }
 function getCurrentDashboardCycle(){
+  // Use the Charge Setup applicable to the selected/current date and return
+  // the exact active Cycle/Range (including Cycle 2 Range 1 or Range 2).
   const key=dashboardSelectedDate||dateKeyLocal(new Date());
   return getDashboardCycleForDate(key);
 }
@@ -2640,7 +2657,10 @@ function updateDashboard(){
   const totalEl=document.getElementById("totalAmount"),avgEl=document.getElementById("avgAmount"),labelEl=document.getElementById("dashboardCycleLabel");
   let cycleInvoices;
   if(cycle){
-    const cStart=dateKeyLocal(cycle.start), cEnd=dateKeyLocal(cycle.end);
+    // Dashboard totals follow the exact active Charge Setup range too.
+    // For Cycle 2 this means Range 1 or Range 2, not both ranges combined.
+    const cStart=dateKeyLocal(cycle.activeRangeStart||cycle.start);
+    const cEnd=dateKeyLocal(cycle.activeRangeEnd||cycle.end);
     cycleInvoices=invoices.filter(x=>{
       const k=invoiceDateKey(x);
       return k && k>=cStart && k<=cEnd;
@@ -2657,13 +2677,16 @@ function updateDashboard(){
   if(avgEl)avgEl.textContent=money(avg)+" AED";
   if(labelEl){
     if(cycle){
-      const cStart=dateKeyLocal(cycle.start), cEnd=dateKeyLocal(cycle.end), todayKey=dateKeyLocal(new Date());
-      const liveDates=invoices.map(invoiceDateKey).filter(k=>k&&k>=cStart&&k<=cEnd&&k<=todayKey).sort();
-      const liveStart=liveDates.length?liveDates[0]:cStart;
-      const liveEnd=liveDates.length?liveDates[liveDates.length-1]:Math.min(cEnd,todayKey);
-      const range=new Date(liveStart+"T00:00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" – "+new Date(liveEnd+"T00:00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
-      const prefix=dashboardSelectedDate?"Collections - Selected Cycle":"Collections - Current Cycle";
-      labelEl.textContent=prefix+" ("+range+")";
+      const rangeStart=cycle.activeRangeStart||cycle.start;
+      const rangeEnd=cycle.activeRangeEnd||cycle.end;
+      const range=rangeStart.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" – "+rangeEnd.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+      const prefix=dashboardSelectedDate?"Collections - Selected":"Collections - Current";
+      const cycleRangeLabel=Number(cycle.setup?.cycleType||1)===2
+        ? "Cycle 2 • Range "+(cycle.activeRangeNumber||1)
+        : "Cycle 1 • Range 1";
+      // Always show the configured Charge Setup range, not only the dates
+      // for which invoices already exist.
+      labelEl.textContent=prefix+" ("+cycleRangeLabel+" • "+range+")";
     }else if(dashboardSelectedDate){
       labelEl.textContent="Collections - No Charge Cycle for Selected Date";
     }else labelEl.textContent="Collections - Current Cycle";
@@ -2698,8 +2721,10 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   const todayKey=dateKeyLocal(new Date());
   let startKey,endKey;
   if(cycle){
-    startKey=dateKeyLocal(cycle.cycle1Start||cycle.start);
-    endKey=dateKeyLocal(cycle.end);
+    // Chart follows the exact active saved range. For Cycle 2, Range 1 and
+    // Range 2 are displayed separately according to today's/selected date.
+    startKey=dateKeyLocal(cycle.activeRangeStart||cycle.cycle1Start||cycle.start);
+    endKey=dateKeyLocal(cycle.activeRangeEnd||cycle.end);
   }else if(dashboardSelectedDate){
     startKey=dashboardSelectedDate;
     endKey=dashboardSelectedDate;
