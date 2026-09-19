@@ -1268,7 +1268,6 @@ const isTarget=pageId==="targetPage";
 const isCharge=pageId==="calculatorPage";
 const isLeaves=pageId==="leavesPage";
 const isInvoice=pageId==="invoicePage";
-const isInvoice=pageId==="invoicePage";
 if(topbar&&leftBtn&&brand&&bell){
   topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves||isInvoice);
   leftBtn.textContent=(isLeaves||isInvoice)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
