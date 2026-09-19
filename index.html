@@ -76,6 +76,45 @@ input:focus{border-color:#ed166a}
 .secondary{border:0;border-radius:13px;background:#eef0f5;padding:12px 15px;font-weight:700;cursor:pointer}
 .result{margin-top:15px;background:#f5f6fa;border-radius:15px;padding:15px;font-weight:700}
 .status{font-size:14px;color:#6b7280;margin-top:10px;min-height:18px}
+
+.report-year-row{display:flex;gap:10px;align-items:end;margin-bottom:14px}
+.report-year-row>div{flex:1}
+.report-month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px}
+.report-month-btn{border:0;background:#fff;border-radius:17px;padding:13px 9px;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.report-month-btn.active{outline:2px solid #ed166a}
+.report-month-name{font-size:14px;font-weight:900;display:block;margin-bottom:5px}
+.report-month-sale{font-size:12px;color:#3155c8;font-weight:800;display:block}
+.report-month-salary{font-size:11px;color:#737783;display:block;margin-top:2px}
+.report-section-title{font-size:18px;font-weight:900;margin:7px 2px 10px}
+.report-cycle-card{background:#fff;border-radius:21px;padding:16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.report-cycle-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}
+.report-cycle-head strong{font-size:17px}
+.report-cycle-head span{font-size:11px;color:#737783;text-align:right}
+.report-metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.report-metric{background:#f5f6fa;border-radius:14px;padding:11px}
+.report-metric small{display:block;color:#737783;font-size:10px;font-weight:700;margin-bottom:4px}
+.report-metric strong{display:block;font-size:16px}
+.report-total-card{background:#0d1033;color:#fff;border-radius:21px;padding:17px;margin-bottom:14px}
+.report-total-card .report-total-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.report-total-card small{display:block;color:#d7d9e7;font-size:11px;margin-bottom:4px}
+.report-total-card strong{font-size:21px}
+.report-empty{background:#fff;border-radius:18px;padding:18px;text-align:center;color:#737783;margin-bottom:12px}
+@media(max-width:600px){.report-month-grid{grid-template-columns:repeat(2,1fr)}.report-cycle-card{border-radius:18px;padding:14px}.report-total-card{border-radius:18px}}
+
+
+.report-mode-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;background:#eef0f5;border-radius:15px;padding:5px;margin-bottom:14px}
+.report-mode-tabs button{border:0;background:transparent;border-radius:11px;padding:11px 5px;font-size:12px;font-weight:900;color:#666b78;cursor:pointer}
+.report-mode-tabs button.active{background:#fff;color:#111;box-shadow:0 2px 7px rgba(0,0,0,.08)}
+.report-control-row{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:end}
+.report-control-row>div{min-width:0}
+.report-print{border:0;border-radius:13px;background:#0d1033;color:#fff;padding:13px 15px;font-weight:900;cursor:pointer;white-space:nowrap}
+.report-overview{background:linear-gradient(135deg,#0d1033,#232a63);color:#fff;border-radius:22px;padding:18px;margin-bottom:14px;box-shadow:0 5px 18px rgba(13,16,51,.12)}
+.report-overview .k{font-size:11px;color:#d7d9e7;font-weight:800}.report-overview .v{font-size:24px;font-weight:950;margin-top:3px}
+.report-overview-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px}.report-overview-grid>div{background:rgba(255,255,255,.08);border-radius:15px;padding:11px}
+.report-range-note{font-size:12px;color:#737783;margin:7px 2px 12px}
+@media(max-width:600px){.report-mode-tabs button{font-size:11px;padding:10px 3px}.report-control-row{grid-template-columns:1fr}.report-print{width:100%}}
+@media print{body{background:#fff!important}.app,.drawer,#menuOverlay,.topbar,.back,.report-mode-tabs,.report-print,.quick-actions,.bottom-nav,button{display:none!important}.page{display:none!important}.page#reportsPage{display:block!important}.report-month-btn{break-inside:avoid;box-shadow:none;border:1px solid #ddd}.report-cycle-card,.report-overview{break-inside:avoid;box-shadow:none}.report-overview{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
 .history-hero{background:#0d1033;color:#fff;border-radius:24px;padding:22px 20px;margin-bottom:14px}
 .history-kicker{font-size:12px;font-weight:800;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
 .history-hero h2{margin:0;font-size:28px;letter-spacing:-.5px}
@@ -711,83 +750,47 @@ input:focus{border-color:#ed166a}
 @media(max-width:600px){#invoicePage .form-card{padding:12px 10px;margin-bottom:10px}#invoicePage .invoice-fields{grid-template-columns:1fr 1fr;gap:5px 7px}#invoicePage .invoice-field{gap:5px;padding:0}#invoicePage .invoice-field label{font-size:10.5px;flex-basis:43%}#invoicePage .invoice-field input{width:57%;min-height:34px;padding:5px;font-size:12px}#invoicePage .invoice-title-row{gap:6px;margin-bottom:6px}#invoicePage .scan-invoice-btn{padding:8px 10px;font-size:12px}#invoicePage .invoice-rate-card{padding:8px;gap:5px;margin-bottom:8px}#invoicePage .invoice-rate-card *{font-size:10.5px}}
 @media(max-width:390px){#invoicePage .form-card{padding:10px 8px}#invoicePage .invoice-fields{gap:4px 5px}#invoicePage .invoice-field label{font-size:10px}#invoicePage .invoice-field input{min-height:32px;font-size:11.5px;padding:4px}#invoicePage .scan-invoice-btn{padding:7px 8px;font-size:11px}}
 
-/* ===== Daily Report ===== */
-.daily-report-page{padding-bottom:30px}
-.daily-report-head{margin:8px 0 14px}
-.daily-report-head h1{margin:0 0 5px;font-size:28px;letter-spacing:-.5px}
-.daily-report-head p{margin:0;color:#737783;font-size:13px;line-height:1.45}
-.daily-report-selector{background:#fff;border-radius:18px;padding:14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.daily-report-selector label{display:block;font-size:12px;font-weight:800;color:#737783;margin-bottom:6px}
-.daily-report-selector input{width:100%;min-height:46px;padding:10px 12px;border:1px solid #d7d9df;border-radius:12px;font-size:16px;outline:none;background:#fff}
-.daily-report-ledger{background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05);margin-bottom:14px}
-.daily-report-ledger-head{padding:15px 14px 12px;border-bottom:1px solid #e7e9ee;position:relative}
-.daily-report-ledger-title{font-size:18px;font-weight:900;padding-right:48px}
-.daily-report-date{font-size:17px;font-weight:900;margin-top:4px}
-.daily-report-cycle{font-size:12px;color:#737783;font-weight:800;margin-top:3px}
-.daily-report-commission{font-size:12px;color:#111827;font-weight:900;margin-top:4px}
-.daily-report-print{position:absolute;right:12px;top:12px;width:38px;height:38px;border:0;border-radius:11px;background:#eef0f5;color:#111827;font-size:18px;cursor:pointer}
-.daily-report-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.daily-report-table{width:100%;min-width:2200px;border-collapse:collapse;font-size:11px}
-.daily-report-table th{background:#f4f5f8;color:#5f6470;text-align:center;padding:10px 8px;border-right:1px solid #e2e4e9;white-space:nowrap;font-size:10px;position:sticky;top:0;z-index:1}
-.daily-report-table td{padding:9px 8px;border-top:1px solid #eceef3;border-right:1px solid #eceef3;text-align:right;white-space:nowrap;font-weight:700}
-.daily-report-table td:first-child,.daily-report-table th:first-child{text-align:left}
-.daily-report-table td:last-child,.daily-report-table th:last-child{border-right:0}
-.daily-report-table .invoice-cell{font-weight:900;text-align:left}
-.daily-report-table .date-cell,.daily-report-table .cycle-cell{text-align:center}
-.daily-report-table .sale-col{background:#fbfcfe}
-.daily-report-table .deduct-col{background:#fffafb}
-.daily-report-table .net-col{font-weight:900;background:#f7fbf8}
-.daily-report-table .total-row td{background:#eef0f5;font-weight:900;border-top:2px solid #cfd3db}
-.daily-report-table .total-row .net-col{background:#e7f5ec}
-.daily-report-empty{padding:22px 16px;text-align:center;color:#737783;font-size:13px}
-.daily-report-summary{border-top:1px solid #e7e9ee}
-.daily-report-summary-table{width:100%;border-collapse:collapse;font-size:13px}
-.daily-report-summary-table td{padding:10px 12px;border-top:1px solid #eceef3}
-.daily-report-summary-table td:first-child{font-weight:900;width:58%}
-.daily-report-summary-table td:last-child{text-align:right;font-weight:900;white-space:nowrap}
-.daily-report-summary-table .group td{background:#f7f8fa;font-size:12px;color:#5f6470;font-weight:900}
-.daily-report-summary-table .net-total td{font-size:15px;background:#e7f5ec}
-.daily-report-note{padding:10px 12px;color:#737783;font-size:11px;border-top:1px solid #e7e9ee}
-.daily-report-loading{padding:18px;text-align:center;color:#737783}
-@media(max-width:600px){
-  .daily-report-head h1{font-size:25px}
-  .daily-report-ledger{border-radius:15px}
-  .daily-report-ledger-head{padding:13px 12px 11px}
-  .daily-report-table{min-width:2200px;font-size:10px}
-  .daily-report-table th{padding:9px 6px;font-size:9px}
-  .daily-report-table td{padding:8px 6px}
-  .daily-report-summary-table td{padding:9px 10px}
-}
-/* ===== Monthly Report ===== */
-.monthly-report-page{padding-bottom:30px}
-.monthly-report-selector{background:#fff;border-radius:18px;padding:14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.monthly-report-selector label{display:block;font-size:12px;font-weight:800;color:#737783;margin-bottom:6px}
-.monthly-report-selector input{width:100%;min-height:46px;padding:10px 12px;border:1px solid #d7d9df;border-radius:12px;font-size:16px;outline:none;background:#fff}
-.monthly-report-cycle-note{padding:12px 14px;border-top:1px solid #e7e9ee;color:#5f6470;font-size:11px;line-height:1.55}
-.monthly-report-table{width:100%;min-width:2050px;border-collapse:collapse;font-size:11px}
-.monthly-report-table th{background:#f4f5f8;color:#5f6470;text-align:center;padding:10px 7px;border-right:1px solid #e2e4e9;white-space:nowrap;font-size:10px}
-.monthly-report-table td{padding:9px 7px;border-top:1px solid #eceef3;border-right:1px solid #eceef3;text-align:right;white-space:nowrap;font-weight:700}
-.monthly-report-table td:first-child,.monthly-report-table th:first-child{text-align:left}
-.monthly-report-table .sale-col{background:#fbfcfe}.monthly-report-table .deduct-col{background:#fffafb}.monthly-report-table .net-col{font-weight:900;background:#f7fbf8}
-.monthly-report-table .total-row td{background:#eef0f5;font-weight:900;border-top:2px solid #cfd3db}.monthly-report-table .total-row .net-col{background:#e7f5ec}
-.monthly-report-section-title{padding:12px 14px;background:#f7f8fa;font-size:12px;font-weight:900;border-top:1px solid #e7e9ee}
-@media(max-width:600px){.monthly-report-table{min-width:2050px;font-size:10px}.monthly-report-table th{padding:9px 5px;font-size:9px}.monthly-report-table td{padding:8px 5px}}
-@media print{
-  body.daily-report-print-mode *{visibility:hidden!important}
-  body.monthly-report-print-mode *{visibility:hidden!important}
-  body.daily-report-print-mode #dailyReportPage,body.daily-report-print-mode #dailyReportPage *{visibility:visible!important}
-  body.monthly-report-print-mode #monthlyReportPage,body.monthly-report-print-mode #monthlyReportPage *{visibility:visible!important}
-  body.daily-report-print-mode #dailyReportPage{position:absolute!important;left:0!important;top:0!important;width:100%!important;padding:0!important;margin:0!important}
-  body.monthly-report-print-mode #monthlyReportPage{position:absolute!important;left:0!important;top:0!important;width:100%!important;padding:0!important;margin:0!important}
-  body.daily-report-print-mode .daily-report-selector,body.daily-report-print-mode .daily-report-head,body.daily-report-print-mode #dailyReportBackBtn,body.daily-report-print-mode .daily-report-print{display:none!important}
-  body.monthly-report-print-mode .monthly-report-selector,body.monthly-report-print-mode .daily-report-head,body.monthly-report-print-mode #monthlyReportBackBtn,body.monthly-report-print-mode .daily-report-print{display:none!important}
-  body.daily-report-print-mode .daily-report-ledger{box-shadow:none!important;border-radius:0!important;margin:0!important}
-  body.daily-report-print-mode .daily-report-table-wrap,body.monthly-report-print-mode .daily-report-table-wrap{overflow:visible!important}
-  body.daily-report-print-mode .daily-report-table,body.monthly-report-print-mode .monthly-report-table{min-width:0!important;width:100%!important;font-size:7px!important}
-  body.daily-report-print-mode .daily-report-table th,body.daily-report-print-mode .daily-report-table td{padding:4px 3px!important;white-space:normal!important}
-  body.daily-report-print-mode .daily-report-summary-table,body.monthly-report-print-mode .daily-report-summary-table{font-size:9px!important}
-  @page{size:landscape;margin:8mm}
-}
+/* Reports Ledger redesign */
+.report-ledger-hero{margin-bottom:12px}
+.report-ledger-menu{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:0 0 14px}
+.report-ledger-tab{border:1px solid #e5e7ee;background:#fff;border-radius:18px;padding:14px 8px 12px;box-shadow:0 4px 14px rgba(20,25,45,.06);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:.18s transform,.18s box-shadow,.18s border-color}
+.report-ledger-tab span{font-size:21px;line-height:1.1}.report-ledger-tab b{font-size:12px;color:#171a23}.report-ledger-tab small{font-size:9px;color:#8a8e99;font-weight:800}
+.report-ledger-tab.active{border-color:#2f56d3;box-shadow:0 7px 18px rgba(47,86,211,.15);transform:translateY(-1px);background:#f8faff}
+.report-workspace{background:#fff;border:1px solid #e6e8ee;border-radius:22px;padding:14px;box-shadow:0 6px 20px rgba(20,25,45,.06);margin-bottom:20px}
+.report-workspace-head{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #eceef3;padding:2px 2px 12px;margin-bottom:12px}
+.report-workspace-title{font-size:17px;font-weight:950;color:#151822}.report-workspace[hidden]{display:none!important}
+.report-ledger-table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid #e6e8ee;border-radius:15px;background:#fff}
+.report-ledger-table th{background:#f4f5f8;color:#737783;font-size:9px;text-transform:uppercase;letter-spacing:.4px;padding:9px 7px;text-align:right;white-space:nowrap}
+.report-ledger-table th:first-child,.report-ledger-table td:first-child{text-align:left}
+.report-ledger-table td{padding:10px 7px;border-top:1px solid #eef0f4;font-size:11px;font-weight:800;text-align:right;color:#20232c;white-space:nowrap}
+.report-ledger-table tr.ledger-total td{background:#f8f9fc;font-weight:950;border-top:2px solid #dfe2ea}
+.report-ledger-table .ledger-link{cursor:pointer}.report-ledger-table .ledger-link:active{background:#f2f5ff}
+.report-ledger-sub{font-size:9px;color:#8b8e98;font-weight:700;margin-top:2px}
+.report-ledger-empty{padding:28px 12px;text-align:center;color:#888;font-size:12px;font-weight:800}
+.report-month-grid{display:none}
+@media(max-width:600px){.report-ledger-menu{gap:7px}.report-ledger-tab{border-radius:15px;padding:12px 4px 10px}.report-ledger-tab span{font-size:19px}.report-ledger-tab b{font-size:11px}.report-ledger-tab small{font-size:8px}.report-workspace{border-radius:18px;padding:11px}.report-ledger-table{font-size:10px}.report-ledger-table th,.report-ledger-table td{padding:8px 5px}.report-workspace-head{align-items:center}.report-workspace-title{font-size:15px}}
+@media print{.report-ledger-menu{display:none!important}.report-workspace{border:0!important;box-shadow:none!important;padding:0!important}.report-workspace-head{border-bottom:1px solid #ddd}.report-month-grid{display:none!important}}
+
+/* ===== Reports: unified accounting ledger ===== */
+.report-overview-table{background:#0d1033;color:#fff;border-radius:20px;padding:15px;margin:12px 0 15px;box-shadow:0 8px 22px rgba(13,16,51,.12)}
+.report-overview-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.report-overview-title small,.report-overview-salary small{font-size:9px;color:#cfd2e2;font-weight:900;letter-spacing:.7px}.report-overview-title h3{margin:3px 0 0;font-size:19px}.report-overview-salary{text-align:right}.report-overview-salary strong{display:block;font-size:20px;margin-top:3px}
+.report-overview-table>table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid rgba(255,255,255,.14);border-radius:13px}.report-overview-table th,.report-overview-table td{padding:9px 7px;font-size:10px;border-top:1px solid rgba(255,255,255,.1)}.report-overview-table tr:first-child th,.report-overview-table tr:first-child td{border-top:0}.report-overview-table th{color:#cfd2e2;text-align:left}.report-overview-table td{text-align:right;font-weight:900;white-space:nowrap}
+.report-table-title{font-size:17px;font-weight:950;margin:4px 2px 9px}.report-table-scroll{overflow-x:auto;border-radius:15px}
+.report-summary-table{width:100%;min-width:610px;border-collapse:separate;border-spacing:0;border:1px solid #e3e6ec;border-radius:15px;overflow:hidden;background:#fff}.report-summary-table th{background:#f1f3f7;color:#737783;font-size:9px;letter-spacing:.35px;text-transform:uppercase;padding:9px 7px;text-align:right;white-space:nowrap}.report-summary-table th:first-child,.report-summary-table td:first-child{text-align:left}.report-summary-table td{padding:10px 7px;border-top:1px solid #edf0f4;font-size:11px;font-weight:850;text-align:right;white-space:nowrap}.report-summary-table .ledger-total td{background:#f7f8fb;border-top:2px solid #dfe2e9;font-weight:950}.report-summary-table .ledger-link{cursor:pointer}.report-summary-table .ledger-link:active{background:#f1f5ff}
+.report-click-hint,.report-detail-empty{margin-top:12px;padding:15px;border:1px dashed #d9dce4;border-radius:14px;text-align:center;color:#777d89;font-size:11px;font-weight:800;background:#fafbfc}
+.report-detail-block{margin-top:17px;padding-top:4px}.report-detail-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin:12px 2px 9px}.report-detail-heading small{font-size:8px;color:#8a8e99;font-weight:900;letter-spacing:.6px}.report-detail-heading h3{margin:3px 0 0;font-size:17px}.report-detail-total{text-align:right}.report-detail-total small{display:block;color:#888;font-size:9px;font-weight:800}.report-detail-total strong{font-size:17px}.report-detail-heading.simple{margin-top:20px}
+.report-cycle-detail{background:#fff;border:1px solid #e3e6ec;border-radius:17px;margin:10px 0;padding:12px;box-shadow:0 3px 10px rgba(20,25,45,.04)}.report-cycle-detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:1px solid #edf0f4;padding-bottom:10px;margin-bottom:10px}.report-cycle-label{display:inline-block;background:#eef2ff;color:#3155c8;border-radius:8px;padding:4px 7px;font-size:9px;font-weight:950}.report-cycle-detail-head h3{font-size:14px;margin:5px 0 0}.report-cycle-salary{text-align:right}.report-cycle-salary small{display:block;color:#888;font-size:9px}.report-cycle-salary strong{font-size:16px}
+.report-mini-table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid #e7e9ee;border-radius:12px;overflow:hidden}.report-mini-table th,.report-mini-table td{padding:8px 6px;border-top:1px solid #edf0f4;font-size:9px}.report-mini-table tr:first-child th,.report-mini-table tr:first-child td{border-top:0}.report-mini-table th{background:#f7f8fa;color:#7b7f8a;text-align:left}.report-mini-table td{text-align:right;font-weight:900;white-space:nowrap}.report-detail-label{font-size:10px;font-weight:950;margin:12px 1px 7px}.report-invoice-wrap{overflow-x:auto}.report-invoice-table{width:100%;min-width:560px;border-collapse:collapse}.report-invoice-table th{background:#f4f5f8;color:#777b86;font-size:8px;padding:7px;text-align:right;white-space:nowrap}.report-invoice-table th:first-child,.report-invoice-table td:first-child{text-align:left}.report-invoice-table td{padding:7px 6px;border-top:1px solid #eef0f4;font-size:9px;font-weight:800;text-align:right;white-space:nowrap}
+@media(max-width:600px){.report-overview-table{border-radius:17px;padding:12px}.report-overview-title h3{font-size:16px}.report-overview-salary strong{font-size:17px}.report-summary-table{min-width:590px}.report-cycle-detail{padding:10px}.report-mini-table th,.report-mini-table td{font-size:8.5px;padding:7px 5px}}
+@media print{body{background:#fff!important}.report-ledger-menu,.report-print,.report-control-row,.back,.topbar,.bottom-nav,.quick-actions,button{display:none!important}.page{display:none!important}.page#reportsPage{display:block!important}.report-workspace{display:block!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}.report-workspace-head{border-bottom:2px solid #111;margin-bottom:10px}.report-overview-table{break-inside:avoid;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.report-summary-table,.report-mini-table,.report-invoice-table{page-break-inside:auto}.report-cycle-detail,.report-detail-block{break-inside:avoid}.report-table-scroll,.report-invoice-wrap{overflow:visible!important}.report-summary-table{min-width:0!important}.report-invoice-table{min-width:0!important;width:100%!important}.report-summary-table th,.report-summary-table td,.report-invoice-table th,.report-invoice-table td{font-size:8px;padding:5px}.report-cycle-detail{box-shadow:none!important}}
+
+/* Reports: clean ledger tables */
+.report-summary-table th,.report-summary-table td{vertical-align:middle}
+.report-field-total-table td:last-child,.report-summary-table td:nth-last-child(-n+6){font-variant-numeric:tabular-nums}
+.ledger-grand-total td{font-weight:900;border-top:2px solid #111;background:#f3f4f6}
+.report-detail-block{margin-top:14px}
+@media print{.report-ledger-tab,.report-control-row,.report-print{display:none!important}.report-workspace{box-shadow:none!important;border:0!important}.report-table-scroll{overflow:visible!important}.report-summary-table,.report-invoice-table{font-size:10px!important}}
 </style>
 </head>
 <body>
@@ -989,30 +992,28 @@ input:focus{border-color:#ed166a}
 <div id="historyList"></div>
 </section>
 
-<section id="dailyReportPage" class="page daily-report-page">
-<button class="back" id="dailyReportBackBtn" onclick="showPage('dashboardPage')">← Back</button>
-<div class="daily-report-head">
-  <h1>Daily Report</h1>
-  <p>ایک تاریخ منتخب کریں۔ اس تاریخ کے تمام invoices کی مکمل ledger detail نیچے دکھائی جائے گی۔</p>
+<section id="reportsPage" class="page">
+<button class="back" onclick="showPage('dashboardPage')">← Back</button>
+<div class="history-hero report-ledger-hero">
+  <div class="history-kicker">Driver Accounts</div>
+  <h2>📒 Reports Ledger</h2>
+  <p>اپنی روزانہ، ماہانہ، سالانہ اور مکمل آمدن کو ایک صاف Ledger کی طرح دیکھیں۔</p>
 </div>
-<div class="daily-report-selector">
-  <label for="dailyReportDate">Select Date</label>
-  <input type="date" id="dailyReportDate" onchange="renderDailyReport()">
+<div class="report-ledger-menu">
+  <button type="button" id="reportTabDaily" class="report-ledger-tab" onclick="setReportMode('daily')"><span>📅</span><b>Daily</b><small>روزانہ</small></button>
+  <button type="button" id="reportTabMonthly" class="report-ledger-tab" onclick="setReportMode('monthly')"><span>🗓️</span><b>Monthly</b><small>ماہانہ</small></button>
+  <button type="button" id="reportTabYearly" class="report-ledger-tab" onclick="setReportMode('yearly')"><span>📊</span><b>Yearly</b><small>سالانہ</small></button>
+  <button type="button" id="reportTabOverall" class="report-ledger-tab" onclick="setReportMode('overall')"><span>📚</span><b>Overall</b><small>مکمل</small></button>
 </div>
-<div id="dailyReportContent"><div class="daily-report-empty">Date select کرنے کے بعد Daily Report یہاں دکھائی جائے گی۔</div></div>
-</section>
-
-<section id="monthlyReportPage" class="page monthly-report-page">
-<button class="back" id="monthlyReportBackBtn" onclick="showPage('dashboardPage')">← Back</button>
-<div class="daily-report-head">
-  <h1>Monthly Report</h1>
-  <p>مہینہ منتخب کریں۔ اس پورے مہینے کے تمام invoices کو Cycle 1 اور Cycle 2 کے حساب سے جمع کرکے مکمل ledger detail دکھائی جائے گی۔</p>
+<div id="reportWorkspace" class="report-workspace" hidden>
+  <div class="report-workspace-head">
+    <div id="reportTitle" class="report-workspace-title">Report</div>
+    <button type="button" class="report-print" onclick="printReports()">🖨️ Print</button>
+  </div>
+  <div id="reportControls"></div>
+  <div id="reportMonthGrid" class="report-month-grid"></div>
+  <div id="reportDetails"></div>
 </div>
-<div class="monthly-report-selector">
-  <label for="monthlyReportMonth">Select Month</label>
-  <input type="month" id="monthlyReportMonth" onchange="renderMonthlyReport()">
-</div>
-<div id="monthlyReportContent"><div class="daily-report-empty">Month select کرنے کے بعد Monthly Report یہاں دکھائی جائے گی۔</div></div>
 </section>
 
 <section id="calculatorPage" class="page">
@@ -1311,8 +1312,7 @@ input:focus{border-color:#ed166a}
 <button onclick="showPage('targetPage');toggleMenu()">🎯 Target Setup</button>
 <button onclick="showPage('leavesPage');toggleMenu()">🗓️ Leaves</button>
 <button onclick="showPage('historyPage');toggleMenu()">📋 Invoice History</button>
-<button onclick="showPage('dailyReportPage');toggleMenu()">📊 Daily Report</button>
-<button onclick="showPage('monthlyReportPage');toggleMenu()">📅 Monthly Report</button>
+<button onclick="showPage('reportsPage');toggleMenu()">📊 Reports</button>
 <button onclick="showPage('profilePage');toggleMenu()">👤 Profile</button>
 <button onclick="logout()">↪ Logout</button>
 </nav>
@@ -1359,27 +1359,24 @@ const isTarget=pageId==="targetPage";
 const isCharge=pageId==="calculatorPage";
 const isLeaves=pageId==="leavesPage";
 const isInvoice=pageId==="invoicePage";
-const isDailyReport=pageId==="dailyReportPage";
-const isMonthlyReport=pageId==="monthlyReportPage";
 if(topbar&&leftBtn&&brand&&bell){
-  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves||isInvoice||isDailyReport||isMonthlyReport);
-  leftBtn.textContent=(isLeaves||isInvoice||isDailyReport||isMonthlyReport)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
-  leftBtn.classList.toggle("leave-top-back",isLeaves||isInvoice||isDailyReport||isMonthlyReport);
+  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves||isInvoice);
+  leftBtn.textContent=(isLeaves||isInvoice)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
+  leftBtn.classList.toggle("leave-top-back",isLeaves||isInvoice);
   leftBtn.onclick=(isLeaves)
     ? ()=>{
         const flow=document.getElementById("leaveFlowView");
         if(flow && flow.classList.contains("active")) leaveBackToHome();
         else showPage("dashboardPage");
       }
-    : ((isInvoice||isDailyReport||isMonthlyReport) ? ()=>showPage("dashboardPage") : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu()));
-  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":(isMonthlyReport?"Monthly Report":(isDailyReport?"Daily Report":"Driver's"))))) ;
-  bell.style.display=(isProfile||isTarget||isCharge||isLeaves||isInvoice||isDailyReport||isMonthlyReport)?"none":"block";
+    : (isInvoice ? ()=>showPage("dashboardPage") : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu()));
+  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":"Driver's")));
+  bell.style.display=(isProfile||isTarget||isCharge||isLeaves||isInvoice)?"none":"block";
   bell.textContent="🔔";
   bell.onclick=null;
 }
 if(pageId==="historyPage")renderHistory();
-if(pageId==="dailyReportPage")initDailyReport();
-if(pageId==="monthlyReportPage")initMonthlyReport();
+if(pageId==="reportsPage")renderReports();
 if(pageId==="leavesPage"){try{leaveCalendarMonth=new Date();renderLeaveCalendar();renderLeaveHome();}catch(e){console.error("Leaves render error:",e);}}
 if(pageId==="invoicePage"){
   updateInvoiceRateCard();
@@ -2094,6 +2091,176 @@ function getHistoryFilteredInvoices(){
   });
 }
 
+let reportMode='';
+let reportYear=new Date().getFullYear();
+let reportSelectedMonth='';
+let reportDailyDate='';
+function reportMonthKey(year,month){return String(year)+'-'+String(month).padStart(2,'0')}
+function reportMonthName(month){return new Date(2000,month-1,1).toLocaleDateString('en-GB',{month:'long'})}
+function getReportYears(){
+  const years=new Set([new Date().getFullYear()]);
+  (Array.isArray(invoices)?invoices:[]).forEach(r=>{const k=invoiceDateKey(r);const m=/^(\d{4})-/.exec(k||'');if(m)years.add(Number(m[1]));});
+  return [...years].filter(Number.isFinite).sort((a,b)=>b-a);
+}
+function getReportSetupForMonth(monthKey){
+  const m=/^(\d{4})-(\d{2})$/.exec(String(monthKey)); if(!m)return null;
+  const end=monthKey+'-'+String(new Date(Number(m[1]),Number(m[2]),0).getDate()).padStart(2,'0');
+  const records=Array.isArray(savedChargeRecords)?savedChargeRecords:[];
+  const eligible=records.filter(r=>r&&r.date&&String(r.date)<=end);
+  if(!eligible.length)return null;
+  return [...eligible].sort((a,b)=>String(b.date).localeCompare(String(a.date))||recordUpdatedTime(b)-recordUpdatedTime(a))[0];
+}
+function reportWorkDays(startKey,endKey){
+  if(!startKey||!endKey||startKey>endKey)return 0;
+  const today=dateKeyLocal(new Date());
+  const asOf=endKey<today?endKey:today;
+  if(asOf<startKey)return 0;
+  return leaveDaysBetween(startKey,asOf)-leaveDatesBetweenCount(startKey,asOf);
+}
+function leaveDatesBetweenCount(startKey,endKey){
+  const set=new Set();
+  (Array.isArray(leaveRecords)?leaveRecords:[]).forEach(r=>leaveRecordDates(r).forEach(k=>{if(k>=startKey&&k<=endKey)set.add(k)}));
+  return set.size;
+}
+function getReportCycleForMonth(monthKey){
+  const m=/^(\d{4})-(\d{2})$/.exec(String(monthKey)); if(!m)return null;
+  const setup=getReportSetupForMonth(monthKey); if(!setup)return null;
+  return buildDashboardCycleForAnchor(setup,Number(m[1]),Number(m[2]));
+}
+function getReportCycleStats(range,cycleNumber){
+  if(!range)return {cycle:cycleNumber,totalSale:0,netSale:0,deductions:0,workDays:0,avg:0,target:0,salary:0,invoices:0,start:'',end:'',rows:[]};
+  const start=dateKeyLocal(range.start),end=dateKeyLocal(range.end),today=dateKeyLocal(new Date());
+  const rows=(Array.isArray(invoices)?invoices:[]).filter(x=>{const k=invoiceDateKey(x);return k&&k>=start&&k<=end&&k<=today;}).sort((a,b)=>invoiceDateKey(a).localeCompare(invoiceDateKey(b)));
+  const netSale=rows.reduce((s,x)=>s+(Number(x.net)||0),0);
+  const totalSale=rows.reduce((s,x)=>s+(Number(x.total)||0),0);
+  const deductions=rows.reduce((s,x)=>s+(Number(x.deductions)||0),0);
+  const asOf=end<today?end:today;
+  const workDays=asOf>=start?reportWorkDays(start,end):0;
+  const avg=workDays>0?netSale/workDays:0;
+  const target=getTargetPercentForDailyAverage(avg,start);
+  const salary=netSale*target/100;
+  return {cycle:cycleNumber,totalSale,netSale,deductions,workDays,avg,target,salary,invoices:rows.length,start,end,rows};
+}
+function getReportForMonth(monthKey){
+  const cycle=getReportCycleForMonth(monthKey);
+  if(!cycle)return {month:monthKey,cycles:[],totalSale:0,netSale:0,salary:0,workDays:0,deductions:0,invoices:0};
+  const cycles=[getReportCycleStats({start:cycle.cycle1Start,end:cycle.cycle1End},1)];
+  if(cycle.cycle2Start&&cycle.cycle2End)cycles.push(getReportCycleStats({start:cycle.cycle2Start,end:cycle.cycle2End},2));
+  return {month:monthKey,cycles,totalSale:cycles.reduce((s,c)=>s+c.totalSale,0),netSale:cycles.reduce((s,c)=>s+c.netSale,0),salary:cycles.reduce((s,c)=>s+c.salary,0),workDays:cycles.reduce((s,c)=>s+c.workDays,0),deductions:cycles.reduce((s,c)=>s+c.deductions,0),invoices:cycles.reduce((s,c)=>s+c.invoices,0)};
+}
+function reportCommissionText(cycles){
+  const cs=(cycles||[]).filter(c=>Number(c.invoices)||Number(c.netSale)||Number(c.salary)||Number(c.target));
+  if(!cs.length)return '—';
+  return cs.length===1?`${money(cs[0].target)}%`:cs.map(c=>`C${c.cycle}: ${money(c.target)}%`).join(' · ');
+}
+function reportInvoiceFieldTotals(rows){
+  const fields=[
+    ['Credit Card','creditCard'],['App','app'],['Cash','cash'],['Tips','tips'],['Tollways','tolls'],
+    ['Shift Discount','shiftDiscount'],['Shift Trips','shiftTrips'],['Bookings','bookings'],['Kilometers Hired','km'],
+    ['Careem Discount','careemDiscount'],['Paid in Careem','paidCareem'],['Hala juniors','halaJunior'],
+    ['Hala peak','halaPeak'],['Peak','peak'],['Others','extraCharges']
+  ];
+  const out={};
+  fields.forEach(([label,key])=>out[key]={label,value:rows.reduce((sum,x)=>sum+(Number(x?.[key])||0),0)});
+  out.total={label:'Total Amount',value:rows.reduce((sum,x)=>sum+(Number(x?.total)||0),0)};
+  out.deductions={label:'Total Deductions',value:rows.reduce((sum,x)=>sum+(Number(x?.deductions)||0),0)};
+  out.net={label:'Net Amount',value:rows.reduce((sum,x)=>sum+(Number(x?.net)||0),0)};
+  return out;
+}
+function reportFieldTotalsTable(rows,title){
+  const t=reportInvoiceFieldTotals(rows||[]);
+  const order=['creditCard','app','cash','tips','tolls','shiftDiscount','shiftTrips','bookings','km','careemDiscount','paidCareem','halaJunior','halaPeak','peak','extraCharges'];
+  return `<div class="report-table-title">${title}</div><div class="report-table-scroll"><table class="report-summary-table report-field-total-table"><thead><tr><th>Particular</th><th>Total AED</th></tr></thead><tbody>${order.map(k=>`<tr><td>${t[k].label}</td><td>${money(t[k].value)} AED</td></tr>`).join('')}<tr class="ledger-total"><td>Total Amount</td><td>${money(t.total.value)} AED</td></tr><tr class="ledger-total"><td>Total Deductions</td><td>${money(t.deductions.value)} AED</td></tr><tr class="ledger-grand-total"><td>Net Amount</td><td>${money(t.net.value)} AED</td></tr></tbody></table></div>`;
+}
+function reportMetricTable(c){
+  return `<table class="report-mini-table"><tbody><tr><th>Working Days</th><td>${c.workDays}</td><th>Invoices</th><td>${c.invoices}</td></tr><tr><th>Net Amount</th><td>${money(c.netSale)} AED</td><th>Commission %</th><td>${money(c.target)}%</td></tr><tr><th>Salary</th><td>${money(c.salary)} AED</td><th>Daily Average</th><td>${money(c.avg)} AED</td></tr></tbody></table>`;
+}
+function reportInvoiceTable(rows){
+  if(!rows||!rows.length)return `<div class="report-detail-empty">No invoices in this period.</div>`;
+  return `<div class="report-invoice-wrap"><table class="report-invoice-table"><thead><tr><th>No.</th><th>Date</th><th>Invoice</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td>${historyEscape(x.date||invoiceDateKey(x)||'—')}</td><td>${historyEscape(x.invoiceNumber||'—')}</td><td>${money(x.total)} AED</td><td>${money(x.deductions)} AED</td><td>${money(x.net)} AED</td></tr>`).join('')}</tbody></table></div>`;
+}
+function reportCycleDetail(c){
+  return `<section class="report-cycle-detail"><div class="report-cycle-detail-head"><div><span class="report-cycle-label">Cycle ${c.cycle}</span><h3>${c.start} → ${c.end}</h3></div><div class="report-cycle-salary"><small>Salary</small><strong>${money(c.salary)} AED</strong></div></div>${reportMetricTable(c)}${reportFieldTotalsTable(c.rows,`Cycle ${c.cycle} · Invoice Totals`)}<div class="report-detail-label">Invoice Ledger · ${c.invoices} invoice${c.invoices===1?'':'s'}</div>${reportInvoiceTable(c.rows)}</section>`;
+}
+function reportMonthDetail(r){
+  if(!r||!r.cycles.length)return '';
+  const allRows=r.cycles.flatMap(c=>c.rows||[]);
+  return `<div class="report-detail-block"><div class="report-detail-heading"><div><small>MONTH DETAIL</small><h3>${reportMonthName(Number(r.month.slice(5,7)))} ${r.month.slice(0,4)}</h3></div><div class="report-detail-total"><small>Combined Salary</small><strong>${money(r.salary)} AED</strong></div></div><table class="report-summary-table"><thead><tr><th>Cycle</th><th>Working Days</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${r.cycles.map(c=>`<tr><td>Cycle ${c.cycle}<div class="report-ledger-sub">${c.start} → ${c.end}</div></td><td>${c.workDays}</td><td>${money(c.netSale)} AED</td><td>${money(c.target)}%</td><td>${money(c.salary)} AED</td></tr>`).join('')}<tr class="ledger-total"><td>Combined</td><td>${r.workDays}</td><td>${money(r.netSale)} AED</td><td>${reportCommissionText(r.cycles)}</td><td>${money(r.salary)} AED</td></tr></tbody></table>${reportFieldTotalsTable(allRows,`${reportMonthName(Number(r.month.slice(5,7)))} · Full Invoice Totals`)}${r.cycles.map(reportCycleDetail).join('')}</div>`;
+}
+function reportYearMonthRows(reports){
+  return reports.map(r=>`<tr class="${r.cycles.length?'ledger-link':''}" ${r.cycles.length?`onclick="window.setReportMonth('${r.month}')"`:''}><td><b>${reportMonthName(Number(r.month.slice(5,7)))}</b>${r.cycles.length?`<div class="report-ledger-sub">${r.cycles.length} cycle${r.cycles.length>1?'s':''} · click for detail</div>`:''}</td><td>${r.workDays}</td><td>${money(r.totalSale)} AED</td><td>${money(r.deductions)} AED</td><td>${money(r.netSale)} AED</td><td>${reportCommissionText(r.cycles)}</td><td>${money(r.salary)} AED</td></tr>`).join('');
+}
+function reportSimpleSummaryTable(rows,totalLabel){
+  return `<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Particular</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${rows}<tr class="ledger-grand-total"><td>${totalLabel}</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody></table></div>`;
+}
+function setReportMode(mode){reportMode=mode;reportSelectedMonth='';renderReports()}
+function renderDailyReport(){
+ const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');
+ const today=dateKeyLocal(new Date());reportDailyDate=reportDailyDate||today;
+ controls.innerHTML=`<div class="report-control-row"><div><label for="reportDailyDate">Date</label><input type="date" id="reportDailyDate" max="${today}" value="${reportDailyDate}" onchange="window.setReportDailyDate(this.value)"></div></div>`;
+ const rows=(Array.isArray(invoices)?invoices:[]).filter(x=>invoiceDateKey(x)===reportDailyDate);
+ const cycle=getDashboardCycleForDate(reportDailyDate);
+ let cycleStat=null;
+ if(cycle){
+   const range={start:cycle.activeRangeStart||cycle.start,end:cycle.activeRangeEnd||cycle.end};
+   const full=getReportCycleStats(range,cycle.activeCycleNumber||1);
+   const netSale=rows.reduce((s,x)=>s+(Number(x.net)||0),0),totalSale=rows.reduce((s,x)=>s+(Number(x.total)||0),0),deductions=rows.reduce((s,x)=>s+(Number(x.deductions)||0),0);
+   const target=full.target;
+   cycleStat={...full,netSale,totalSale,deductions,rows,workDays:leaveDatesBetweenCount(reportDailyDate,reportDailyDate)?0:1,avg:netSale,target,salary:netSale*target/100,invoices:rows.length};
+ }
+ if(!cycleStat){details.innerHTML=`<div class="report-detail-empty">No invoice data for ${reportDailyDate}.</div>`;return;}
+ const t=reportInvoiceFieldTotals(rows);
+ details.innerHTML=`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Date</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody><tr><td>${reportDailyDate}</td><td>${cycleStat.workDays}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${money(cycleStat.target)}%</td><td>${money(cycleStat.salary)} AED</td></tr></tbody></table></div>${reportFieldTotalsTable(rows,'Daily Invoice Totals')}${reportCycleDetail(cycleStat)}`;
+}
+function renderMonthlyReport(){
+ const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');
+ const years=getReportYears();reportYear=years.includes(reportYear)?reportYear:(years[0]||new Date().getFullYear());
+ controls.innerHTML=`<div class="report-control-row"><div><label for="reportYear">Year</label><select id="reportYear" onchange="window.setReportYear(this.value)">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div></div>`;
+ const reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(reportYear,i+1)));
+ const activeReports=reports.filter(r=>r.cycles.length);
+ const totalRows=activeReports.flatMap(r=>r.cycles.flatMap(c=>c.rows||[]));
+ const t=reportInvoiceFieldTotals(totalRows);
+ const table=reports.length?`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Month</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${reportYearMonthRows(reports)}<tr class="ledger-grand-total"><td>Total ${reportYear}</td><td>${activeReports.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionText(activeReports.flatMap(r=>r.cycles))}</td><td>${money(activeReports.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`:'';
+ const selected=reportSelectedMonth?reports.find(r=>r.month===reportSelectedMonth):null;
+ details.innerHTML=table+(selected?reportMonthDetail(selected):'');
+}
+function renderYearlyReport(){
+ const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');
+ const years=getReportYears();reportYear=years.includes(reportYear)?reportYear:(years[0]||new Date().getFullYear());
+ controls.innerHTML=`<div class="report-control-row"><div><label for="reportYear">Year</label><select id="reportYear" onchange="window.setReportYear(this.value)">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div></div>`;
+ const reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(reportYear,i+1)));
+ const activeReports=reports.filter(r=>r.cycles.length), allRows=activeReports.flatMap(r=>r.cycles.flatMap(c=>c.rows||[])),t=reportInvoiceFieldTotals(allRows),cycles=activeReports.flatMap(r=>r.cycles);
+ const table=`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Month</th><th>Cycles</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${reports.map(r=>`<tr class="${r.cycles.length?'ledger-link':''}" ${r.cycles.length?`onclick="window.setReportMonth('${r.month}')"`:''}><td>${reportMonthName(Number(r.month.slice(5,7)))}${r.cycles.length?`<div class="report-ledger-sub">click for Cycle detail</div>`:''}</td><td>${r.cycles.length}</td><td>${r.workDays}</td><td>${money(r.cycles.flatMap(c=>c.rows||[]).reduce((s,x)=>s+(Number(x.total)||0),0))} AED</td><td>${money(r.deductions)} AED</td><td>${money(r.netSale)} AED</td><td>${reportCommissionText(r.cycles)}</td><td>${money(r.salary)} AED</td></tr>`).join('')}<tr class="ledger-grand-total"><td>Total ${reportYear}</td><td>${cycles.length}</td><td>${activeReports.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionText(cycles)}</td><td>${money(activeReports.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`;
+ const selected=reportSelectedMonth?reports.find(r=>r.month===reportSelectedMonth):null;
+ details.innerHTML=table+(selected?reportMonthDetail(selected):'');
+}
+function renderOverallReport(){
+ const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');controls.innerHTML='';
+ const years=getReportYears(),all=years.flatMap(y=>Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(y,i+1))).filter(r=>r.cycles.length));
+ const allRows=all.flatMap(r=>r.cycles.flatMap(c=>c.rows||[])),t=reportInvoiceFieldTotals(allRows),cycles=all.flatMap(r=>r.cycles);
+ const table=`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Year</th><th>Months</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${years.map(y=>{const rs=all.filter(r=>r.month.startsWith(y+'-'));if(!rs.length)return '';const rr=rs.flatMap(r=>r.cycles.flatMap(c=>c.rows||[])),tt=reportInvoiceFieldTotals(rr),cs=rs.flatMap(r=>r.cycles);return `<tr class="ledger-link" onclick="window.setReportYear('${y}')"><td>${y}</td><td>${rs.length}</td><td>${rs.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(tt.total.value)} AED</td><td>${money(tt.deductions.value)} AED</td><td>${money(tt.net.value)} AED</td><td>${reportCommissionText(cs)}</td><td>${money(rs.reduce((s,r)=>s+r.salary,0))} AED</td></tr>`}).join('')}<tr class="ledger-grand-total"><td>Overall Total</td><td>${all.length}</td><td>${all.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionText(cycles)}</td><td>${money(all.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`;
+ details.innerHTML=table+(reportSelectedMonth?(()=>{const r=all.find(x=>x.month===reportSelectedMonth);return r?reportMonthDetail(r):''})():'');
+}
+function renderReports(){
+  const tabs={daily:'Daily',monthly:'Monthly',yearly:'Yearly',overall:'Overall'};
+  Object.keys(tabs).forEach(m=>{const b=document.getElementById('reportTab'+tabs[m]);if(b)b.classList.toggle('active',m===reportMode)});
+  const ws=document.getElementById('reportWorkspace'),title=document.getElementById('reportTitle'),controls=document.getElementById('reportControls'),grid=document.getElementById('reportMonthGrid'),details=document.getElementById('reportDetails');
+  if(!reportMode){if(ws)ws.hidden=true;if(controls)controls.innerHTML='';if(grid)grid.innerHTML='';if(details)details.innerHTML='';return;}
+  if(ws)ws.hidden=false;
+  if(title)title.textContent=(tabs[reportMode]||'Report')+' Ledger';
+  if(reportMode==='daily')renderDailyReport();else if(reportMode==='yearly')renderYearlyReport();else if(reportMode==='overall')renderOverallReport();else renderMonthlyReport();
+}
+function setReportDailyDate(value){reportDailyDate=String(value||'');renderReports()}
+function setReportYear(value){reportYear=Number(value);reportSelectedMonth='';renderReports()}
+function setReportMonth(value){reportSelectedMonth=String(value||'');renderReports()}
+window.setReportMode=setReportMode;
+window.setReportDailyDate=setReportDailyDate;
+window.setReportYear=setReportYear;
+window.setReportMonth=setReportMonth;
+window.renderReports=renderReports;
+window.printReports=printReports;
+function printReports(){if(!reportMode)return;renderReports();window.print()}
+
 function renderHistory(){
   const box=document.getElementById("historyList"); if(!box)return;
   const rows=getHistoryFilteredInvoices();
@@ -2120,286 +2287,6 @@ function renderHistory(){
   }).join("");
   box.innerHTML=`<div class="history-results-title">Invoice Records <span class="small">(${rows.length})</span></div><div class="history-range-note">${rangeText}${search?` · Search: “${historyEscape(search)}”`:""}</div><div class="history-table-card"><div class="history-table-wrap"><table class="history-table"><thead><tr><th>No.</th><th>Date</th><th>Invoice No.</th><th>Credit Card</th><th>App</th><th>Cash</th><th>Tips</th><th>Tollways</th><th>Shift Discount</th><th>Shift Trips</th><th>Bookings</th><th>Kilometers</th><th>Careem Discount</th><th>Paid in Careem</th><th>Hala Juniors</th><th>Hala Peak</th><th>Peak</th><th>Others</th><th>Total</th><th>Deductions</th><th>Net</th><th>Action</th></tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
 }
-
-
-function dailyReportEscape(value){
-  return String(value??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-}
-
-function dailyReportDateText(dateKey){
-  if(!dateKey)return "—";
-  const d=new Date(dateKey+"T00:00:00");
-  if(Number.isNaN(d.getTime()))return dateKey;
-  return d.toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
-}
-
-function dailyReportCycleInfo(dateKey){
-  const cycle=getDashboardCycleForDate(dateKey);
-  if(!cycle)return {label:"Cycle not found",day:"—",percent:0,cycle:null};
-  const start=cycle.activeRangeStart||cycle.start;
-  const selected=new Date(dateKey+"T00:00:00");
-  const startDate=new Date(start.getFullYear(),start.getMonth(),start.getDate());
-  const day=Math.floor((selected-startDate)/86400000)+1;
-  return {
-    label:"Cycle "+Number(cycle.activeCycleNumber||1)+" • Day "+Math.max(1,day),
-    day:Math.max(1,day),
-    percent:0,
-    cycle
-  };
-}
-
-function dailyReportCommissionPercent(dateKey,totalNet){
-  const target=getTargetSetupForDate(dateKey);
-  if(!target)return 0;
-  const amounts=Array.isArray(target.amounts)?target.amounts:[];
-  const percentages=Array.isArray(target.percentages)?target.percentages:TARGET_PERCENTAGES;
-  let matched=0;
-  amounts.forEach((amount,i)=>{
-    const threshold=Number(amount);
-    if(Number.isFinite(threshold)&&threshold>0&&Number(totalNet)>=threshold){
-      const pct=Number(percentages[i]);
-      if(Number.isFinite(pct))matched=pct;
-    }
-  });
-  return matched;
-}
-
-function dailyReportRateAmounts(x){
-  const date=invoiceDateKey(x)||x.date||"";
-  const setup=getChargeSetupForDate(date)||{};
-  const rta=round2(setup.rtaCharges);
-  const booking=round2(setup.bookingCharges);
-  const fuel=round2(setup.fuelCharges);
-  return {
-    rta,booking,fuel,
-    shiftTripsAmount:round2(round2(x.shiftTrips)*rta),
-    bookingAmount:round2(round2(x.bookings)*booking),
-    kmAmount:round2(round2(x.km)*fuel)
-  };
-}
-
-function dailyReportInvoiceTotals(x){
-  const rates=dailyReportRateAmounts(x);
-  const savedTotal=Number(x.total);
-  const total=round2(
-    Number.isFinite(savedTotal) ? savedTotal :
-    round2(x.creditCard)+round2(x.app)+round2(x.cash)+round2(x.shiftDiscount)+round2(x.careemDiscount)+round2(x.paidCareem)
-  );
-  const fixed=round2(round2(x.tips)+round2(x.tolls)+round2(x.halaJunior)+round2(x.halaPeak)+round2(x.peak)+round2(x.extraCharges));
-  const savedDeductions=Number(x.deductions);
-  const deductions=round2(
-    Number.isFinite(savedDeductions) ? savedDeductions : fixed+rates.shiftTripsAmount+rates.bookingAmount+rates.kmAmount
-  );
-  const savedNet=Number(x.net);
-  const net=round2(Number.isFinite(savedNet)?savedNet:total-deductions);
-  return {...rates,fixed,total,deductions,net};
-}
-
-function initDailyReport(){
-  const input=document.getElementById("dailyReportDate");
-  if(!input)return;
-  const today=dateKeyLocal(new Date());
-  input.max=today;
-  const dates=(Array.isArray(invoices)?invoices:[]).map(invoiceDateKey).filter(Boolean).sort();
-  if(dates.length)input.min=dates[0];
-  if(!input.value){
-    const last=dates.length?dates[dates.length-1]:today;
-    input.value=last>today?today:last;
-  }
-  renderDailyReport();
-}
-
-window.printDailyReport=()=>{
-  const content=document.getElementById("dailyReportContent");
-  if(!content||!content.querySelector(".daily-report-ledger")){return;}
-  document.body.classList.add("daily-report-print-mode");
-  setTimeout(()=>{
-    try{window.print();}finally{
-      setTimeout(()=>document.body.classList.remove("daily-report-print-mode"),300);
-    }
-  },50);
-};
-
-window.renderDailyReport=()=>{
-  const box=document.getElementById("dailyReportContent");
-  const input=document.getElementById("dailyReportDate");
-  if(!box||!input)return;
-  const dateKey=String(input.value||"");
-  if(!dateKey){box.innerHTML='<div class="daily-report-empty">Date select کریں۔</div>';return;}
-  const rows=(Array.isArray(invoices)?invoices:[]).filter(x=>invoiceDateKey(x)===dateKey).sort((a,b)=>{
-    const ac=String(a.createdAt?.seconds||0),bc=String(b.createdAt?.seconds||0);
-    if(ac!==bc)return Number(ac)-Number(bc);
-    return String(a.invoiceNumber||"").localeCompare(String(b.invoiceNumber||""));
-  });
-  const cycleInfo=dailyReportCycleInfo(dateKey);
-  const totals=rows.map(dailyReportInvoiceTotals);
-  const sum=(key)=>round2(totals.reduce((a,b)=>a+(Number(b[key])||0),0));
-  const totalSale=sum("total");
-  const totalDeduction=sum("deductions");
-  const netSale=sum("net");
-  const commission=dailyReportCommissionPercent(dateKey,netSale);
-  cycleInfo.percent=commission;
-
-  if(!rows.length){
-    box.innerHTML=`<div class="daily-report-ledger"><div class="daily-report-ledger-head"><div class="daily-report-ledger-title">Daily Ledger</div><div class="daily-report-date">${dailyReportEscape(dailyReportDateText(dateKey))}</div><div class="daily-report-cycle">${dailyReportEscape(cycleInfo.label)}</div><div class="daily-report-commission">Commission %: ${money(commission)}%</div><button class="daily-report-print" type="button" onclick="printDailyReport()" aria-label="Print">🖨️</button></div><div class="daily-report-empty">اس تاریخ کے لیے کوئی invoice محفوظ نہیں ہے۔</div></div>`;
-    return;
-  }
-
-  const cell=(v)=>money(v);
-  const rowsHtml=rows.map((x,i)=>{
-    const t=dailyReportInvoiceTotals(x);
-    return `<tr>
-      <td class="date-cell">${dailyReportEscape(dailyReportDateText(dateKey))}</td>
-      <td class="cycle-cell">${dailyReportEscape(cycleInfo.label)}</td>
-      <td class="sale-col">${cell(x.creditCard)}</td><td class="sale-col">${cell(x.app)}</td><td class="sale-col">${cell(x.cash)}</td>
-      <td class="sale-col">${cell(x.shiftDiscount)}</td><td class="sale-col">${cell(x.careemDiscount)}</td><td class="sale-col">${cell(x.paidCareem)}</td>
-      <td class="sale-col">${cell(t.total)}</td>
-      <td class="deduct-col">${cell(x.tips)}</td><td class="deduct-col">${cell(x.tolls)}</td><td class="deduct-col">${cell(x.shiftTrips)}</td>
-      <td class="deduct-col">${cell(t.shiftTripsAmount)}</td><td class="deduct-col">${cell(x.bookings)}</td><td class="deduct-col">${cell(t.bookingAmount)}</td>
-      <td class="deduct-col">${cell(x.km)}</td><td class="deduct-col">${cell(t.kmAmount)}</td><td class="deduct-col">${cell(x.halaJunior)}</td>
-      <td class="deduct-col">${cell(x.halaPeak)}</td><td class="deduct-col">${cell(x.peak)}</td><td class="deduct-col">${cell(x.extraCharges)}</td>
-      <td class="deduct-col">${cell(t.deductions)}</td><td class="net-col">${cell(t.net)}</td>
-    </tr>`;
-  }).join("");
-
-  const totalRow=`<tr class="total-row">
-    <td colspan="2">TOTAL (${rows.length} invoice${rows.length===1?"":"s"})</td>
-    <td>${cell(rows.reduce((a,x)=>a+round2(x.creditCard),0))}</td>
-    <td>${cell(rows.reduce((a,x)=>a+round2(x.app),0))}</td>
-    <td>${cell(rows.reduce((a,x)=>a+round2(x.cash),0))}</td>
-    <td>${cell(rows.reduce((a,x)=>a+round2(x.shiftDiscount),0))}</td>
-    <td>${cell(rows.reduce((a,x)=>a+round2(x.careemDiscount),0))}</td>
-    <td>${cell(rows.reduce((a,x)=>a+round2(x.paidCareem),0))}</td>
-    <td>${cell(totalSale)}</td>
-    <td>${cell(rows.reduce((a,x)=>a+round2(x.tips),0))}</td><td>${cell(rows.reduce((a,x)=>a+round2(x.tolls),0))}</td><td>${cell(rows.reduce((a,x)=>a+round2(x.shiftTrips),0))}</td>
-    <td>${cell(sum("shiftTripsAmount"))}</td><td>${cell(rows.reduce((a,x)=>a+round2(x.bookings),0))}</td><td>${cell(sum("bookingAmount"))}</td>
-    <td>${cell(rows.reduce((a,x)=>a+round2(x.km),0))}</td><td>${cell(sum("kmAmount"))}</td><td>${cell(rows.reduce((a,x)=>a+round2(x.halaJunior),0))}</td>
-    <td>${cell(rows.reduce((a,x)=>a+round2(x.halaPeak),0))}</td><td>${cell(rows.reduce((a,x)=>a+round2(x.peak),0))}</td><td>${cell(rows.reduce((a,x)=>a+round2(x.extraCharges),0))}</td>
-    <td>${cell(totalDeduction)}</td><td class="net-col">${cell(netSale)}</td>
-  </tr>`;
-
-  const summary=`<div class="daily-report-summary"><table class="daily-report-summary-table">
-    <tbody>
-      <tr class="group"><td colspan="2">TOTAL SALE — مکمل تفصیل</td></tr>
-      <tr><td>Credit Card</td><td>${money(rows.reduce((a,x)=>a+round2(x.creditCard),0))} AED</td></tr>
-      <tr><td>App</td><td>${money(rows.reduce((a,x)=>a+round2(x.app),0))} AED</td></tr>
-      <tr><td>Cash</td><td>${money(rows.reduce((a,x)=>a+round2(x.cash),0))} AED</td></tr>
-      <tr><td>Shift Discount</td><td>${money(rows.reduce((a,x)=>a+round2(x.shiftDiscount),0))} AED</td></tr>
-      <tr><td>Careem Discount</td><td>${money(rows.reduce((a,x)=>a+round2(x.careemDiscount),0))} AED</td></tr>
-      <tr><td>Paid in Careem</td><td>${money(rows.reduce((a,x)=>a+round2(x.paidCareem),0))} AED</td></tr>
-      <tr><td><strong>Total Sale</strong></td><td><strong>${money(totalSale)} AED</strong></td></tr>
-      <tr class="group"><td colspan="2">TOTAL DEDUCTION — مکمل تفصیل</td></tr>
-      <tr><td>Tips</td><td>${money(rows.reduce((a,x)=>a+round2(x.tips),0))} AED</td></tr>
-      <tr><td>Tollways</td><td>${money(rows.reduce((a,x)=>a+round2(x.tolls),0))} AED</td></tr>
-      <tr><td>Shift Trips</td><td>${money(sum("shiftTripsAmount"))} AED</td></tr>
-      <tr><td>Bookings</td><td>${money(sum("bookingAmount"))} AED</td></tr>
-      <tr><td>Kilometers Hired</td><td>${money(sum("kmAmount"))} AED</td></tr>
-      <tr><td>Hala Juniors</td><td>${money(rows.reduce((a,x)=>a+round2(x.halaJunior),0))} AED</td></tr>
-      <tr><td>Hala Peak</td><td>${money(rows.reduce((a,x)=>a+round2(x.halaPeak),0))} AED</td></tr>
-      <tr><td>Peak</td><td>${money(rows.reduce((a,x)=>a+round2(x.peak),0))} AED</td></tr>
-      <tr><td>Others / Extra Charges</td><td>${money(rows.reduce((a,x)=>a+round2(x.extraCharges),0))} AED</td></tr>
-      <tr><td><strong>Total Deduction</strong></td><td><strong>${money(totalDeduction)} AED</strong></td></tr>
-      <tr class="net-total"><td>NET SALE</td><td>${money(netSale)} AED</td></tr>
-      <tr><td>Commission %</td><td>${money(commission)}%</td></tr>
-    </tbody>
-  </table></div>`;
-
-  box.innerHTML=`<div class="daily-report-ledger">
-    <div class="daily-report-ledger-head">
-      <div class="daily-report-ledger-title">Daily Ledger</div>
-      <div class="daily-report-date">${dailyReportEscape(dailyReportDateText(dateKey))}</div>
-      <div class="daily-report-cycle">${dailyReportEscape(cycleInfo.label)}</div>
-      <div class="daily-report-commission">Commission %: ${money(commission)}%</div>
-      <button class="daily-report-print" type="button" onclick="printDailyReport()" aria-label="Print">🖨️</button>
-    </div>
-    <div class="daily-report-table-wrap"><table class="daily-report-table">
-      <thead><tr>
-        <th>Date</th><th>Cycle / Day</th>
-        <th>Credit Card</th><th>App</th><th>Cash</th><th>Shift Discount</th><th>Careem Discount</th><th>Paid in Careem</th><th>Total Sale</th>
-        <th>Tips</th><th>Tollways</th><th>Shift Trips Qty</th><th>Shift Trips AED</th><th>Bookings Qty</th><th>Bookings AED</th><th>KM</th><th>KM AED</th><th>Hala Juniors</th><th>Hala Peak</th><th>Peak</th><th>Others</th><th>Total Deduction</th><th>Net Sale</th>
-      </tr></thead><tbody>${rowsHtml}${totalRow}</tbody>
-    </table></div>
-    ${summary}
-    <div class="daily-report-note">${rows.length} invoice${rows.length===1?"":"s"} شامل ہیں۔ Shift Trips / Bookings / KM کی AED deductions اسی تاریخ کے موجودہ Charge Setup rates کے مطابق رکھی گئی ہیں، جبکہ Total Deduction اور Net Sale محفوظ invoice values کے مطابق ہیں۔</div>
-  </div>`;
-};
-
-function monthlyReportMonthText(monthKey){
-  if(!monthKey)return "—";
-  const d=new Date(monthKey+"-01T00:00:00");
-  if(Number.isNaN(d.getTime()))return monthKey;
-  return d.toLocaleDateString("en-GB",{month:"long",year:"numeric"});
-}
-function monthlyReportMonthBounds(monthKey){
-  const [y,m]=String(monthKey||"").split("-").map(Number);
-  if(!y||!m)return null;
-  return {start:`${y}-${String(m).padStart(2,"0")}-01`,end:dateKeyLocal(new Date(y,m,0))};
-}
-function monthlyReportCycleForInvoice(x){
-  const key=invoiceDateKey(x)||x.date||"";
-  const info=dailyReportCycleInfo(key);
-  return Number(info.cycle?.activeCycleNumber||1)===2?2:1;
-}
-function monthlyReportAggregate(rows){
-  const totals=rows.map(dailyReportInvoiceTotals);
-  const sumField=(field)=>round2(totals.reduce((a,b)=>a+(Number(b[field])||0),0));
-  const raw=(field)=>round2(rows.reduce((a,x)=>a+round2(x[field]),0));
-  return {
-    creditCard:raw("creditCard"),app:raw("app"),cash:raw("cash"),shiftDiscount:raw("shiftDiscount"),careemDiscount:raw("careemDiscount"),paidCareem:raw("paidCareem"),
-    total:sumField("total"),tips:raw("tips"),tolls:raw("tolls"),shiftTrips:raw("shiftTrips"),shiftTripsAmount:sumField("shiftTripsAmount"),bookings:raw("bookings"),bookingAmount:sumField("bookingAmount"),km:raw("km"),kmAmount:sumField("kmAmount"),
-    halaJunior:raw("halaJunior"),halaPeak:raw("halaPeak"),peak:raw("peak"),extraCharges:raw("extraCharges"),deductions:sumField("deductions"),net:sumField("net"),count:rows.length
-  };
-}
-function monthlyReportCommissionForRows(rows){
-  if(!rows.length)return 0;
-  return dailyReportCommissionPercent(invoiceDateKey(rows[0]),monthlyReportAggregate(rows).net);
-}
-function monthlyReportTargetDescription(rows,label){
-  const agg=monthlyReportAggregate(rows);
-  const pct=monthlyReportCommissionForRows(rows);
-  return `${label}: Net Sale ${money(agg.net)} AED • Target/Commission ${money(pct)}% • Total Sale ${money(agg.total)} AED • Total Deduction ${money(agg.deductions)} AED`;
-}
-function initMonthlyReport(){
-  const input=document.getElementById("monthlyReportMonth");
-  if(!input)return;
-  const today=new Date();
-  const monthKey=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
-  const dates=(Array.isArray(invoices)?invoices:[]).map(invoiceDateKey).filter(Boolean).sort();
-  input.max=monthKey;
-  if(dates.length){input.min=dates[0].slice(0,7);}
-  if(!input.value)input.value=dates.length?dates[dates.length-1].slice(0,7):monthKey;
-  renderMonthlyReport();
-}
-window.printMonthlyReport=()=>{
-  const content=document.getElementById("monthlyReportContent");
-  if(!content||!content.querySelector(".daily-report-ledger"))return;
-  document.body.classList.add("monthly-report-print-mode");
-  setTimeout(()=>{try{window.print();}finally{setTimeout(()=>document.body.classList.remove("monthly-report-print-mode"),300)}},50);
-};
-window.renderMonthlyReport=()=>{
-  const box=document.getElementById("monthlyReportContent"),input=document.getElementById("monthlyReportMonth");
-  if(!box||!input)return;
-  const monthKey=String(input.value||"");
-  const bounds=monthlyReportMonthBounds(monthKey);
-  if(!bounds){box.innerHTML='<div class="daily-report-empty">Month select کریں۔</div>';return;}
-  const monthRows=(Array.isArray(invoices)?invoices:[]).filter(x=>{const d=invoiceDateKey(x);return d&&d>=bounds.start&&d<=bounds.end;});
-  const cycle1=monthRows.filter(x=>monthlyReportCycleForInvoice(x)===1);
-  const cycle2=monthRows.filter(x=>monthlyReportCycleForInvoice(x)===2);
-  const a1=monthlyReportAggregate(cycle1),a2=monthlyReportAggregate(cycle2);
-  const combined=monthlyReportAggregate(monthRows);
-  const p1=monthlyReportCommissionForRows(cycle1),p2=monthlyReportCommissionForRows(cycle2),pc=monthlyReportCommissionForRows(monthRows);
-  const cell=v=>money(v);
-  const row=(label,a,p,cls="")=>`<tr class="${cls}"><td><strong>${label}</strong><br><small>${a.count} day invoice record${a.count===1?"":"s"}</small></td>
-    <td class="sale-col">${cell(a.creditCard)}</td><td class="sale-col">${cell(a.app)}</td><td class="sale-col">${cell(a.cash)}</td><td class="sale-col">${cell(a.shiftDiscount)}</td><td class="sale-col">${cell(a.careemDiscount)}</td><td class="sale-col">${cell(a.paidCareem)}</td><td class="sale-col">${cell(a.total)}</td>
-    <td class="deduct-col">${cell(a.tips)}</td><td class="deduct-col">${cell(a.tolls)}</td><td class="deduct-col">${cell(a.shiftTrips)}</td><td class="deduct-col">${cell(a.shiftTripsAmount)}</td><td class="deduct-col">${cell(a.bookings)}</td><td class="deduct-col">${cell(a.bookingAmount)}</td><td class="deduct-col">${cell(a.km)}</td><td class="deduct-col">${cell(a.kmAmount)}</td><td class="deduct-col">${cell(a.halaJunior)}</td><td class="deduct-col">${cell(a.halaPeak)}</td><td class="deduct-col">${cell(a.peak)}</td><td class="deduct-col">${cell(a.extraCharges)}</td><td class="deduct-col">${cell(a.deductions)}</td><td class="net-col">${cell(a.net)}</td><td>${money(p)}%</td></tr>`;
-  if(!monthRows.length){box.innerHTML=`<div class="daily-report-ledger"><div class="daily-report-ledger-head"><div class="daily-report-ledger-title">Monthly Ledger</div><div class="daily-report-date">${dailyReportEscape(monthlyReportMonthText(monthKey))}</div><button class="daily-report-print" type="button" onclick="printMonthlyReport()">🖨️</button></div><div class="daily-report-empty">اس مہینے کے لیے کوئی invoice محفوظ نہیں ہے۔</div></div>`;return;}
-  const summaryGroup=(title,a,p)=>`<tr class="group"><td colspan="2">${title}</td></tr><tr><td>Credit Card</td><td>${money(a.creditCard)} AED</td></tr><tr><td>App</td><td>${money(a.app)} AED</td></tr><tr><td>Cash</td><td>${money(a.cash)} AED</td></tr><tr><td>Shift Discount</td><td>${money(a.shiftDiscount)} AED</td></tr><tr><td>Careem Discount</td><td>${money(a.careemDiscount)} AED</td></tr><tr><td>Paid in Careem</td><td>${money(a.paidCareem)} AED</td></tr><tr><td><strong>Total Sale</strong></td><td><strong>${money(a.total)} AED</strong></td></tr><tr class="group"><td colspan="2">${title} — TOTAL DEDUCTION</td></tr><tr><td>Tips</td><td>${money(a.tips)} AED</td></tr><tr><td>Tollways</td><td>${money(a.tolls)} AED</td></tr><tr><td>Shift Trips</td><td>${money(a.shiftTripsAmount)} AED</td></tr><tr><td>Bookings</td><td>${money(a.bookingAmount)} AED</td></tr><tr><td>Kilometers Hired</td><td>${money(a.kmAmount)} AED</td></tr><tr><td>Hala Juniors</td><td>${money(a.halaJunior)} AED</td></tr><tr><td>Hala Peak</td><td>${money(a.halaPeak)} AED</td></tr><tr><td>Peak</td><td>${money(a.peak)} AED</td></tr><tr><td>Others / Extra Charges</td><td>${money(a.extraCharges)} AED</td></tr><tr><td><strong>Total Deduction</strong></td><td><strong>${money(a.deductions)} AED</strong></td></tr><tr class="net-total"><td>NET SALE</td><td>${money(a.net)} AED</td></tr><tr><td>Commission / Target %</td><td>${money(p)}%</td></tr>`;
-  box.innerHTML=`<div class="daily-report-ledger"><div class="daily-report-ledger-head"><div class="daily-report-ledger-title">Monthly Ledger</div><div class="daily-report-date">${dailyReportEscape(monthlyReportMonthText(monthKey))}</div><div class="daily-report-cycle">Cycle 1 + Cycle 2 دونوں کی تفصیل اور Combined Total</div><div class="daily-report-commission">Combined Commission / Target %: ${money(pc)}%</div><button class="daily-report-print" type="button" onclick="printMonthlyReport()">🖨️</button></div>
-  <div class="daily-report-table-wrap"><table class="monthly-report-table"><thead><tr><th>Cycle / Total</th><th>Credit Card</th><th>App</th><th>Cash</th><th>Shift Discount</th><th>Careem Discount</th><th>Paid in Careem</th><th>Total Sale</th><th>Tips</th><th>Tollways</th><th>Shift Trips Qty</th><th>Shift Trips AED</th><th>Bookings Qty</th><th>Bookings AED</th><th>KM</th><th>KM AED</th><th>Hala Juniors</th><th>Hala Peak</th><th>Peak</th><th>Others</th><th>Total Deduction</th><th>Net Sale</th><th>Commission %</th></tr></thead><tbody>${row("Cycle 1",a1,p1)}${row("Cycle 2",a2,p2)}${row("COMBINED TOTAL",combined,pc,"total-row")}</tbody></table></div>
-  <div class="monthly-report-cycle-note"><strong>تفصیل:</strong> ${dailyReportEscape(monthlyReportTargetDescription(cycle1,"Cycle 1 / Target 1"))}<br>${dailyReportEscape(monthlyReportTargetDescription(cycle2,"Cycle 2 / Target 2"))}<br><strong>Combined:</strong> Cycle 1 + Cycle 2 = ${money(combined.net)} AED Net Sale۔ ہر field کا total دونوں cycles کے records کو جمع کرکے دکھایا گیا ہے۔</div>
-  <div class="daily-report-summary"><table class="daily-report-summary-table"><tbody>${summaryGroup("CYCLE 1 / TARGET 1 — مکمل تفصیل",a1,p1)}${summaryGroup("CYCLE 2 / TARGET 2 — مکمل تفصیل",a2,p2)}${summaryGroup("COMBINED TOTAL — Cycle 1 + Cycle 2",combined,pc)}</tbody></table></div>
-  <div class="daily-report-note">Monthly Report میں اس مہینے کے تمام محفوظ invoices شامل ہیں۔ Cycle 1 اور Cycle 2 الگ جمع کیے گئے ہیں اور آخر میں دونوں کا Combined Total دکھایا گیا ہے۔ Salary اور Working Days اس رپورٹ میں شامل نہیں کیے گئے۔</div></div>`;
-};
 
 const CHARGE_DAYS=Array.from({length:31},(_,i)=>i+1);
 function chargeDayOptions(selected=""){const placeholder=`<option value="" ${selected===""||selected==null?"selected":""} disabled>Select Day</option>`;return placeholder+CHARGE_DAYS.map(day=>`<option value="${day}" ${String(day)===String(selected)?"selected":""}>${day}</option>`).join("")}
@@ -3485,12 +3372,13 @@ cycleCompletionRecords={...(fresh.cycleCompletionRecords||{})};
   renderSavedTargets();
   try{renderLeaveHome();renderLeaveCalendar();}catch(e){}
   updateInvoiceRateCard();
+  if(document.getElementById("reportsPage")?.classList.contains("active"))renderReports();
   updateDashboard();
 },error=>console.error("Driver realtime listener error:",error));
 
 if(unsubscribeInvoices)unsubscribeInvoices();
 unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
-invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();renderSavedInvoices();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();if(document.getElementById("dailyReportPage").classList.contains("active"))renderDailyReport();if(document.getElementById("monthlyReportPage").classList.contains("active"))renderMonthlyReport();
+invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();renderSavedInvoices();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();if(document.getElementById("reportsPage").classList.contains("active"))renderReports();
 },error=>{console.error("Invoice listener error:",error);document.getElementById("authError").textContent="Unable to load invoices: "+(error.message||"Firebase error");});
 
 if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}
