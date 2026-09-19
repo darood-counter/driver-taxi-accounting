@@ -2636,10 +2636,14 @@ function updateDashboard(){
   const totalEl=document.getElementById("totalAmount"),avgEl=document.getElementById("avgAmount"),labelEl=document.getElementById("dashboardCycleLabel");
   let cycleInvoices;
   if(cycle){
-    cycleInvoices=invoices.filter(x=>String(x.date||"")>=dateKeyLocal(cycle.start)&&String(x.date||"")<=dateKeyLocal(cycle.end));
+    const cStart=dateKeyLocal(cycle.start), cEnd=dateKeyLocal(cycle.end);
+    cycleInvoices=invoices.filter(x=>{
+      const k=invoiceDateKey(x);
+      return k && k>=cStart && k<=cEnd;
+    });
   }else{
     const selected=dashboardSelectedDate;
-    cycleInvoices=selected?invoices.filter(x=>String(x.date||"")===selected):invoices;
+    cycleInvoices=selected?invoices.filter(x=>invoiceDateKey(x)===selected):invoices;
   }
   const total=cycleInvoices.reduce((s,x)=>s+(Number(x.net)||0),0);
   const deductions=cycleInvoices.reduce((s,x)=>s+(Number(x.deductions)||0),0);
@@ -2649,22 +2653,11 @@ function updateDashboard(){
   if(avgEl)avgEl.textContent=money(avg)+" AED";
   if(labelEl){
     if(cycle){
-      // Keep the cycle label live: use the actual invoice dates available
-      // inside this cycle, while never extending beyond today or the
-      // configured cycle boundaries.
-      const cycleStartKey=dateKeyLocal(cycle.start);
-      const cycleEndKey=dateKeyLocal(cycle.end);
-      const todayKey=dateKeyLocal(new Date());
-      const cycleDataDates=invoices
-        .map(x=>invoiceDateKey(x)||String(x?.date||"").slice(0,10))
-        .filter(k=>k>=cycleStartKey && k<=cycleEndKey && k<=todayKey)
-        .sort();
-      const liveStartKey=cycleDataDates.length?cycleDataDates[0]:cycleStartKey;
-      const liveEndKey=cycleDataDates.length?cycleDataDates[cycleDataDates.length-1]:
-        (cycleEndKey<todayKey?cycleEndKey:todayKey);
-      const liveStart=new Date(liveStartKey+"T00:00:00");
-      const liveEnd=new Date(liveEndKey+"T00:00:00");
-      const range=liveStart.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" – "+liveEnd.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+      const cStart=dateKeyLocal(cycle.start), cEnd=dateKeyLocal(cycle.end), todayKey=dateKeyLocal(new Date());
+      const liveDates=invoices.map(invoiceDateKey).filter(k=>k&&k>=cStart&&k<=cEnd&&k<=todayKey).sort();
+      const liveStart=liveDates.length?liveDates[0]:cStart;
+      const liveEnd=liveDates.length?liveDates[liveDates.length-1]:Math.min(cEnd,todayKey);
+      const range=new Date(liveStart+"T00:00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short"})+" – "+new Date(liveEnd+"T00:00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
       const prefix=dashboardSelectedDate?"Collections - Selected Cycle":"Collections - Current Cycle";
       labelEl.textContent=prefix+" ("+range+")";
     }else if(dashboardSelectedDate){
@@ -2697,87 +2690,89 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   const chart=document.getElementById("chart");
   if(!chart)return;
   chart.innerHTML="";
-  let start,end;
-  if(cycle){
-    // Always begin at Cycle 1's start date. The visible window ends at TODAY,
-    // never at a future configured date. Tomorrow is added automatically.
-    start=new Date(cycle.cycle1Start);
-    end=new Date(cycle.end);
-  }else if(dashboardSelectedDate){
-    const d=new Date(dashboardSelectedDate+"T00:00:00");
-    start=new Date(d.getFullYear(),d.getMonth(),d.getDate());
-    end=new Date(start);
-  }else{
-    const today=new Date();
-    start=new Date(today.getFullYear(),today.getMonth(),1);
-    end=new Date(today.getFullYear(),today.getMonth()+1,0);
-  }
-  // Never show future days. The chart grows one day at a time.
+
   const todayKey=dateKeyLocal(new Date());
-  const visibleEndKey=end&&dateKeyLocal(end)<todayKey?dateKeyLocal(end):todayKey;
-  const visibleEnd=new Date(visibleEndKey+"T00:00:00");
-  const arr=[];
-  for(let d=new Date(start);d<=visibleEnd;d.setDate(d.getDate()+1)){
-    const key=dateKeyLocal(d);
-    // Match the same calendar-date value used everywhere else in the dashboard.
-    // This also handles Firestore Timestamps and date strings with a time suffix.
-    const dayInvoices=invoices.filter(x=>{
-      const k=invoiceDateKey(x);
-      return k===key || String(x?.date||"").slice(0,10)===key;
-    });
-    const value=dayInvoices.reduce((sum,x)=>sum+(Number(x.net)||0),0);
-    const saleTotal=dayInvoices.reduce((sum,x)=>sum+(Number(x.total)||0),0);
-    // A blue candle is shown only when that date has an actual positive
-    // Net Sale. Invoice records with 0.00 Net remain neutral.
-    const hasSales=value>0;
-    arr.push({key,value,saleTotal,hasSales,date:new Date(d)});
+  let startKey,endKey;
+  if(cycle){
+    startKey=dateKeyLocal(cycle.cycle1Start||cycle.start);
+    endKey=dateKeyLocal(cycle.end);
+  }else if(dashboardSelectedDate){
+    startKey=dashboardSelectedDate;
+    endKey=dashboardSelectedDate;
+  }else{
+    const now=new Date();
+    startKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth(),1));
+    endKey=dateKeyLocal(new Date(now.getFullYear(),now.getMonth()+1,0));
   }
-  // Scale the candle height and Y-axis from the DAILY NET AMOUNT.
-  // The Sale total is shown above the candle, but the candle itself represents
-  // that day's Net Amount. Use a clean rounded maximum for the Y-axis.
-  const maxNet=Math.max(...arr.map(x=>x.value),0);
+  // Never render future dates. The chart therefore grows automatically as
+  // today's date advances or a new invoice is saved.
+  if(endKey>todayKey)endKey=todayKey;
+  if(startKey>endKey)startKey=endKey;
+
+  // Build a reliable daily Net Amount map from the actual invoice date.
+  const daily=new Map();
+  invoices.forEach(inv=>{
+    const k=invoiceDateKey(inv);
+    if(!k || k<startKey || k>endKey)return;
+    const net=Number(inv?.net);
+    const total=Number(inv?.total);
+    const row=daily.get(k)||{value:0,saleTotal:0,count:0};
+    row.value+=Number.isFinite(net)?net:0;
+    row.saleTotal+=Number.isFinite(total)?total:0;
+    row.count+=1;
+    daily.set(k,row);
+  });
+
+  const arr=[];
+  const startDate=new Date(startKey+"T00:00:00");
+  const endDate=new Date(endKey+"T00:00:00");
+  for(let d=new Date(startDate);d<=endDate;d.setDate(d.getDate()+1)){
+    const key=dateKeyLocal(d);
+    const row=daily.get(key)||{value:0,saleTotal:0,count:0};
+    // A blue candle means this day has a real positive Net Sale.
+    // Zero/negative Net Amount remains a neutral candle.
+    const hasSales=row.value>0;
+    arr.push({key,value:row.value,saleTotal:row.saleTotal,count:row.count,hasSales,date:new Date(d)});
+  }
+
+  const maxNet=Math.max(...arr.map(x=>Math.max(0,x.value)),0);
   const niceStep=(()=>{
     if(maxNet<=0)return 100;
     const raw=maxNet/4;
     const power=Math.pow(10,Math.floor(Math.log10(raw)));
-    const normalized=raw/power;
-    const nice=normalized<=1?1:normalized<=2?2:normalized<=2.5?2.5:normalized<=5?5:10;
+    const n=raw/power;
+    const nice=n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10;
     return nice*power;
   })();
   const max=Math.max(niceStep*4,100);
   const activeDays=arr.filter(x=>x.hasSales).length;
-  const avg=activeDays?arr.reduce((sum,x)=>sum+x.value,0)/activeDays:0;
+  const avg=activeDays?arr.filter(x=>x.hasSales).reduce((sum,x)=>sum+x.value,0)/activeDays:0;
 
-  // Four clean intervals: e.g. 500 / 375 / 250 / 125 / 0.
-  const plotTop=22;
-  const plotHeight=170;
-  const steps=[1,.75,.5,.25,0];
-  steps.forEach((ratio,idx)=>{
+  const plotTop=22,plotHeight=170;
+  [1,.75,.5,.25,0].forEach(ratio=>{
     const yl=document.createElement("div");
     yl.className="chart-y-label";
     yl.style.top=(plotTop+(1-ratio)*plotHeight)+"px";
-    const tick=max*ratio; yl.textContent=(Math.abs(tick-Math.round(tick))<0.01?String(Math.round(tick)):tick.toFixed(0));
+    const tick=max*ratio;
+    yl.textContent=(Math.abs(tick-Math.round(tick))<0.01?String(Math.round(tick)):tick.toFixed(0));
     chart.appendChild(yl);
   });
 
   const badge=document.getElementById("dashboardCycleBadge");
   if(badge){
-    const badgeDate=dashboardSelectedDate?new Date(dashboardSelectedDate+"T00:00:00"):new Date();
+    const badgeKey=dashboardSelectedDate||todayKey;
+    const badgeDate=new Date(badgeKey+"T00:00:00");
     const dayEl=badge.querySelector(".cycle-badge-day");
     const monthEl=badge.querySelector(".cycle-badge-month");
     if(dayEl)dayEl.textContent=String(badgeDate.getDate()).padStart(2,"0");
     if(monthEl)monthEl.textContent=badgeDate.toLocaleDateString("en-GB",{month:"short"});
-    badge.title=cycle ? ((cycle.setup?.cycleLabel||"Current Cycle")+" • "+badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})) : badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+    badge.title=cycle?((cycle.setup?.cycleLabel||"Current Cycle")+" • "+badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})):badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
     const dateInput=document.getElementById("dashboardDateSelect");
     if(dateInput){
-      const todayKey=dateKeyLocal(new Date());
-      const cycleMin=cycle?dateKeyLocal(cycle.start):todayKey;
-      const cycleMax=cycle?dateKeyLocal(cycle.end):todayKey;
-      dateInput.min=cycleMin;
-      dateInput.max=cycleMax<todayKey?cycleMax:todayKey;
+      dateInput.min=startKey;
+      dateInput.max=endKey;
       const currentValue=dashboardSelectedDate||todayKey;
-      if(currentValue>=dateInput.min && currentValue<=dateInput.max) dateInput.value=currentValue;
-      else dateInput.value=dateInput.max;
+      dateInput.value=(currentValue>=startKey&&currentValue<=endKey)?currentValue:endKey;
     }
   }
 
@@ -2786,8 +2781,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   const avgLabel=document.getElementById("chartAverageLabel");
   if(avgOverlay)avgOverlay.style.display="none";
   if(avg>0){
-    const ratio=Math.min(1,avg/max);
-    const top=plotTop+(1-ratio)*plotHeight;
+    const ratio=Math.min(1,avg/max),top=plotTop+(1-ratio)*plotHeight;
     if(avgOverlay)avgOverlay.style.display="block";
     if(avgLine)avgLine.style.top=top+"px";
     if(avgLabel){avgLabel.style.top=top+"px";avgLabel.textContent=money(avg)+" AED";}
@@ -2799,43 +2793,44 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     col.dataset.date=x.key;
     if(dashboardSelectedDate===x.key)col.classList.add("selected");
     if(x.hasSales)col.classList.add("has-sales");
+
     const value=document.createElement("div");
     value.className="chart-value";
-    value.textContent="";
-    value.setAttribute("aria-hidden","true");
+    value.textContent=x.hasSales?money(x.value)+" AED":"";
+    if(!x.hasSales)value.setAttribute("aria-hidden","true");
+
     const wrap=document.createElement("div");
     wrap.className="bar-wrap";
     const bar=document.createElement("div");
     bar.className="bar";
-    // A saved invoice makes this date an active blue candle. Its height is
-    // always based on that day's Net Amount, not the displayed Sale total.
+    const height=x.hasSales?Math.max(3,(x.value/max)*100):3;
     bar.style.background=x.hasSales?"#2563eb":"#dfe3ea";
-    bar.style.height=x.hasSales ? Math.max(3,(Math.max(0,x.value)/max)*100)+"%" : "3px";
-    bar.title=x.date.toLocaleDateString("en-GB")+": "+money(x.value)+" AED";
+    bar.style.height=height+"%";
+    bar.title=x.hasSales?`${x.date.toLocaleDateString("en-GB")}: Net ${money(x.value)} AED · Sale ${money(x.saleTotal)} AED`:`${x.date.toLocaleDateString("en-GB")}: No positive Net Sale`;
     wrap.appendChild(bar);
+
     const date=document.createElement("div");
     date.className="chart-date";
     date.textContent=x.date.toLocaleDateString("en-GB",{day:"2-digit",month:"short"});
     col.append(value,wrap,date);
     chart.appendChild(col);
+
     if(x.hasSales){
-      // Click is only a visual active/clickable indication. It does not open invoices.
       col.addEventListener("click",()=>{
         col.classList.remove("active-click");
         void col.offsetWidth;
         col.classList.add("active-click");
         const oldTip=col.querySelector(".chart-click-value");
-        if(oldTip) oldTip.remove();
+        if(oldTip)oldTip.remove();
         const tip=document.createElement("div");
         tip.className="chart-click-value";
         tip.textContent=money(x.value)+" AED";
-        tip.style.bottom=(Math.max(3,(Math.max(0,x.value)/max)*100)+2)+"%";
+        tip.style.bottom=(height+2)+"%";
         wrap.appendChild(tip);
         setTimeout(()=>{tip.remove();col.classList.remove("active-click")},1800);
       });
-      value.title="Click to show Net: "+money(x.value)+" AED";
-      bar.title="Click to show Net: "+money(x.value)+" AED · Sale: "+money(x.saleTotal)+" AED";
     }
+
     if(dashboardSelectedDate===x.key){
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
@@ -2847,19 +2842,11 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     }
   });
 
-  // Automatically follow the latest date that actually has invoice data.
-  // This makes the chart advance one day at a time as new records arrive.
-  const cycleStart=cycle?dateKeyLocal(cycle.start):(start?dateKeyLocal(start):"");
-  const cycleEnd=cycle?dateKeyLocal(cycle.end):(end?dateKeyLocal(end):"");
-  const dataDates=arr.filter(x=>{
-    const hasData=invoices.some(inv=>String(inv.date||"")===x.key);
-    return hasData && (!cycleStart||x.key>=cycleStart) && (!cycleEnd||x.key<=cycleEnd);
-  });
-  const latestVisible=arr[arr.length-1]?.key;
-  const followDate=dashboardSelectedDate||latestVisible;
-  if(followDate){
-    requestAnimationFrame(()=>scrollDashboardChartToDate(followDate,{smooth:true}));
-  }
+  // Follow the latest visible date with data; if there is no data, follow today.
+  const dataDates=arr.filter(x=>x.count>0);
+  const latestData=dataDates.length?dataDates[dataDates.length-1].key:null;
+  const followDate=dashboardSelectedDate||latestData||endKey;
+  if(followDate)requestAnimationFrame(()=>scrollDashboardChartToDate(followDate,{smooth:true}));
 }
 
 onAuthStateChanged(auth,async user=>{
