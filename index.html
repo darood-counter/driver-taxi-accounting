@@ -2797,6 +2797,7 @@ window.deleteLeaveRecord=async(id)=>{
 };
 
 let dashboardSelectedDate="";
+let chartSelectedDate="";
 
 function dateKeyLocal(date){
   const d=new Date(date);
@@ -2965,6 +2966,7 @@ window.selectDashboardDate=function(value){
 
   // This is the single source of truth for the Dashboard date.
   dashboardSelectedDate=safeDate;
+  chartSelectedDate="";
 
   const input=document.getElementById("dashboardDateSelect");
   if(input){
@@ -3012,6 +3014,7 @@ function scrollDashboardChartToDate(dateKey,{smooth=true,force=false}={}){
 
 function clearDashboardDateSelection(){
   dashboardSelectedDate="";
+  chartSelectedDate="";
   const input=document.getElementById("dashboardDateSelect");
   if(input){
     setDashboardDatePickerBounds();
@@ -3287,7 +3290,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     const col=document.createElement("div");
     col.className="chart-col";
     col.dataset.date=x.key;
-    if(dashboardSelectedDate===x.key)col.classList.add("selected");
+    if(chartSelectedDate===x.key)col.classList.add("selected");
     if(x.hasSales)col.classList.add("has-sales");
 
     const value=document.createElement("div");
@@ -3312,11 +3315,14 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     chart.appendChild(col);
 
     col.addEventListener("click",()=>{
-      // Clicking any date makes that date the dashboard "as-of" date.
-      selectDashboardDate(x.key);
+      // Candle selection is visual only. It must never change the Dashboard
+      // Net Cash / Net Amount totals or the dashboard "as-of" date.
+      chartSelectedDate=x.key;
+      renderChart(cycle);
+      openDashboardDateInvoices(x.key);
     });
 
-    if(dashboardSelectedDate===x.key){
+    if(chartSelectedDate===x.key){
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
       callout.textContent=money(x.value)+" AED";
