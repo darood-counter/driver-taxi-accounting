@@ -1709,6 +1709,17 @@ if(setupError){
 }
 const data={date};
 ids.forEach(id=>data[id]=n(id));
+
+// Do not save a completely empty invoice. At least one invoice data field
+// must contain a value greater than zero.
+const invoiceDataTotal=ids.reduce((sum,id)=>sum+(Number(data[id])||0),0);
+if(invoiceDataTotal<=0){
+  const msg="Please pehle data fields mein data enter karein.";
+  showRateSetupPopup(msg,"Data Required");
+  document.getElementById("invoiceStatus").textContent=msg;
+  return;
+}
+
 const total=round2(
   data.creditCard+data.app+data.cash+data.shiftDiscount+data.careemDiscount+data.paidCareem
 );
