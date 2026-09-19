@@ -792,6 +792,8 @@ input:focus{border-color:#ed166a}
 <div class="summary"><small>Target Amount</small><strong id="sumTargetAmount">0 AED</strong></div>
 <div class="summary"><small>Deductions</small><strong id="sumDeductions">0 AED</strong></div>
 <div class="summary"><small>Net Amount</small><strong id="sumNet">0 AED</strong></div>
+<div class="summary"><small>Days Work</small><strong id="sumDaysWork">0</strong></div>
+<div class="summary"><small>Days Remaining</small><strong id="sumDaysRemaining">0</strong></div>
 </div>
 </section>
 
@@ -2650,6 +2652,37 @@ function clearDashboardDateSelection(){
   updateDashboard();
 }
 
+function getDashboardDayStats(cycle){
+  if(!cycle)return {totalDays:0,workDays:0,leaveDays:0,remainingDays:0};
+  const startKey=dateKeyLocal(cycle.activeRangeStart||cycle.start);
+  const endKey=dateKeyLocal(cycle.activeRangeEnd||cycle.end);
+  if(!startKey||!endKey||startKey>endKey)return {totalDays:0,workDays:0,leaveDays:0,remainingDays:0};
+
+  // A working day is a calendar date on which at least one invoice was saved.
+  // Multiple invoices on the same date still count as one working day.
+  const workDates=new Set();
+  invoices.forEach(inv=>{
+    const k=invoiceDateKey(inv);
+    if(k&&k>=startKey&&k<=endKey)workDates.add(k);
+  });
+
+  // Count each leave calendar date once, only when it falls inside the active range.
+  const leaveDates=new Set();
+  (Array.isArray(leaveRecords)?leaveRecords:[]).forEach(record=>{
+    leaveRecordDates(record).forEach(k=>{
+      if(k&&k>=startKey&&k<=endKey)leaveDates.add(k);
+    });
+  });
+
+  const start=new Date(startKey+"T00:00:00");
+  const end=new Date(endKey+"T00:00:00");
+  const totalDays=Math.max(0,Math.round((end-start)/86400000)+1);
+  const workDays=workDates.size;
+  const leaveDays=leaveDates.size;
+  const remainingDays=Math.max(0,totalDays-workDays-leaveDays);
+  return {totalDays,workDays,leaveDays,remainingDays};
+}
+
 function updateDashboard(){
   const cycle=getCurrentDashboardCycle();
   const cycleMonth=(dashboardSelectedDate||dateKeyLocal(new Date())).slice(0,7);
@@ -2699,6 +2732,13 @@ function updateDashboard(){
   if(targetAmountEl)targetAmountEl.textContent=money(total*target/100)+" AED";
   if(deductionsEl)deductionsEl.textContent=money(deductions)+" AED";
   if(sumNetEl)sumNetEl.textContent=money(total)+" AED";
+
+  const dayStats=getDashboardDayStats(cycle);
+  const daysWorkEl=document.getElementById("sumDaysWork");
+  const daysRemainingEl=document.getElementById("sumDaysRemaining");
+  if(daysWorkEl)daysWorkEl.textContent=String(dayStats.workDays);
+  if(daysRemainingEl)daysRemainingEl.textContent=String(dayStats.remainingDays);
+
   const badge=document.getElementById("invoiceBadge");
   if(badge)badge.textContent=cycle?cycleInvoices.length+" ›":(dashboardSelectedDate?cycleInvoices.length+" ›":invoices.length+" ›");
   renderChart(cycle);
