@@ -2982,8 +2982,10 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     wrap.className="bar-wrap";
     const bar=document.createElement("div");
     bar.className="bar";
+    const isSelected=dashboardSelectedDate===x.key;
     const height=x.hasSales?Math.max(3,(x.value/max)*100):3;
-    bar.style.background=x.hasSales?"#2563eb":"#dfe3ea";
+    // Keep the selected date visually highlighted even when its Net Amount is 0.
+    bar.style.background=(x.hasSales||isSelected)?"#2563eb":"#dfe3ea";
     bar.style.height=height+"%";
     bar.title=x.hasSales?`${x.date.toLocaleDateString("en-GB")}: Net ${money(x.value)} AED · Sale ${money(x.saleTotal)} AED`:`${x.date.toLocaleDateString("en-GB")}: No positive Net Sale`;
     wrap.appendChild(bar);
@@ -2994,26 +2996,18 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     col.append(value,wrap,date);
     chart.appendChild(col);
 
-    if(x.hasSales){
-      col.addEventListener("click",()=>{
-        col.classList.remove("active-click");
-        void col.offsetWidth;
-        col.classList.add("active-click");
-        const oldTip=col.querySelector(".chart-click-value");
-        if(oldTip)oldTip.remove();
-        const tip=document.createElement("div");
-        tip.className="chart-click-value";
-        tip.textContent=money(x.value)+" AED";
-        tip.style.bottom=(height+2)+"%";
-        wrap.appendChild(tip);
-        setTimeout(()=>{tip.remove();col.classList.remove("active-click")},1800);
-      });
-    }
+    // Clicking any date makes that date the active dashboard date. The
+    // dashboard then resolves the Charge Setup cycle/range for that exact
+    // date, so historical dates automatically open their own cycle.
+    col.addEventListener("click",()=>{
+      selectDashboardDate(x.key);
+    });
 
     if(dashboardSelectedDate===x.key){
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
       callout.textContent=money(x.value)+" AED";
+      callout.setAttribute("aria-label",`${x.date.toLocaleDateString("en-GB")}: ${money(x.value)} AED`);
       callout.style.left=(8+i*56+23)+"px";
       const ratio=Math.min(1,Math.max(0,x.value)/max);
       callout.style.top=(plotTop+(1-ratio)*plotHeight-4)+"px";
