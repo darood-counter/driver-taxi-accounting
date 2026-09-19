@@ -707,25 +707,9 @@ input:focus{border-color:#ed166a}
 @media(max-width:600px){.print-invoice-btn{padding:7px 8px;font-size:10px}.saved-invoice-print{padding:7px 8px;font-size:10px}}
 
 
-/* Extra-compact mobile invoice entry layout */
-@media(max-width:600px){
-  #invoicePage .form-card{padding:12px 10px;margin-bottom:10px}
-  #invoicePage .invoice-fields{grid-template-columns:1fr 1fr;gap:5px 7px}
-  #invoicePage .invoice-field{gap:5px;padding:0}
-  #invoicePage .invoice-field label{font-size:10.5px;flex-basis:43%}
-  #invoicePage .invoice-field input{width:57%;min-height:34px;padding:5px 5px;font-size:12px}
-  #invoicePage .invoice-title-row{gap:6px;margin-bottom:6px}
-  #invoicePage .scan-invoice-btn{padding:8px 10px;font-size:12px}
-  #invoicePage .invoice-rate-card{padding:8px;gap:5px;margin-bottom:8px}
-  #invoicePage .invoice-rate-card *{font-size:10.5px}
-}
-@media(max-width:390px){
-  #invoicePage .form-card{padding:10px 8px}
-  #invoicePage .invoice-fields{gap:4px 5px}
-  #invoicePage .invoice-field label{font-size:10px}
-  #invoicePage .invoice-field input{min-height:32px;font-size:11.5px;padding:4px}
-  #invoicePage .scan-invoice-btn{padding:7px 8px;font-size:11px}
-}
+/* Compact mobile invoice entry */
+@media(max-width:600px){#invoicePage .form-card{padding:12px 10px;margin-bottom:10px}#invoicePage .invoice-fields{grid-template-columns:1fr 1fr;gap:5px 7px}#invoicePage .invoice-field{gap:5px;padding:0}#invoicePage .invoice-field label{font-size:10.5px;flex-basis:43%}#invoicePage .invoice-field input{width:57%;min-height:34px;padding:5px;font-size:12px}#invoicePage .invoice-title-row{gap:6px;margin-bottom:6px}#invoicePage .scan-invoice-btn{padding:8px 10px;font-size:12px}#invoicePage .invoice-rate-card{padding:8px;gap:5px;margin-bottom:8px}#invoicePage .invoice-rate-card *{font-size:10.5px}}
+@media(max-width:390px){#invoicePage .form-card{padding:10px 8px}#invoicePage .invoice-fields{gap:4px 5px}#invoicePage .invoice-field label{font-size:10px}#invoicePage .invoice-field input{min-height:32px;font-size:11.5px;padding:4px}#invoicePage .scan-invoice-btn{padding:7px 8px;font-size:11px}}
 </style>
 </head>
 <body>
@@ -1278,10 +1262,8 @@ if(topbar&&leftBtn&&brand&&bell){
         if(flow && flow.classList.contains("active")) leaveBackToHome();
         else showPage("dashboardPage");
       }
-    : (isInvoice
-      ? ()=>showPage("dashboardPage")
-      : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu()));
-  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":(isInvoice?"New Invoice":"Driver's"))));
+    : (isInvoice ? ()=>showPage("dashboardPage") : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu()));
+  brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":"Driver's")));
   bell.style.display=(isProfile||isTarget||isCharge||isLeaves||isInvoice)?"none":"block";
   bell.textContent="🔔";
   bell.onclick=null;
