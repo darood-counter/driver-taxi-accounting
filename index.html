@@ -706,6 +706,10 @@ input:focus{border-color:#ed166a}
 .saved-invoice-print{border:0;border-radius:9px;padding:7px 10px;background:#0d1033;color:#fff;font-weight:850;cursor:pointer;white-space:nowrap}
 @media(max-width:600px){.print-invoice-btn{padding:7px 8px;font-size:10px}.saved-invoice-print{padding:7px 8px;font-size:10px}}
 
+
+/* Compact mobile invoice entry */
+@media(max-width:600px){#invoicePage .form-card{padding:12px 10px;margin-bottom:10px}#invoicePage .invoice-fields{grid-template-columns:1fr 1fr;gap:5px 7px}#invoicePage .invoice-field{gap:5px;padding:0}#invoicePage .invoice-field label{font-size:10.5px;flex-basis:43%}#invoicePage .invoice-field input{width:57%;min-height:34px;padding:5px;font-size:12px}#invoicePage .invoice-title-row{gap:6px;margin-bottom:6px}#invoicePage .scan-invoice-btn{padding:8px 10px;font-size:12px}#invoicePage .invoice-rate-card{padding:8px;gap:5px;margin-bottom:8px}#invoicePage .invoice-rate-card *{font-size:10.5px}}
+@media(max-width:390px){#invoicePage .form-card{padding:10px 8px}#invoicePage .invoice-fields{gap:4px 5px}#invoicePage .invoice-field label{font-size:10px}#invoicePage .invoice-field input{min-height:32px;font-size:11.5px;padding:4px}#invoicePage .scan-invoice-btn{padding:7px 8px;font-size:11px}}
 </style>
 </head>
 <body>
@@ -839,11 +843,7 @@ input:focus{border-color:#ed166a}
 </div>
 
 <section id="invoicePage" class="page">
-<button class="back" onclick="showPage('dashboardPage')">← Back</button>
 <div class="form-card">
-<div class="invoice-title-row"><h2 id="invoiceTitle">New Invoice</h2><button type="button" class="scan-invoice-btn" id="scanInvoiceBtn" onclick="openInvoiceScanner()">📷 Scan Invoice</button></div>
-<div class="small">Invoice Number is automatic. You can edit any saved invoice later.</div>
-
 <div class="invoice-rate-card" id="invoiceRateCard">
   <div class="invoice-rate-item">
     <div class="invoice-rate-icon">RTA</div>
@@ -861,6 +861,9 @@ input:focus{border-color:#ed166a}
     <strong id="invoiceBookingRate">0.00 AED</strong>
   </div>
 </div>
+
+<div class="invoice-title-row"><button type="button" class="scan-invoice-btn" id="scanInvoiceBtn" onclick="openInvoiceScanner()">📷 Scan Invoice</button></div>
+<div class="small">Invoice Number is automatic. You can edit any saved invoice later.</div>
 
 <div class="invoice-fields">
 <div class="invoice-field"><label for="invDate">Date</label><input type="date" id="invDate" ></div>
@@ -1211,7 +1214,7 @@ input:focus{border-color:#ed166a}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,reauthenticateWithCredential,EmailAuthProvider,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,getDocs,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,getDocs,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={
 apiKey:"AIzaSyAlY5ir-8IPQE77Dpfr09UFoDG4VkKZvE8",
@@ -1248,19 +1251,20 @@ const isProfile=pageId==="profilePage";
 const isTarget=pageId==="targetPage";
 const isCharge=pageId==="calculatorPage";
 const isLeaves=pageId==="leavesPage";
+const isInvoice=pageId==="invoicePage";
 if(topbar&&leftBtn&&brand&&bell){
-  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves);
-  leftBtn.textContent=(isLeaves)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
-  leftBtn.classList.toggle("leave-top-back",isLeaves);
+  topbar.classList.toggle("profile-mode",isProfile||isTarget||isCharge||isLeaves||isInvoice);
+  leftBtn.textContent=(isLeaves||isInvoice)?"← Back":((isProfile||isTarget||isCharge)?"←":"☰");
+  leftBtn.classList.toggle("leave-top-back",isLeaves||isInvoice);
   leftBtn.onclick=(isLeaves)
     ? ()=>{
         const flow=document.getElementById("leaveFlowView");
         if(flow && flow.classList.contains("active")) leaveBackToHome();
         else showPage("dashboardPage");
       }
-    : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu());
+    : (isInvoice ? ()=>showPage("dashboardPage") : ((isProfile||isTarget||isCharge)?()=>showPage("dashboardPage"):()=>toggleMenu()));
   brand.textContent=isProfile?"Driver Profile":(isTarget?"Target Setup":(isCharge?"Charge Setup":(isLeaves?"Leaves":"Driver's")));
-  bell.style.display=(isProfile||isTarget||isCharge||isLeaves)?"none":"block";
+  bell.style.display=(isProfile||isTarget||isCharge||isLeaves||isInvoice)?"none":"block";
   bell.textContent="🔔";
   bell.onclick=null;
 }
@@ -1585,6 +1589,34 @@ function getLatestChargeSetup(){
   return [...records].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
 }
 
+function getDashboardHistoryStartDate(){
+  const records=Array.isArray(savedChargeRecords)?savedChargeRecords:[];
+  const dates=records
+    .map(r=>String(r?.date||""))
+    .filter(Boolean)
+    .sort();
+  if(dates.length)return dates[0];
+
+  const invoiceDates=(Array.isArray(invoices)?invoices:[])
+    .map(x=>invoiceDateKey(x))
+    .filter(Boolean)
+    .sort();
+  return invoiceDates[0]||dateKeyLocal(new Date());
+}
+
+function setDashboardDatePickerBounds(){
+  const input=document.getElementById("dashboardDateSelect");
+  if(!input)return;
+  const today=dateKeyLocal(new Date());
+  const start=getDashboardHistoryStartDate();
+  input.min=start;
+  input.max=today;
+  const current=dashboardSelectedDate||today;
+  if(current<start)dashboardSelectedDate=start;
+  if(current>today)dashboardSelectedDate=today;
+  input.value=dashboardSelectedDate||today;
+}
+
 function getTargetSetupForDate(invoiceDate){
   const records=Array.isArray(savedTargetRecords)?savedTargetRecords:[];
   if(!records.length||!invoiceDate)return null;
@@ -1677,6 +1709,17 @@ if(setupError){
 }
 const data={date};
 ids.forEach(id=>data[id]=n(id));
+
+// Do not save a completely empty invoice. At least one invoice data field
+// must contain a value greater than zero.
+const invoiceDataTotal=ids.reduce((sum,id)=>sum+(Number(data[id])||0),0);
+if(invoiceDataTotal<=0){
+  const msg="Please pehle data fields mein data enter karein.";
+  showRateSetupPopup(msg,"Data Required");
+  document.getElementById("invoiceStatus").textContent=msg;
+  return;
+}
+
 const total=round2(
   data.creditCard+data.app+data.cash+data.shiftDiscount+data.careemDiscount+data.paidCareem
 );
@@ -1703,22 +1746,9 @@ editingId=null;
 document.getElementById("saveInvoiceBtn").textContent="Save Invoice";
 document.getElementById("invoiceTitle").textContent="New Invoice";
 }else{
-// Keep invoice numbers as a permanent sequential 5-digit series: 00001, 00002, 00003...
-// The counter is stored on the driver's document, so deleting an old invoice never reuses its number.
-const driverRef=doc(db,"drivers",currentUser.uid);
-const invoiceRef=doc(collection(db,"drivers",currentUser.uid,"invoices"));
-let invoiceNumber="";
-let nextSerial=1;
-await runTransaction(db,async tx=>{
-  const snap=await tx.get(driverRef);
-  const raw=snap.exists()?Number(snap.data().invoiceSerial||0):0;
-  const current=Number.isFinite(raw)&&raw>=0?Math.floor(raw):0;
-  nextSerial=current+1;
-  invoiceNumber=String(nextSerial).padStart(5,"0");
-  tx.set(invoiceRef,{...data,invoiceNumber,invoiceSerial:nextSerial,createdAt:serverTimestamp()});
-  tx.set(driverRef,{invoiceSerial:nextSerial},{merge:true});
-});
-driverData={...driverData,invoiceSerial:nextSerial};
+data.invoiceNumber="INV-"+Date.now();
+data.createdAt=serverTimestamp();
+await addDoc(collection(db,"drivers",currentUser.uid,"invoices"),data);
 document.getElementById("invoiceStatus").textContent="Invoice saved successfully.";
 }
 clearInvoice();
@@ -2632,10 +2662,16 @@ function getCurrentDashboardCycle(){
 
 function selectDashboardDate(value){
   const today=dateKeyLocal(new Date());
+  const historyStart=getDashboardHistoryStartDate();
   if(value && value>today)value=today;
+  if(value && value<historyStart)value=historyStart;
   dashboardSelectedDate=value||"";
   const input=document.getElementById("dashboardDateSelect");
-  if(input&&value)input.value=value;
+  if(input){
+    input.min=historyStart;
+    input.max=today;
+    if(value)input.value=value;
+  }
   updateDashboard();
   // After the selected date is rendered, move the chart to that exact date.
   requestAnimationFrame(()=>scrollDashboardChartToDate(value,{smooth:true,force:true}));
@@ -2661,7 +2697,11 @@ function scrollDashboardChartToDate(dateKey,{smooth=true,force=false}={}){
 function clearDashboardDateSelection(){
   dashboardSelectedDate="";
   const input=document.getElementById("dashboardDateSelect");
-  if(input)input.value=dateKeyLocal(new Date());
+  if(input){
+    input.min=getDashboardHistoryStartDate();
+    input.max=dateKeyLocal(new Date());
+    input.value=dateKeyLocal(new Date());
+  }
   updateDashboard();
 }
 
@@ -2903,10 +2943,15 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     badge.title=cycle?((cycle.setup?.cycleLabel||"Current Cycle")+" • "+badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})):badgeDate.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
     const dateInput=document.getElementById("dashboardDateSelect");
     if(dateInput){
-      dateInput.min=startKey;
-      dateInput.max=endKey;
+      const historyStart=getDashboardHistoryStartDate();
+      dateInput.min=historyStart;
+      dateInput.max=todayKey;
       const currentValue=dashboardSelectedDate||todayKey;
-      dateInput.value=(currentValue>=startKey&&currentValue<=endKey)?currentValue:endKey;
+      if(currentValue>=historyStart && currentValue<=todayKey){
+        dateInput.value=currentValue;
+      }else{
+        dateInput.value=todayKey;
+      }
     }
   }
 
@@ -3043,10 +3088,14 @@ try{renderLeaveHome();}catch(e){console.error("Leaves startup render error:",e);
 resetChargeSetup();
 renderSavedTargets();
 
-const today=new Date().toISOString().slice(0,10);
+const today=dateKeyLocal(new Date());
 dashboardSelectedDate="";
 const dashboardDateInput=document.getElementById("dashboardDateSelect");
-if(dashboardDateInput){dashboardDateInput.value=today;dashboardDateInput.max=today;}
+if(dashboardDateInput){
+  dashboardDateInput.value=today;
+  dashboardDateInput.min=getDashboardHistoryStartDate();
+  dashboardDateInput.max=today;
+}
 document.getElementById("targetDate").value=today;
 editingTargetDate=null;
 document.getElementById("saveTargetTableBtn").textContent="Save / Update";
