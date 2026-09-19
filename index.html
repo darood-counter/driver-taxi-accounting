@@ -109,13 +109,11 @@ input:focus{border-color:#ed166a}
 .report-control-row>div{min-width:0}
 .report-print{border:0;border-radius:13px;background:#0d1033;color:#fff;padding:13px 15px;font-weight:900;cursor:pointer;white-space:nowrap}
 .report-overview{background:linear-gradient(135deg,#0d1033,#232a63);color:#fff;border-radius:22px;padding:18px;margin-bottom:14px;box-shadow:0 5px 18px rgba(13,16,51,.12)}
-.report-overview .k{font-size:11px;color:#d7d9e7;font-weight:800}
-.report-overview .v{font-size:24px;font-weight:950;margin-top:3px}
-.report-overview-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px}
-.report-overview-grid>div{background:rgba(255,255,255,.08);border-radius:15px;padding:11px}
+.report-overview .k{font-size:11px;color:#d7d9e7;font-weight:800}.report-overview .v{font-size:24px;font-weight:950;margin-top:3px}
+.report-overview-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px}.report-overview-grid>div{background:rgba(255,255,255,.08);border-radius:15px;padding:11px}
 .report-range-note{font-size:12px;color:#737783;margin:7px 2px 12px}
 @media(max-width:600px){.report-mode-tabs button{font-size:11px;padding:10px 3px}.report-control-row{grid-template-columns:1fr}.report-print{width:100%}}
-@media print{body{background:#fff!important}.app,.drawer,#menuOverlay,.topbar,.back,.report-mode-tabs,.report-print,.quick-actions,.bottom-nav,button{display:none!important}.page{display:none!important}.page#reportsPage{display:block!important}.report-month-btn{break-inside:avoid;box-shadow:none;border:1px solid #ddd}.report-cycle-card,.report-overview{break-inside:avoid;box-shadow:none}.report-overview{background:#111!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+@media print{body{background:#fff!important}.app,.drawer,#menuOverlay,.topbar,.back,.report-mode-tabs,.report-print,.quick-actions,.bottom-nav,button{display:none!important}.page{display:none!important}.page#reportsPage{display:block!important}.report-month-btn{break-inside:avoid;box-shadow:none;border:1px solid #ddd}.report-cycle-card,.report-overview{break-inside:avoid;box-shadow:none}.report-overview{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 
 .history-hero{background:#0d1033;color:#fff;border-radius:24px;padding:22px 20px;margin-bottom:14px}
 .history-kicker{font-size:12px;font-weight:800;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
@@ -2050,87 +2048,87 @@ function getHistoryFilteredInvoices(){
   });
 }
 
-\nfunction reportMonthKey(year,month){return String(year)+"-"+String(month).padStart(2,"0")}
-function reportMonthName(month){return new Date(2000,month-1,1).toLocaleDateString("en-GB",{month:"long"})}
+let reportMode='monthly';
+let reportYear=new Date().getFullYear();
+let reportSelectedMonth='';
+let reportDailyDate='';
+function reportMonthKey(year,month){return String(year)+'-'+String(month).padStart(2,'0')}
+function reportMonthName(month){return new Date(2000,month-1,1).toLocaleDateString('en-GB',{month:'long'})}
 function getReportYears(){
   const years=new Set([new Date().getFullYear()]);
-  [...(Array.isArray(invoices)?invoices:[]),...(Array.isArray(savedChargeRecords)?savedChargeRecords:[])].forEach(r=>{
-    const raw=invoiceDateKey(r)||String(r?.date||""); const m=/^(\d{4})-/.exec(raw); if(m)years.add(Number(m[1]));
-  });
+  (Array.isArray(invoices)?invoices:[]).forEach(r=>{const k=invoiceDateKey(r);const m=/^(\d{4})-/.exec(k||'');if(m)years.add(Number(m[1]));});
   return [...years].filter(Number.isFinite).sort((a,b)=>b-a);
 }
 function getReportSetupForMonth(monthKey){
   const m=/^(\d{4})-(\d{2})$/.exec(String(monthKey)); if(!m)return null;
-  const end=monthKey+"-"+String(new Date(Number(m[1]),Number(m[2]),0).getDate()).padStart(2,"0");
+  const end=monthKey+'-'+String(new Date(Number(m[1]),Number(m[2]),0).getDate()).padStart(2,'0');
   const records=Array.isArray(savedChargeRecords)?savedChargeRecords:[];
   const eligible=records.filter(r=>r&&r.date&&String(r.date)<=end);
   if(!eligible.length)return null;
-  return [...eligible].sort((a,b)=>String(b.date).localeCompare(String(a.date)) || recordUpdatedTime(b)-recordUpdatedTime(a))[0];
+  return [...eligible].sort((a,b)=>String(b.date).localeCompare(String(a.date))||recordUpdatedTime(b)-recordUpdatedTime(a))[0];
+}
+function reportWorkDays(startKey,endKey){
+  if(!startKey||!endKey||startKey>endKey)return 0;
+  const today=dateKeyLocal(new Date());
+  const asOf=endKey<today?endKey:today;
+  if(asOf<startKey)return 0;
+  return leaveDaysBetween(startKey,asOf)-leaveDatesBetweenCount(startKey,asOf);
+}
+function leaveDatesBetweenCount(startKey,endKey){
+  const set=new Set();
+  (Array.isArray(leaveRecords)?leaveRecords:[]).forEach(r=>leaveRecordDates(r).forEach(k=>{if(k>=startKey&&k<=endKey)set.add(k)}));
+  return set.size;
 }
 function getReportCycleForMonth(monthKey){
   const m=/^(\d{4})-(\d{2})$/.exec(String(monthKey)); if(!m)return null;
   const setup=getReportSetupForMonth(monthKey); if(!setup)return null;
   return buildDashboardCycleForAnchor(setup,Number(m[1]),Number(m[2]));
 }
-function reportInclusiveDays(startKey,endKey){
-  if(!startKey||!endKey||startKey>endKey)return 0;
-  const start=new Date(startKey+"T00:00:00"),end=new Date(endKey+"T00:00:00"); const leave=new Set();
-  (Array.isArray(leaveRecords)?leaveRecords:[]).forEach(r=>leaveRecordDates(r).forEach(k=>{if(k>=startKey&&k<=endKey)leave.add(k)}));
-  let days=0; for(const d=new Date(start);d<=end;d.setDate(d.getDate()+1)){if(!leave.has(dateKeyLocal(d)))days++;} return days;
-}
 function getReportCycleStats(range,cycleNumber){
-  if(!range)return {cycle:cycleNumber,totalSale:0,netSale:0,deductions:0,workDays:0,avg:0,target:0,salary:0,invoices:0,start:"",end:""};
-  const start=dateKeyLocal(range.start),end=dateKeyLocal(range.end);
-  const rows=(Array.isArray(invoices)?invoices:[]).filter(x=>{const k=invoiceDateKey(x);return k&&k>=start&&k<=end});
-  const netSale=rows.reduce((s,x)=>s+(Number(x.net)||0),0), totalSale=rows.reduce((s,x)=>s+(Number(x.total)||0),0), deductions=rows.reduce((s,x)=>s+(Number(x.deductions)||0),0);
-  const workDays=reportInclusiveDays(start,end), avg=workDays>0?netSale/workDays:0, target=getTargetPercentForDailyAverage(avg,start), salary=netSale*target/100;
+  if(!range)return {cycle:cycleNumber,totalSale:0,netSale:0,deductions:0,workDays:0,avg:0,target:0,salary:0,invoices:0,start:'',end:''};
+  const start=dateKeyLocal(range.start),end=dateKeyLocal(range.end),today=dateKeyLocal(new Date());
+  const rows=(Array.isArray(invoices)?invoices:[]).filter(x=>{const k=invoiceDateKey(x);return k&&k>=start&&k<=end&&k<=today;});
+  const netSale=rows.reduce((s,x)=>s+(Number(x.net)||0),0);
+  const totalSale=rows.reduce((s,x)=>s+(Number(x.total)||0),0);
+  const deductions=rows.reduce((s,x)=>s+(Number(x.deductions)||0),0);
+  const asOf=end<today?end:today;
+  const workDays=asOf>=start?reportWorkDays(start,end):0;
+  const avg=workDays>0?netSale/workDays:0;
+  const target=getTargetPercentForDailyAverage(avg,start);
+  const salary=netSale*target/100;
   return {cycle:cycleNumber,totalSale,netSale,deductions,workDays,avg,target,salary,invoices:rows.length,start,end};
 }
 function getReportForMonth(monthKey){
-  const cycle=getReportCycleForMonth(monthKey); if(!cycle)return {month:monthKey,cycles:[],totalSale:0,netSale:0,salary:0,workDays:0};
-  const c1=getReportCycleStats({start:cycle.cycle1Start,end:cycle.cycle1End},1),cycles=[c1];
+  const cycle=getReportCycleForMonth(monthKey);
+  if(!cycle)return {month:monthKey,cycles:[],totalSale:0,netSale:0,salary:0,workDays:0};
+  const cycles=[getReportCycleStats({start:cycle.cycle1Start,end:cycle.cycle1End},1)];
   if(cycle.cycle2Start&&cycle.cycle2End)cycles.push(getReportCycleStats({start:cycle.cycle2Start,end:cycle.cycle2End},2));
   return {month:monthKey,cycles,totalSale:cycles.reduce((s,c)=>s+c.totalSale,0),netSale:cycles.reduce((s,c)=>s+c.netSale,0),salary:cycles.reduce((s,c)=>s+c.salary,0),workDays:cycles.reduce((s,c)=>s+c.workDays,0)};
 }
-function setReportMode(mode){window.reportMode=mode;renderReports();}
-function printReports(){window.print();}
 function reportMetricGrid(c){return `<div class="report-metrics"><div class="report-metric"><small>Total Sale</small><strong>${money(c.totalSale)} AED</strong></div><div class="report-metric"><small>Net Sale</small><strong>${money(c.netSale)} AED</strong></div><div class="report-metric"><small>Working Days</small><strong>${c.workDays}</strong></div><div class="report-metric"><small>Daily Average</small><strong>${money(c.avg)} AED</strong></div><div class="report-metric"><small>Target</small><strong>${money(c.target)}%</strong></div><div class="report-metric"><small>Salary</small><strong>${money(c.salary)} AED</strong></div><div class="report-metric"><small>Deductions</small><strong>${money(c.deductions)} AED</strong></div><div class="report-metric"><small>Invoices</small><strong>${c.invoices}</strong></div></div>`}
 function reportCycleCard(c){return `<div class="report-cycle-card"><div class="report-cycle-head"><strong>Cycle ${c.cycle}</strong><span>${c.start} → ${c.end}</span></div>${reportMetricGrid(c)}</div>`}
-function reportOverview(title,totalSale,netSale,workDays,salary,extra=""){return `<div class="report-overview"><div class="k">${title}</div><div class="report-overview-grid"><div><div class="k">Net Sale</div><div class="v">${money(netSale)} AED</div></div><div><div class="k">Salary</div><div class="v">${money(salary)} AED</div></div><div><div class="k">Working Days</div><div class="v">${workDays}</div></div><div><div class="k">Total Sale</div><div class="v">${money(totalSale)} AED</div></div></div>${extra}</div>`}
+function reportOverview(title,totalSale,netSale,workDays,salary){return `<div class="report-overview"><div class="k">${title}</div><div class="report-overview-grid"><div><div class="k">Net Sale</div><div class="v">${money(netSale)} AED</div></div><div><div class="k">Salary</div><div class="v">${money(salary)} AED</div></div><div><div class="k">Working Days</div><div class="v">${workDays}</div></div><div><div class="k">Total Sale</div><div class="v">${money(totalSale)} AED</div></div></div></div>`}
+function setReportMode(mode){reportMode=mode;renderReports()}
 function renderDailyReport(){
-  const controls=document.getElementById("reportControls"),details=document.getElementById("reportDetails"); const today=dateKeyLocal(new Date());
-  controls.innerHTML=`<label for="reportDailyDate">Date</label><input type="date" id="reportDailyDate" max="${today}" value="${window.reportDailyDate||today}" onchange="window.reportDailyDate=this.value;renderReports()">`;
-  const key=window.reportDailyDate||today, rows=(Array.isArray(invoices)?invoices:[]).filter(x=>invoiceDateKey(x)===key);
-  const netSale=rows.reduce((s,x)=>s+(Number(x.net)||0),0),totalSale=rows.reduce((s,x)=>s+(Number(x.total)||0),0),deductions=rows.reduce((s,x)=>s+(Number(x.deductions)||0),0);
-  const cycle=getDashboardCycleForDate(key); const setup=cycle?getReportCycleStats({start:cycle.activeRangeStart||cycle.start,end:cycle.activeRangeEnd||cycle.end},cycle.activeCycleNumber||1):null;
-  const target=setup?getTargetPercentForDailyAverage(netSale, key):0, salary=netSale*target/100;
-  details.innerHTML=reportOverview("Daily Report · "+key,totalSale,netSale,rows.length,salary,`<div class="report-range-note">Invoices: ${rows.length} · Deductions: ${money(deductions)} AED · Daily salary estimate uses the saved target setup for this date.</div>`)+(cycle?reportCycleCard({...setup,cycle:cycle.activeCycleNumber||1,start:dateKeyLocal(cycle.activeRangeStart||cycle.start),end:dateKeyLocal(cycle.activeRangeEnd||cycle.end),totalSale:setup.totalSale,netSale:setup.netSale,deductions:setup.deductions,workDays:setup.workDays,avg:setup.avg,target:setup.target,salary:setup.salary,invoices:setup.invoices}):`<div class="report-empty">Is date ke liye saved cycle setup nahi mila.</div>`);
+ const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');const today=dateKeyLocal(new Date());reportDailyDate=reportDailyDate||today;
+ controls.innerHTML=`<div><label for="reportDailyDate">Date</label><input type="date" id="reportDailyDate" max="${today}" value="${reportDailyDate}" onchange="reportDailyDate=this.value;renderReports()"></div>`;
+ const rows=(Array.isArray(invoices)?invoices:[]).filter(x=>invoiceDateKey(x)===reportDailyDate),netSale=rows.reduce((s,x)=>s+(Number(x.net)||0),0),totalSale=rows.reduce((s,x)=>s+(Number(x.total)||0),0),deductions=rows.reduce((s,x)=>s+(Number(x.deductions)||0),0);const cycle=getDashboardCycleForDate(reportDailyDate);
+ details.innerHTML=reportOverview('Daily Report · '+reportDailyDate,totalSale,netSale,rows.length,0)+`<div class="report-range-note">Invoices: ${rows.length} · Deductions: ${money(deductions)} AED</div>`+(cycle?reportCycleCard(getReportCycleStats({start:cycle.activeRangeStart||cycle.start,end:cycle.activeRangeEnd||cycle.end},cycle.activeCycleNumber||1)):`<div class="report-empty">Is date ke liye saved cycle setup nahi mila.</div>`);
 }
 function renderMonthlyReport(){
-  const yearEl=document.getElementById("reportYear"),grid=document.getElementById("reportMonthGrid"),details=document.getElementById("reportDetails"); const years=getReportYears(); const current=Number(yearEl?.value)||new Date().getFullYear();
-  if(yearEl){yearEl.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join("");yearEl.value=years.includes(current)?String(current):String(years[0]);}
-  const year=Number(yearEl?.value)||new Date().getFullYear(),reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(year,i+1))); let selected=window.reportSelectedMonth;
-  if(!selected||!reports.some(r=>r.month===selected)||Number(selected.slice(0,4))!==year)selected=reportMonthKey(year,new Date().getMonth()+1); window.reportSelectedMonth=selected;
-  grid.innerHTML=reports.map((r,i)=>`<button type="button" class="report-month-btn${r.month===selected?" active":""}" onclick="window.reportSelectedMonth='${r.month}';renderReports()"><span class="report-month-name">${reportMonthName(i+1)}</span><span class="report-month-sale">Net: ${money(r.netSale)} AED</span><span class="report-month-salary">Salary: ${money(r.salary)} AED · ${r.workDays} days</span></button>`).join("");
-  const r=reports.find(x=>x.month===selected)||reports[0]; details.innerHTML=r.cycles.length?reportOverview(reportMonthName(Number(selected.slice(5,7)))+" "+year+" · Combined",r.totalSale,r.netSale,r.workDays,r.salary)+`<div class="report-section-title">Cycle Details</div>`+r.cycles.map(reportCycleCard).join(""):`<div class="report-empty">Is month ke liye saved Charge Cycle setup nahi mila.</div>`;
+ const controls=document.getElementById('reportControls'),grid=document.getElementById('reportMonthGrid'),details=document.getElementById('reportDetails');const years=getReportYears();reportYear=years.includes(reportYear)?reportYear:(years[0]||new Date().getFullYear());controls.innerHTML=`<div><label for="reportYear">Year</label><select id="reportYear" onchange="reportYear=Number(this.value);renderReports()">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div>`;
+ const reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(reportYear,i+1)));reportSelectedMonth=reportSelectedMonth&&reports.some(r=>r.month===reportSelectedMonth)?reportSelectedMonth:reportMonthKey(reportYear,new Date().getMonth()+1);if(!reportSelectedMonth.startsWith(String(reportYear)))reportSelectedMonth=reportMonthKey(reportYear,1);
+ grid.innerHTML=reports.map((r,i)=>`<button type="button" class="report-month-btn${r.month===reportSelectedMonth?' active':''}" onclick="reportSelectedMonth='${r.month}';renderReports()"><span class="report-month-name">${reportMonthName(i+1)}</span><span class="report-month-sale">Net: ${money(r.netSale)} AED</span><span class="report-month-salary">Salary: ${money(r.salary)} AED · ${r.workDays} days</span></button>`).join('');const r=reports.find(x=>x.month===reportSelectedMonth)||reports[0];details.innerHTML=r.cycles.length?reportOverview(reportMonthName(Number(reportSelectedMonth.slice(5,7)))+' '+reportYear+' · Combined',r.totalSale,r.netSale,r.workDays,r.salary)+`<div class="report-section-title">Cycle Details</div>`+r.cycles.map(reportCycleCard).join(''):`<div class="report-empty">Is month ke liye saved Charge Cycle setup nahi mila.</div>`;
 }
 function renderYearlyReport(){
-  const controls=document.getElementById("reportControls"),grid=document.getElementById("reportMonthGrid"),details=document.getElementById("reportDetails"); const years=getReportYears(); const current=Number(window.reportYear)||new Date().getFullYear();
-  controls.innerHTML=`<label for="reportYear">Year</label><select id="reportYear" onchange="window.reportYear=Number(this.value);renderReports()" style="width:100%;padding:14px;border:1px solid #d7d9df;border-radius:13px;font-size:16px;background:#fff">${years.map(y=>`<option value="${y}"${y===current?" selected":""}>${y}</option>`).join("")}</select>`; window.reportYear=current;
-  const reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(current,i+1))),valid=reports.filter(r=>r.cycles.length),totalSale=valid.reduce((s,r)=>s+r.totalSale,0),netSale=valid.reduce((s,r)=>s+r.netSale,0),salary=valid.reduce((s,r)=>s+r.salary,0),days=valid.reduce((s,r)=>s+r.workDays,0);
-  grid.innerHTML=reports.map((r,i)=>`<div class="report-month-btn"><span class="report-month-name">${reportMonthName(i+1)}</span><span class="report-month-sale">Net: ${money(r.netSale)} AED</span><span class="report-month-salary">Salary: ${money(r.salary)} AED · ${r.workDays} days</span></div>`).join("");
-  details.innerHTML=reportOverview(current+" · Yearly Report",totalSale,netSale,days,salary)+`<div class="report-section-title">Monthly Breakdown</div>`+valid.map(r=>`<div class="report-cycle-card"><div class="report-cycle-head"><strong>${reportMonthName(Number(r.month.slice(5,7)))}</strong><span>${r.cycles.length} cycle${r.cycles.length>1?"s":""}</span></div><div class="report-metrics"><div class="report-metric"><small>Net Sale</small><strong>${money(r.netSale)} AED</strong></div><div class="report-metric"><small>Salary</small><strong>${money(r.salary)} AED</strong></div><div class="report-metric"><small>Working Days</small><strong>${r.workDays}</strong></div><div class="report-metric"><small>Total Sale</small><strong>${money(r.totalSale)} AED</strong></div></div></div>`).join("")||`<div class="report-empty">Is year mein report data nahi mila.</div>`;
+ const controls=document.getElementById('reportControls'),grid=document.getElementById('reportMonthGrid'),details=document.getElementById('reportDetails');const years=getReportYears();reportYear=years.includes(reportYear)?reportYear:(years[0]||new Date().getFullYear());controls.innerHTML=`<div><label for="reportYear">Year</label><select id="reportYear" onchange="reportYear=Number(this.value);renderReports()">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div>`;
+ const reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(reportYear,i+1))),valid=reports.filter(r=>r.cycles.length),totalSale=valid.reduce((s,r)=>s+r.totalSale,0),netSale=valid.reduce((s,r)=>s+r.netSale,0),salary=valid.reduce((s,r)=>s+r.salary,0),days=valid.reduce((s,r)=>s+r.workDays,0);grid.innerHTML=reports.map((r,i)=>`<div class="report-month-btn"><span class="report-month-name">${reportMonthName(i+1)}</span><span class="report-month-sale">Net: ${money(r.netSale)} AED</span><span class="report-month-salary">Salary: ${money(r.salary)} AED · ${r.workDays} days</span></div>`).join('');details.innerHTML=reportOverview(reportYear+' · Yearly Report',totalSale,netSale,days,salary)+`<div class="report-section-title">Monthly Breakdown</div>`+(valid.length?valid.map(r=>`<div class="report-cycle-card"><div class="report-cycle-head"><strong>${reportMonthName(Number(r.month.slice(5,7)))}</strong><span>${r.cycles.length} cycle${r.cycles.length>1?'s':''}</span></div>${reportMetricGrid({totalSale:r.totalSale,netSale:r.netSale,workDays:r.workDays,avg:r.workDays?r.netSale/r.workDays:0,target:r.netSale&&r.workDays?getTargetPercentForDailyAverage(r.netSale/r.workDays,r.month+'-01'):0,salary:r.salary,deductions:0,invoices:r.cycles.reduce((s,c)=>s+c.invoices,0)})}</div>`).join(''):`<div class="report-empty">Is year mein report data nahi mila.</div>`);
 }
 function renderOverallReport(){
-  const controls=document.getElementById("reportControls"),grid=document.getElementById("reportMonthGrid"),details=document.getElementById("reportDetails"); controls.innerHTML=`<div class="report-range-note" style="margin:0">All saved invoice years ka combined report</div>`; grid.innerHTML="";
-  const years=getReportYears(),all=years.flatMap(y=>Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(y,i+1))).filter(r=>r.cycles.length)),totalSale=all.reduce((s,r)=>s+r.totalSale,0),netSale=all.reduce((s,r)=>s+r.netSale,0),salary=all.reduce((s,r)=>s+r.salary,0),days=all.reduce((s,r)=>s+r.workDays,0);
-  details.innerHTML=reportOverview("Overall Report · All Saved Data",totalSale,netSale,days,salary)+`<div class="report-section-title">Year Breakdown</div>`+years.map(y=>{const rs=all.filter(r=>r.month.startsWith(y+"-"));return `<div class="report-cycle-card"><div class="report-cycle-head"><strong>${y}</strong><span>${rs.length} month(s)</span></div><div class="report-metrics"><div class="report-metric"><small>Net Sale</small><strong>${money(rs.reduce((s,r)=>s+r.netSale,0))} AED</strong></div><div class="report-metric"><small>Salary</small><strong>${money(rs.reduce((s,r)=>s+r.salary,0))} AED</strong></div><div class="report-metric"><small>Working Days</small><strong>${rs.reduce((s,r)=>s+r.workDays,0)}</strong></div><div class="report-metric"><small>Total Sale</small><strong>${money(rs.reduce((s,r)=>s+r.totalSale,0))} AED</strong></div></div></div>`}).join("")||`<div class="report-empty">Overall report ke liye data nahi mila.</div>`;
+ const controls=document.getElementById('reportControls'),grid=document.getElementById('reportMonthGrid'),details=document.getElementById('reportDetails');controls.innerHTML='<div class="report-range-note" style="margin:0">All saved invoice years ka combined report</div>';grid.innerHTML='';const years=getReportYears(),all=years.flatMap(y=>Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(y,i+1))).filter(r=>r.cycles.length)),totalSale=all.reduce((s,r)=>s+r.totalSale,0),netSale=all.reduce((s,r)=>s+r.netSale,0),salary=all.reduce((s,r)=>s+r.salary,0),days=all.reduce((s,r)=>s+r.workDays,0);details.innerHTML=reportOverview('Overall Report · All Saved Data',totalSale,netSale,days,salary)+`<div class="report-section-title">Year Breakdown</div>`+(all.length?years.map(y=>{const rs=all.filter(r=>r.month.startsWith(y+'-'));return `<div class="report-cycle-card"><div class="report-cycle-head"><strong>${y}</strong><span>${rs.length} month(s)</span></div>${reportMetricGrid({totalSale:rs.reduce((s,r)=>s+r.totalSale,0),netSale:rs.reduce((s,r)=>s+r.netSale,0),workDays:rs.reduce((s,r)=>s+r.workDays,0),avg:0,target:0,salary:rs.reduce((s,r)=>s+r.salary,0),deductions:0,invoices:rs.reduce((s,r)=>s+r.cycles.reduce((a,c)=>a+c.invoices,0),0)})}</div>`}).join(''):`<div class="report-empty">Overall report ke liye data nahi mila.</div>`);
 }
-function renderReports(){
-  const mode=window.reportMode||"monthly"; ["daily","monthly","yearly","overall"].forEach(m=>{const b=document.getElementById("reportTab"+m[0].toUpperCase()+m.slice(1));if(b)b.classList.toggle("active",m===mode);});
-  const grid=document.getElementById("reportMonthGrid"); if(grid)grid.innerHTML="";
-  if(mode==="daily")renderDailyReport(); else if(mode==="yearly")renderYearlyReport(); else if(mode==="overall")renderOverallReport(); else renderMonthlyReport();
-}
+function renderReports(){const tabs={daily:'Daily',monthly:'Monthly',yearly:'Yearly',overall:'Overall'};Object.keys(tabs).forEach(m=>{const b=document.getElementById('reportTab'+tabs[m]);if(b)b.classList.toggle('active',m===reportMode)});if(reportMode==='daily')renderDailyReport();else if(reportMode==='yearly')renderYearlyReport();else if(reportMode==='overall')renderOverallReport();else renderMonthlyReport()}
+function printReports(){renderReports();window.print()}
 
 function renderHistory(){
   const box=document.getElementById("historyList"); if(!box)return;
@@ -3241,9 +3239,9 @@ cycleCompletionRecords={...(fresh.cycleCompletionRecords||{})};
   leaveRecords=Array.isArray(fresh.leaveRecords)?fresh.leaveRecords.map(r=>({...r})):[];
   renderSavedCharges();
   renderSavedTargets();
-  if(document.getElementById("reportsPage")?.classList.contains("active"))renderReports();
   try{renderLeaveHome();renderLeaveCalendar();}catch(e){}
   updateInvoiceRateCard();
+  if(document.getElementById("reportsPage")?.classList.contains("active"))renderReports();
   updateDashboard();
 },error=>console.error("Driver realtime listener error:",error));
 
