@@ -3328,9 +3328,9 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       // stays correct even when the chart height or mobile layout changes.
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
-      callout.textContent=money(x.value);
+      callout.textContent=money(x.value)+" AED";
 
-      const valueText=String(money(x.value));
+      const valueText=String(money(x.value)+" AED");
       callout.style.fontSize=(valueText.length>=15?9:valueText.length>=12?10:11)+"px";
       callout.style.padding="4px 6px";
       callout.style.boxSizing="border-box";
