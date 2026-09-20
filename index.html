@@ -791,6 +791,7 @@ input:focus{border-color:#ed166a}
 .ledger-grand-total td{font-weight:900;border-top:2px solid #111;background:#f3f4f6}
 .report-detail-block{margin-top:14px}
 @media print{.report-ledger-tab,.report-control-row,.report-print{display:none!important}.report-workspace{box-shadow:none!important;border:0!important}.report-table-scroll{overflow:visible!important}.report-summary-table,.report-invoice-table{font-size:10px!important}}
+.invoice-fields .invoice-field input{text-align:center;}
 </style>
 </head>
 <body>
@@ -963,7 +964,7 @@ input:focus{border-color:#ed166a}
 <div class="invoice-field"><label for="halaJunior">Hala Juniors</label><input type="number" id="halaJunior" step="0.01"></div>
 <div class="invoice-field"><label for="halaPeak">Hala Peak</label><input type="number" id="halaPeak" step="0.01"></div>
 <div class="invoice-field"><label for="peak">Peak</label><input type="number" id="peak" step="0.01"></div>
-<div class="invoice-field"><label for="extraCharges">Others</label><input type="number" id="extraCharges" step="0.01"></div>
+<div class="invoice-field"><label for="extraCharges">Others</label><input type="text" id="extraCharges" inputmode="decimal" autocomplete="off" placeholder="+ / -"></div>
 </div>
 <div class="result" id="invoicePreview">Total: 0.00 AED · Deductions: 0.00 AED · Net: 0.00 AED</div>
 <button class="primary" id="saveInvoiceBtn" onclick="saveInvoice()">Save Invoice</button>
@@ -1340,7 +1341,20 @@ let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoice
 let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
-const n=id=>Number(document.getElementById(id)?.value||0);
+const n=id=>{
+  const raw=document.getElementById(id)?.value??"";
+  if(id==="extraCharges"){
+    const s=String(raw).trim().replace(/\s+/g,"");
+    if(!s || s==="+" || s==="-") return 0;
+    const cleaned=s.replace(/[^0-9+\-.]/g,"");
+    const sign=cleaned.startsWith("-")?-1:1;
+    const unsigned=cleaned.replace(/^[+-]/,"").replace(/-/g,"");
+    const normalized=unsigned.replace(/\+(?=.*)/g,"").replace(/(\..*)\./g,"$1");
+    const value=Number(normalized);
+    return Number.isFinite(value)?sign*Math.abs(value):0;
+  }
+  return Number(raw||0);
+};
 const money=v=>(Number(v)||0).toFixed(2);
 const round2=v=>Math.round((Number(v)||0)*100)/100;
 
@@ -1857,13 +1871,14 @@ const fuelCharge=round2(latestChargeSetup?.fuelCharges);
 const shiftTripsAmount=round2(data.shiftTrips*shiftTripsCharge);
 const bookingAmount=round2(data.bookings*bookingCharge);
 const kmAmount=round2(data.km*fuelCharge);
+const otherAmount=round2(data.extraCharges);
 const fixedDeductions=round2(
-  data.tips+data.halaJunior+data.halaPeak+data.peak+data.tolls+data.extraCharges
+  data.tips+data.halaJunior+data.halaPeak+data.peak+data.tolls
 );
 const deductions=round2(
   fixedDeductions+shiftTripsAmount+bookingAmount+kmAmount
 );
-const net=round2(total-deductions);
+const net=round2(total-deductions+otherAmount);
 data.total=total;data.deductions=deductions;data.net=net;data.updatedAt=serverTimestamp();
 try{
 if(editingId){
@@ -1889,6 +1904,24 @@ updateInvoiceRateCard();
 updatePreview();
 }
 
+const extraChargesInput=document.getElementById("extraCharges");
+if(extraChargesInput && !extraChargesInput.dataset.signedHandler){
+  extraChargesInput.dataset.signedHandler="1";
+  extraChargesInput.addEventListener("input",()=>{
+    let v=extraChargesInput.value.replace(/\\s+/g,"").replace(/[^0-9+\\-.]/g,"");
+    if(v && (v[0]==="+" || v[0]==="-")){
+      const sign=v[0];
+      v=sign+v.slice(1).replace(/[+-]/g,"");
+    }else{
+      v=v.replace(/[+-]/g,"");
+    }
+    const parts=v.split(".");
+    if(parts.length>2) v=parts[0]+"."+parts.slice(1).join("");
+    extraChargesInput.value=v;
+    updatePreview();
+  });
+}
+
 function updatePreview(){
 const d={};ids.forEach(id=>d[id]=n(id));
 const total=round2(
@@ -1911,13 +1944,13 @@ const shiftTripsAmount=round2(round2(d.shiftTrips)*shiftTripsCharge);
 const bookingAmount=round2(round2(d.bookings)*bookingCharge);
 const kmAmount=round2(round2(d.km)*fuelCharge);
 
+const otherAmount=round2(d.extraCharges);
 const fixedDeductions=round2(
   round2(d.tips)+
   round2(d.halaJunior)+
   round2(d.halaPeak)+
   round2(d.peak)+
-  round2(d.tolls)+
-  round2(d.extraCharges)
+  round2(d.tolls)
 );
 
 const deductions=round2(
@@ -1926,7 +1959,7 @@ const deductions=round2(
   bookingAmount+
   kmAmount
 );
-const net=round2(total-deductions);
+const net=round2(total-deductions+otherAmount);
 
 document.getElementById("invoicePreview").textContent=
   `Total: ${money(total)} AED · Deductions: ${money(deductions)} AED · Net: ${money(net)} AED`;
