@@ -878,7 +878,7 @@ input:focus{border-color:#ed166a}
 <div class="summary"><small>Deductions</small><strong id="sumDeductions">0 AED</strong></div>
 <div class="summary"><small>Net Amount</small><strong id="sumNet">0 AED</strong></div>
 <div class="summary"><small>Days Work</small><strong id="sumDaysWork">0</strong></div>
-<div class="summary"><small>Days Remaining</small><strong id="sumDaysRemaining">0</strong></div>
+<div class="summary"><small>Daily Avg</small><strong id="sumDailyAvg">0 AED</strong></div>
 </div>
 </section>
 
@@ -3163,10 +3163,50 @@ function updateDashboard(){
   if(sumNetEl)sumNetEl.textContent=money(total)+" AED";
 
 
+  // My Summary is intentionally independent from the Dashboard date picker.
+  // It represents the COMPLETE active Cycle/Range. Changing the selected day
+  // inside the same cycle must not change these values. If the selected date
+  // moves to a different historical Cycle/Range, the summary follows that cycle.
+  let summaryInvoices=cycleInvoices;
+  let summaryStats=dayStats;
+  if(cycle){
+    const sStart=dateKeyLocal(cycle.activeRangeStart||cycle.start);
+    const sEnd=dateKeyLocal(cycle.activeRangeEnd||cycle.end);
+    const todayKey=dateKeyLocal(new Date());
+    const summaryEnd=sEnd<todayKey?sEnd:todayKey;
+    summaryInvoices=invoices.filter(x=>{
+      const k=invoiceDateKey(x);
+      return k && k>=sStart && k<=summaryEnd;
+    });
+
+    // Use today's real position in the active cycle, never the selected
+    // Dashboard date, for Days Work / Daily Avg.
+    const summaryAsOf=dashboardSelectedDate;
+    dashboardSelectedDate="";
+    summaryStats=getDashboardDayStats(cycle);
+    dashboardSelectedDate=summaryAsOf;
+  }
+
+  const summaryNet=summaryInvoices.reduce((sum,x)=>sum+(Number(x.net)||0),0);
+  const summaryDeductions=summaryInvoices.reduce((sum,x)=>sum+(Number(x.deductions)||0),0);
+  const summaryDailyAvg=summaryStats.workDays>0 ? summaryNet/summaryStats.workDays : 0;
+  const summaryTarget=getTargetPercentForDailyAverage(summaryDailyAvg,cycle ? dateKeyLocal(cycle.activeRangeEnd||cycle.end) : dateKeyLocal(new Date()));
+
   const daysWorkEl=document.getElementById("sumDaysWork");
+  const dailyAvgEl=document.getElementById("sumDailyAvg");
   const daysRemainingEl=document.getElementById("sumDaysRemaining");
-  if(daysWorkEl)daysWorkEl.textContent=String(dayStats.workDays);
-  if(daysRemainingEl)daysRemainingEl.textContent=String(dayStats.remainingDays);
+  if(daysWorkEl)daysWorkEl.textContent=String(summaryStats.workDays);
+  if(dailyAvgEl)dailyAvgEl.textContent=money(summaryDailyAvg)+" AED";
+  if(daysRemainingEl)daysRemainingEl.textContent=String(summaryStats.remainingDays);
+
+  const summaryTargetEl=document.getElementById("sumTarget");
+  const summaryCommissionEl=document.getElementById("sumCommission");
+  const summaryDeductionsEl=document.getElementById("sumDeductions");
+  const summaryNetEl=document.getElementById("sumNet");
+  if(summaryTargetEl)summaryTargetEl.textContent=summaryTarget+"%";
+  if(summaryCommissionEl)summaryCommissionEl.textContent=money(summaryNet*summaryTarget/100)+" AED";
+  if(summaryDeductionsEl)summaryDeductionsEl.textContent=money(summaryDeductions)+" AED";
+  if(summaryNetEl)summaryNetEl.textContent=money(summaryNet)+" AED";
 
   const badge=document.getElementById("invoiceBadge");
   if(badge)badge.textContent=cycle?cycleInvoices.length+" ›":(dashboardSelectedDate?cycleInvoices.length+" ›":invoices.length+" ›");
