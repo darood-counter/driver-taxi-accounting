@@ -791,12 +791,6 @@ input:focus{border-color:#ed166a}
 .ledger-grand-total td{font-weight:900;border-top:2px solid #111;background:#f3f4f6}
 .report-detail-block{margin-top:14px}
 @media print{.report-ledger-tab,.report-control-row,.report-print{display:none!important}.report-workspace{box-shadow:none!important;border:0!important}.report-table-scroll{overflow:visible!important}.report-summary-table,.report-invoice-table{font-size:10px!important}}
-
-/* Invoice data-entry fields: center entered values */
-#invoicePage .invoice-field input {
-  text-align: center !important;
-}
-
 </style>
 </head>
 <body>
@@ -4187,16 +4181,32 @@ async function parseInvoiceOCRValueStrip(file){
     const clean=t=>String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim();
     const shifts=allWords.filter(w=>clean(w.text)==='shift');
     const completes=allWords.filter(w=>clean(w.text)==='completed');
+    const progresses=allWords.filter(w=>clean(w.text)==='progress' || clean(w.text)==='inprogress');
     let headingY=null,best=Infinity;
+
+    // Accept both RTA receipt headings:
+    // "Shift Completed" and "Shift In Progress".
     for(const a of shifts)for(const b of completes){
       const d=Math.abs(a.cy-b.cy);
       if(d<best && d<=H*.018){headingY=(a.cy+b.cy)/2;best=d;}
     }
+
+    if(headingY===null){
+      for(const a of shifts)for(const b of progresses){
+        const d=Math.abs(a.cy-b.cy);
+        if(d<best && d<=H*.018){headingY=(a.cy+b.cy)/2;best=d;}
+      }
+    }
+
     if(headingY===null){
       // On difficult photos Tesseract may read the heading as one token.
-      const h=allWords.find(w=>clean(w.text).includes('shiftcompleted'));
+      const h=allWords.find(w=>{
+        const t=clean(w.text);
+        return t.includes('shiftcompleted') || t.includes('shiftinprogress');
+      });
       if(h)headingY=h.cy;
     }
+
     if(headingY===null)return blankRTAOCRFields();
 
     // These are the measured row centres from the supplied RTA Shift Summary
