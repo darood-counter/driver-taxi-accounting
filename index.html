@@ -614,7 +614,6 @@ input:focus{border-color:#ed166a}
   .invoice-rate-item strong{font-size:11px}
 }
 @media(max-width:600px){.invoice-fields{grid-template-columns:1fr;gap:6px}.invoice-field label{font-size:12px;flex-basis:42%}.invoice-field input{width:58%;min-height:40px;font-size:13px}.saved-invoice-title{font-size:18px;margin-top:14px}.saved-invoice-table{font-size:11px}.saved-invoice-table th,.saved-invoice-table td{padding:8px 7px}.saved-invoice-update{padding:7px 9px;font-size:11px}}
-.invoice-fields .invoice-field input{text-align:center;}
 @media(max-width:350px){.invoice-fields{gap:4px}.invoice-field{gap:5px}.invoice-field label{font-size:11px}.invoice-field input{font-size:12px;min-height:38px}}
 
 .invoice-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
@@ -964,7 +963,7 @@ input:focus{border-color:#ed166a}
 <div class="invoice-field"><label for="halaJunior">Hala Juniors</label><input type="number" id="halaJunior" step="0.01"></div>
 <div class="invoice-field"><label for="halaPeak">Hala Peak</label><input type="number" id="halaPeak" step="0.01"></div>
 <div class="invoice-field"><label for="peak">Peak</label><input type="number" id="peak" step="0.01"></div>
-<div class="invoice-field"><label for="extraCharges">Others</label><input type="text" id="extraCharges" inputmode="decimal" autocomplete="off" placeholder="+ / -"></div>
+<div class="invoice-field"><label for="extraCharges">Others</label><input type="number" id="extraCharges" step="0.01"></div>
 </div>
 <div class="result" id="invoicePreview">Total: 0.00 AED · Deductions: 0.00 AED · Net: 0.00 AED</div>
 <button class="primary" id="saveInvoiceBtn" onclick="saveInvoice()">Save Invoice</button>
@@ -1936,20 +1935,6 @@ document.getElementById("invoicePreview").textContent=
 // Expose the preview function so scanner callbacks can safely call it.
 window.updatePreview=updatePreview;
 ids.forEach(id=>document.getElementById(id).addEventListener("input",updatePreview));
-
-// Others accepts an explicit positive (+) or negative (-) amount.
-document.getElementById("extraCharges")?.addEventListener("input",function(){
-  this.value=this.value.replace(/[^0-9+\-.]/g,"");
-  // Keep only one leading sign and one decimal point.
-  if(this.value.length>1){
-    const sign=(this.value[0]==="+"||this.value[0]==="-")?this.value[0]:"";
-    let body=this.value.slice(sign?1:0).replace(/[+-]/g,"");
-    const parts=body.split(".");
-    body=parts.shift()+(parts.length?("." + parts.join("")):"");
-    this.value=sign+body;
-  }
-  updatePreview();
-});
 document.getElementById("invDate")?.addEventListener("change",()=>{
   updateInvoiceRateCard();
   updatePreview();
