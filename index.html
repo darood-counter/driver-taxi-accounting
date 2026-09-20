@@ -35,7 +35,7 @@ main{padding:0 22px}
 .chart{height:276px;display:flex;align-items:flex-end;gap:10px;padding:28px 62px 8px 8px;border-bottom:2px solid #171717;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 67px,rgba(130,134,145,.20) 68px,transparent 69px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#777;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:58px}
 .chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2}
 .chart-value{display:block;font-size:10px;font-weight:900;color:#3155c8;white-space:nowrap;line-height:1.1;cursor:pointer;min-height:11px}
-.bar-wrap{height:205px;flex:0 0 205px;width:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}
+.bar-wrap{height:205px;flex:0 0 205px;width:100%;display:flex;align-items:flex-end;justify-content:center}
 @media(max-width:600px){.bar-wrap{height:170px;flex:0 0 170px}.chart-col{height:100%;flex:0 0 46px}.chart{padding-top:22px;padding-bottom:8px}.chart-value{min-height:16px}}
 .bar{width:40px;background:#dfe3ea;border-radius:7px 7px 0 0;min-height:3px;transition:height .2s ease,background .2s ease}
 .chart-col.selected .bar{background:#2563eb}.chart-col.has-sales .bar{background:#2563eb}.chart-col.has-sales .chart-date{color:#3155c8;font-weight:900}.chart-col.has-sales{cursor:pointer}.chart-col.has-sales:hover .bar{background:#1d4ed8}
@@ -3323,29 +3323,28 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     });
 
     if(chartSelectedDate===x.key){
-      // Keep the clicked value physically attached to the real candle.
-      // The label is placed from the bar's actual rendered top, so it
-      // stays correct even when the chart height or mobile layout changes.
+      // Selected value stays attached to this candle and is positioned
+      // according to the candle's real height.
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
       callout.textContent=money(x.value)+" AED";
 
+      const barHeightPx=Math.max(3,(x.value/max)*plotHeight);
+      const candleLeft=8+(i*56)+23;
+      const gap=6;
+
+      callout.style.left=candleLeft+"px";
+      callout.style.top=Math.max(2,(plotTop+plotHeight-barHeightPx-gap))+"px";
+
+      // Automatically reduce the label size for larger numbers so it
+      // remains neat and fits above the candle on mobile.
       const valueText=String(money(x.value)+" AED");
-      callout.style.fontSize=(valueText.length>=15?9:valueText.length>=12?10:11)+"px";
-      callout.style.padding="4px 6px";
+      callout.style.fontSize=(valueText.length>=13?9:valueText.length>=10?10:11)+"px";
+      callout.style.maxWidth="58px";
+      callout.style.padding="4px 5px";
       callout.style.boxSizing="border-box";
       callout.style.lineHeight="1.15";
-
-      // Append inside this candle's wrapper so left/top are relative to
-      // the actual candle, not to the whole chart.
-      wrap.appendChild(callout);
-
-      requestAnimationFrame(()=>{
-        const gap=6;
-        const barTop=bar.offsetTop;
-        callout.style.left="50%";
-        callout.style.top=Math.max(2,barTop-gap)+"px";
-      });
+      chart.appendChild(callout);
     }
   });
 
