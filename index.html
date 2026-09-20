@@ -3031,7 +3031,9 @@ function getDashboardDayStats(cycle){
 
   // Days Work is based on calendar days elapsed in the active range, not on
   // whether an invoice exists. A leave day is removed from Days Work as well.
-  const asOfKey=dashboardSelectedDate||dateKeyLocal(new Date());
+  // My Summary work-day counters are based on the active Cycle/Range,
+  // not the individual day selected on the dashboard chart.
+  const asOfKey=dateKeyLocal(new Date());
   const elapsedEndKey=asOfKey<startKey?null:(asOfKey>endKey?endKey:asOfKey);
   const totalDays=leaveDaysBetween(startKey,endKey);
   if(!elapsedEndKey)return {totalDays,workDays:0,leaveDays:0,remainingDays:totalDays,elapsedDays:0};
@@ -3117,9 +3119,7 @@ function updateDashboard(){
     const todayKey=dateKeyLocal(new Date());
     // If viewing history, show only sales up to the selected date.
     // In the normal/current view, show only sales up to today.
-    const visibleEnd = dashboardSelectedDate
-      ? (dashboardSelectedDate<cEnd ? dashboardSelectedDate : cEnd)
-      : (todayKey<cEnd ? todayKey : cEnd);
+    const visibleEnd = todayKey<cEnd ? todayKey : cEnd;
     cycleInvoices=invoices.filter(x=>{
       const k=invoiceDateKey(x);
       return k && k>=cStart && k<=visibleEnd;
@@ -3154,34 +3154,24 @@ function updateDashboard(){
   }
   const targetEl=document.getElementById("sumTarget");
   const targetAmountEl=document.getElementById("sumTargetAmount");
-  const deductionsEl=document.getElementById("sumDeductions");
   const sumNetEl=document.getElementById("sumNet");
+  const dailyAvgSummaryEl=document.getElementById("sumDailyAvg");
   if(targetEl)targetEl.textContent=target+"%";
   const commissionEl=document.getElementById("sumCommission");
   if(commissionEl)commissionEl.textContent=money(total*target/100)+" AED";
-  if(deductionsEl)deductionsEl.textContent=money(deductions)+" AED";
   if(sumNetEl)sumNetEl.textContent=money(total)+" AED";
 
+  // My Summary: Daily Avg = active Cycle/Range Net Sale ÷ active Cycle/Range Days Work.
+  // It does not change when a single chart date is selected.
+  if(dailyAvgSummaryEl){
+    const summaryDailyAvg=dayStats.workDays>0 ? total/dayStats.workDays : 0;
+    dailyAvgSummaryEl.textContent=money(summaryDailyAvg)+" AED";
+  }
 
   const daysWorkEl=document.getElementById("sumDaysWork");
   const daysRemainingEl=document.getElementById("sumDaysRemaining");
-  const dailyAvgEl=document.getElementById("sumDailyAvg");
-
-  // My Summary follows the active Cycle/Range, not the selected chart day.
-  // Days Remaining stays based on the active cycle/range.
   if(daysWorkEl)daysWorkEl.textContent=String(dayStats.workDays);
   if(daysRemainingEl)daysRemainingEl.textContent=String(dayStats.remainingDays);
-
-  // Daily Avg = active Cycle/Range Net Amount / active Cycle/Range work days.
-  // Use the existing dashboard total for the active range and never let a
-  // single selected day overwrite the summary value.
-  if(dailyAvgEl){
-    const activeNet = Number(totalEl && totalEl.textContent
-      ? String(totalEl.textContent).replace(/[^0-9.-]/g,"")
-      : 0) || 0;
-    const workDays = Number(dayStats.workDays) || 0;
-    dailyAvgEl.textContent = `${(workDays > 0 ? activeNet / workDays : 0).toFixed(2)} AED`;
-  }
 
   const badge=document.getElementById("invoiceBadge");
   if(badge)badge.textContent=cycle?cycleInvoices.length+" ›":(dashboardSelectedDate?cycleInvoices.length+" ›":invoices.length+" ›");
