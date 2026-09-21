@@ -800,6 +800,8 @@ input:focus{border-color:#ed166a}
 
 /* ===== Admin Panel ===== */
 .admin-page{padding:18px 14px 40px}.admin-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.admin-head h2{margin:0;font-size:22px}.admin-badge{background:#111827;color:#fff;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:900}.admin-toolbar{display:flex;gap:8px;margin-bottom:14px}.admin-toolbar input{flex:1;border:1px solid #e1e4ea;border-radius:12px;padding:11px 12px;font-size:14px}.admin-toolbar button{border:0;border-radius:12px;padding:0 14px;background:#111827;color:#fff;font-weight:800}.admin-user-card{background:#fff;border:1px solid #e7e8ec;border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 4px 12px rgba(0,0,0,.04)}.admin-user-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.admin-user-name{font-weight:900;font-size:16px}.admin-user-id{font-size:12px;color:#737987;margin-top:3px}.admin-status{font-size:10px;font-weight:900;padding:5px 8px;border-radius:999px;background:#eaf7ef;color:#237548}.admin-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;font-size:12px}.admin-meta div{background:#f7f8fa;border-radius:10px;padding:9px}.admin-meta span{display:block;color:#7a7f8b;font-size:10px;margin-bottom:3px}.admin-view-btn{width:100%;border:0;border-radius:11px;padding:11px;background:#f0f1f5;color:#111827;font-weight:900}.admin-empty{text-align:center;color:#7b8190;padding:30px}.admin-modal{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:9999;display:none;align-items:flex-end}.admin-modal.show{display:flex}.admin-modal-box{background:#fff;width:100%;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px}.admin-modal-head{display:flex;justify-content:space-between;gap:10px;align-items:center;position:sticky;top:-18px;background:#fff;padding:4px 0 14px;z-index:2}.admin-modal-head h3{margin:0}.admin-close{border:0;background:#eef0f5;border-radius:10px;padding:8px 11px;font-weight:900}.admin-data-section{margin-top:12px;border:1px solid #e5e7eb;border-radius:13px;padding:12px}.admin-data-section h4{margin:0 0 8px;font-size:13px}.admin-json{white-space:pre-wrap;word-break:break-word;background:#f7f8fa;border-radius:10px;padding:10px;font-size:11px;line-height:1.45;max-height:420px;overflow:auto}@media(min-width:601px){.admin-modal{align-items:center}.admin-modal-box{width:min(760px,94vw);max-height:88vh;border-radius:20px}}
+
+.subscription-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 12px;padding:12px 14px;border:1px solid #f59e0b;border-radius:14px;background:#fffbeb;color:#78350f;font-size:13px}.subscription-banner strong{display:block;margin-bottom:3px}.subscription-badge{white-space:nowrap;font-size:11px;font-weight:800;padding:6px 9px;border-radius:999px;background:#f59e0b;color:#fff}.admin-sub-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.admin-sub-actions button{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:700;cursor:pointer}.admin-sub-actions .activate{background:#16a34a;color:#fff}.admin-sub-actions .viewonly{background:#64748b;color:#fff}.admin-sub-actions .suspend{background:#dc2626;color:#fff}
 </style>
 </head>
 <body>
@@ -1364,6 +1366,7 @@ measurementId:"G-0HWWENTGX6"
 const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
+const functions=getFunctions(appFirebase);
 let currentUser=null,driverData={},invoices=[],editingId=null,editingInvoiceReturnPage="invoicePage",unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="",cycleCompletionRecords={};
 let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
@@ -1374,9 +1377,30 @@ const round2=v=>Math.round((Number(v)||0)*100)/100;
 
 const ADMIN_DRIVER_ID="3116538";
 let adminUsersCache=[];
-function isAdminUser(){return !!currentUser && String(driverData?.driverId||"").trim()===ADMIN_DRIVER_ID;}
+let adminClaim=false;
+async function refreshAdminClaim(){try{if(!currentUser){adminClaim=false;return;}const t=await currentUser.getIdTokenResult(true);adminClaim=t?.claims?.admin===true;}catch(e){adminClaim=false;}updateAdminMenu();}
+function isAdminUser(){return !!currentUser && (adminClaim || String(driverData?.driverId||"").trim()===ADMIN_DRIVER_ID);}
 function updateAdminMenu(){const b=document.getElementById("adminMenuButton");if(b)b.style.display=isAdminUser()?"block":"none";}
 function adminSafeJson(v){try{return JSON.stringify(v,null,2)}catch(e){return String(v)}}
+function isSubscriptionActive(){
+  if(isAdminUser())return true;
+  const status=String(driverData?.subscriptionStatus||"").toLowerCase();
+  const raw=driverData?.subscriptionExpiry;
+  if(!status && !raw)return true;
+  if(status!=="active"||!raw)return false;
+  const expiry=raw?.toDate?raw.toDate():new Date(raw);
+  return !Number.isNaN(expiry.getTime()) && expiry.getTime()>Date.now();
+}
+function updateSubscriptionUI(){
+  const b=document.getElementById("subscriptionBanner");if(!b)return;
+  const active=isSubscriptionActive();
+  b.style.display=active?"none":"flex";
+  const badge=document.getElementById("subscriptionBadge");if(badge)badge.textContent=active?"ACTIVE":"VIEW ONLY";
+}
+function requireActiveSubscription(msg="Monthly subscription is required to save new data or make changes."){
+  if(isAdminUser()||isSubscriptionActive())return true;
+  alert(msg); updateSubscriptionUI(); return false;
+}
 window.loadAdminUsers=async()=>{
   if(!isAdminUser()){alert("Admin access only.");return;}
   const box=document.getElementById("adminUsersList");
@@ -1405,9 +1429,23 @@ window.renderAdminUsers=rows=>{
     <div class="admin-user-top"><div><div class="admin-user-name">${String(d.name||"Driver").replace(/[<>]/g,"")}</div><div class="admin-user-id">Driver ID: ${String(d.driverId||"—").replace(/[<>]/g,"")}</div></div><span class="admin-status">${paid?"Active":"Not Paid / Unset"}</span></div>
     <div class="admin-meta"><div><span>Mobile</span>${String(d.mobile||"—")}</div><div><span>Email</span>${String(d.email||"—")}</div><div><span>Invoices</span>${u.invoiceCount}</div><div><span>UID</span>${u.uid}</div></div>
     <button class="admin-view-btn" type="button" onclick="viewAdminUser(${i})">View A-Z Data</button>
+    <div class="admin-sub-actions">
+      <button class="activate" type="button" onclick="adminSetSubscription(${i},'active')">Activate 30 Days</button>
+      <button class="viewonly" type="button" onclick="adminSetSubscription(${i},'unpaid')">View Only</button>
+      <button class="suspend" type="button" onclick="adminSetSubscription(${i},'suspended')">Suspend</button>
+    </div>
   </div>`}).join("");
 };
 window.filterAdminUsers=()=>{const q=String(document.getElementById("adminUserSearch")?.value||"").trim().toLowerCase();renderAdminUsers(!q?adminUsersCache:adminUsersCache.filter(u=>{const d=u.data||{};return [d.name,d.driverId,d.mobile,d.email,u.uid].some(v=>String(v||"").toLowerCase().includes(q));}));};
+window.adminSetSubscription=async (index,status)=>{
+  if(!isAdminUser())return;
+  const u=adminUsersCache[index];if(!u)return;
+  if(String(u.uid)===String(currentUser?.uid)){alert("Admin account cannot be changed here.");return;}
+  const label=status==="active"?"activate for 30 days":status==="suspended"?"suspend":"put in view-only mode";
+  if(!confirm(`Are you sure you want to ${label} this account?`))return;
+  try{const fn=httpsCallable(functions,"setUserSubscription");await fn({uid:u.uid,status,days:30,note:`Admin action: ${status}`});alert("Subscription status updated.");await loadAdminUsers();}
+  catch(e){console.error(e);alert(e?.message||"Unable to update subscription. Make sure the secure Admin claim and Cloud Function are deployed.");}
+};
 window.viewAdminUser=async index=>{
   if(!isAdminUser())return;
   const u=adminUsersCache[index];if(!u)return;
@@ -1426,6 +1464,7 @@ window.toggleMenu=()=>document.getElementById("drawer").classList.toggle("open")
 
 window.showPage=pageId=>{
 if(pageId==="adminPage"&&!isAdminUser()){alert("Admin access only.");return;}
+if(["invoicePage","calculatorPage","targetPage","leavesPage"].includes(pageId)&&!isAdminUser()&&!isSubscriptionActive()){alert("Subscription expired/unpaid. This section is view-only until payment is active.");return;}
 document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
 document.getElementById(pageId).classList.add("active");
 
@@ -1573,7 +1612,7 @@ window.signupUser=async()=>{
     }
     const cred=await createUserWithEmailAndPassword(auth,email,password);
     await setDoc(doc(db,"drivers",cred.user.uid),{
-      name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,createdAt:serverTimestamp()
+      name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,subscriptionStatus:"unpaid",subscriptionExpiry:null,createdAt:serverTimestamp()
     },{merge:true});
     await setDoc(doc(db,"driverLogin",driverKey),{
       driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
@@ -1904,6 +1943,7 @@ function validateInvoiceSetups(date){
 }
 
 window.saveInvoice=async()=>{
+if(!requireActiveSubscription())return;
 if(!currentUser){alert("Please login first.");return}
 const date=document.getElementById("invDate").value;
 if(!date){document.getElementById("invoiceStatus").textContent="Please select invoice date.";return}
@@ -2045,6 +2085,7 @@ document.getElementById("invDate")?.addEventListener("change",()=>{
 });
 
 window.editInvoice=id=>{
+if(!requireActiveSubscription("Subscription required to edit invoices."))return;
 const x=invoices.find(i=>String(i.id)===String(id));if(!x){console.warn("Invoice not found:",id);return;}
 editingInvoiceReturnPage=document.querySelector(".page.active")?.id||"invoicePage";
 editingId=id;
@@ -2056,6 +2097,7 @@ updatePreview();showPage("invoicePage");
 };
 
 window.deleteInvoice=async id=>{
+if(!requireActiveSubscription("Subscription required to delete invoices."))return;
 if(!currentUser)return;
 if(!confirm("Delete this invoice? This cannot be undone."))return;
 await deleteDoc(doc(db,"drivers",currentUser.uid,"invoices",id));
@@ -2396,7 +2438,8 @@ function setChargeCycleUI(){const type=Number(document.getElementById("chargeCyc
 function initChargeSelectors(){["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=chargeDayOptions("")})}
 function resetChargeSetup(date=""){editingChargeDate=null;document.getElementById("chargeDate").value=date||new Date().toISOString().slice(0,10);document.getElementById("chargeCycleType").value="1";["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>document.getElementById(id).value="");document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus("")}
 window.loadChargeRecord=id=>{const r=savedChargeRecords.find(x=>String(x.id)===String(id));if(!r)return;editingChargeDate=r.id;document.getElementById("chargeDate").value=r.date||"";document.getElementById("chargeCycleType").value=String(r.cycleType||1);const c=r.ranges||[];document.getElementById("chargeFrom1").value=String(r.cycleType===1?(c[0]?.from||""):"");document.getElementById("chargeTo1").value=String(r.cycleType===1?(c[0]?.to||""):"");document.getElementById("chargeFrom2").value=String(r.cycleType===2?(c[0]?.from||""):"");document.getElementById("chargeTo2").value=String(r.cycleType===2?(c[0]?.to||""):"");document.getElementById("chargeFrom3").value=String(r.cycleType===2?(c[1]?.from||""):"");document.getElementById("chargeTo3").value=String(r.cycleType===2?(c[1]?.to||""):"");document.getElementById("fuelCharges").value=r.fuelCharges??"";document.getElementById("rtaCharges").value=r.rtaCharges??"";document.getElementById("bookingCharges").value=r.bookingCharges??"";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Record loaded. Changes karke Update Record dabayein.","success")}
-window.saveChargeSetup=async()=>{if(!currentUser){chargeStatus("Please login first.","error");return}const date=document.getElementById("chargeDate").value,cycleType=Number(document.getElementById("chargeCycleType").value);const fuelRaw=document.getElementById("fuelCharges").value.trim(),rtaRaw=document.getElementById("rtaCharges").value.trim(),bookingRaw=document.getElementById("bookingCharges").value.trim();if(!date){chargeStatus("Please select a complete date.","error");return}const f1=Number(document.getElementById("chargeFrom1").value),t1=Number(document.getElementById("chargeTo1").value),f2=Number(document.getElementById("chargeFrom2").value),t2=Number(document.getElementById("chargeTo2").value),f3=Number(document.getElementById("chargeFrom3").value),t3=Number(document.getElementById("chargeTo3").value);const valid=v=>Number.isInteger(v)&&v>=1&&v<=31;const rangesValid=cycleType===1?(valid(f1)&&valid(t1)):(valid(f2)&&valid(t2)&&valid(f3)&&valid(t3));if(!rangesValid){chargeStatus("Kindly please select all Day numbers for the selected range(s).","error");return}if(fuelRaw===""||rtaRaw===""||bookingRaw===""){chargeStatus("Kindly please enter all Fuel, RTA and Booking Charge numbers before saving/updating.","error");return}const fuelCharges=Number(fuelRaw),rtaCharges=Number(rtaRaw),bookingCharges=Number(bookingRaw);if(![fuelCharges,rtaCharges,bookingCharges].every(v=>Number.isFinite(v)&&v>=0)){chargeStatus("Charges must be valid AED amounts (0 or more).","error");return}const ranges=cycleType===1?[{from:f1,to:t1}]:[{from:f2,to:t2},{from:f3,to:t3}];const now=new Date().toISOString();const record={date,cycleType,ranges,fuelCharges,rtaCharges,bookingCharges,updatedAt:now};try{const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{},oldSetups={...(existing.chargeSetupsByDate||{})};let recordId=editingChargeDate;if(recordId){if(!oldSetups[recordId]){recordId=null}else{oldSetups[recordId]={...record,id:recordId}}}if(!recordId){recordId=`charge_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;oldSetups[recordId]={...record,id:recordId}}await setDoc(ref,{chargeSetupsByDate:oldSetups},{merge:true});driverData={...driverData,chargeSetupsByDate:oldSetups};const saved={...record,id:recordId};const i=savedChargeRecords.findIndex(x=>String(x.id)===String(recordId));if(i>=0)savedChargeRecords[i]=saved;else savedChargeRecords.push(saved);editingChargeDate=null;const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus(i>=0?"Charge setup updated successfully.":"New charge record saved successfully.","success");renderSavedCharges();resetChargeSetup(date);
+window.saveChargeSetup=async()=>{
+if(!requireActiveSubscription())return;if(!currentUser){chargeStatus("Please login first.","error");return}const date=document.getElementById("chargeDate").value,cycleType=Number(document.getElementById("chargeCycleType").value);const fuelRaw=document.getElementById("fuelCharges").value.trim(),rtaRaw=document.getElementById("rtaCharges").value.trim(),bookingRaw=document.getElementById("bookingCharges").value.trim();if(!date){chargeStatus("Please select a complete date.","error");return}const f1=Number(document.getElementById("chargeFrom1").value),t1=Number(document.getElementById("chargeTo1").value),f2=Number(document.getElementById("chargeFrom2").value),t2=Number(document.getElementById("chargeTo2").value),f3=Number(document.getElementById("chargeFrom3").value),t3=Number(document.getElementById("chargeTo3").value);const valid=v=>Number.isInteger(v)&&v>=1&&v<=31;const rangesValid=cycleType===1?(valid(f1)&&valid(t1)):(valid(f2)&&valid(t2)&&valid(f3)&&valid(t3));if(!rangesValid){chargeStatus("Kindly please select all Day numbers for the selected range(s).","error");return}if(fuelRaw===""||rtaRaw===""||bookingRaw===""){chargeStatus("Kindly please enter all Fuel, RTA and Booking Charge numbers before saving/updating.","error");return}const fuelCharges=Number(fuelRaw),rtaCharges=Number(rtaRaw),bookingCharges=Number(bookingRaw);if(![fuelCharges,rtaCharges,bookingCharges].every(v=>Number.isFinite(v)&&v>=0)){chargeStatus("Charges must be valid AED amounts (0 or more).","error");return}const ranges=cycleType===1?[{from:f1,to:t1}]:[{from:f2,to:t2},{from:f3,to:t3}];const now=new Date().toISOString();const record={date,cycleType,ranges,fuelCharges,rtaCharges,bookingCharges,updatedAt:now};try{const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{},oldSetups={...(existing.chargeSetupsByDate||{})};let recordId=editingChargeDate;if(recordId){if(!oldSetups[recordId]){recordId=null}else{oldSetups[recordId]={...record,id:recordId}}}if(!recordId){recordId=`charge_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;oldSetups[recordId]={...record,id:recordId}}await setDoc(ref,{chargeSetupsByDate:oldSetups},{merge:true});driverData={...driverData,chargeSetupsByDate:oldSetups};const saved={...record,id:recordId};const i=savedChargeRecords.findIndex(x=>String(x.id)===String(recordId));if(i>=0)savedChargeRecords[i]=saved;else savedChargeRecords.push(saved);editingChargeDate=null;const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus(i>=0?"Charge setup updated successfully.":"New charge record saved successfully.","success");renderSavedCharges();resetChargeSetup(date);
 // Refresh the Dashboard immediately after a Charge Setup change so the
 // current/selected cycle and its dates update without requiring a page reload.
 const refreshDate=dashboardSelectedDate||dateKeyLocal(new Date());
@@ -2575,6 +2618,7 @@ window.loadTargetDate=async(id)=>{
 };
 
 window.saveTargetTable=async()=>{
+if(!requireActiveSubscription())return;
   if(!currentUser){setTargetStatus("Please login first.","error");return}
   const date=targetDateValue();
   const amounts=getTargetAmounts();
@@ -2864,6 +2908,7 @@ window.selectLeaveDate=date=>{
 };
 
 window.submitLeaveRequest=async()=>{
+if(!requireActiveSubscription())return;
   if(!currentUser){alert("Please login first.");return;}
   if(!leaveTypeSelected||!leaveSelectedDate)return;
   const endDate=leaveSelectedEndDate||leaveSelectedDate,days=leaveDaysBetween(leaveSelectedDate,endDate);
@@ -3473,10 +3518,12 @@ if(!user){
   return
 }
 currentUser=user;hideAuth();
+await refreshAdminClaim();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
 updateAdminMenu();
+updateSubscriptionUI();
 document.getElementById("helloText").textContent="Hi, "+(driverData.name||"Driver")+" 👋";
 document.getElementById("profileName").textContent=driverData.name||"—";
 document.getElementById("profileDriverId").textContent=driverData.driverId||"—";
@@ -3492,6 +3539,7 @@ unsubscribeDriver=onSnapshot(ref,driverSnap=>{
   const fresh=driverSnap.data()||{};
   driverData={...driverData,...fresh};
   updateAdminMenu();
+  updateSubscriptionUI();
   savedTargetRecords=Array.isArray(fresh.targetRecords)?fresh.targetRecords.map(r=>({...r})):Object.values(fresh.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
   savedChargeRecords=Object.values(fresh.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
   monthlyCycleRecords={...(fresh.monthlyCycleRecords||{})};
