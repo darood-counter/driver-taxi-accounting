@@ -1877,7 +1877,7 @@ await updateDoc(doc(db,"drivers",currentUser.uid,"invoices",editingId),data);
 document.getElementById("invoiceStatus").textContent="Invoice updated successfully.";
 editingId=null;
 document.getElementById("saveInvoiceBtn").textContent="Save Invoice";
-document.getElementById("invoiceTitle").textContent="New Invoice";
+const invoiceTitleEl=document.getElementById("invoiceTitle"); if(invoiceTitleEl) invoiceTitleEl.textContent="New Invoice";
   if(editingInvoiceReturnPage==="historyPage"){
     requestAnimationFrame(()=>showPage("historyPage"));
   }
@@ -1971,10 +1971,10 @@ document.getElementById("invDate")?.addEventListener("change",()=>{
 });
 
 window.editInvoice=id=>{
-const x=invoices.find(i=>i.id===id);if(!x)return;
+const x=invoices.find(i=>String(i.id)===String(id));if(!x){console.warn("Invoice not found:",id);return;}
 editingInvoiceReturnPage=document.querySelector(".page.active")?.id||"invoicePage";
 editingId=id;
-document.getElementById("invoiceTitle").textContent="Edit Invoice";
+const invoiceTitleEl=document.getElementById("invoiceTitle"); if(invoiceTitleEl) invoiceTitleEl.textContent="Edit Invoice";
 document.getElementById("saveInvoiceBtn").textContent="Update Invoice";
 document.getElementById("invDate").value=x.date||"";
 ids.forEach(k=>document.getElementById(k).value=x[k]??"");
