@@ -2639,7 +2639,9 @@ function leaveRenderDays(containerId,titleId,selectedDate="",selectedEndDate="")
   for(let i=0;i<first;i++)html+='<button type="button" class="leave-day empty" tabindex="-1" aria-hidden="true"></button>';
   for(let day=1;day<=days;day++){
     const key=`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    const isPast=key<today,isToday=key===today;
+    const currentYear=new Date().getFullYear(),currentMonth=new Date().getMonth();
+    const isPreviousMonth=(y<currentYear)||(y===currentYear&&m<currentMonth);
+    const isPast=key<today&&!isPreviousMonth,isToday=key===today;
     const inSelected=leaveDateInRange(key,selectedDate,selectedEndDate||selectedDate);
     const isStart=key===selectedDate,isEnd=key===(selectedEndDate||selectedDate);
     const existing=leaveRecords.some(r=>leaveDateInRange(key,leaveRecordStart(r),leaveRecordEnd(r)));
@@ -2647,7 +2649,7 @@ function leaveRenderDays(containerId,titleId,selectedDate="",selectedEndDate="")
     if(isPast)cls.push("past"); if(isToday)cls.push("today");
     if(inSelected)cls.push("range"); if(isStart)cls.push("range-start"); if(isEnd)cls.push("range-end");
     if(existing)cls.push("disabled");
-    const disabled=isPast||existing;
+    const disabled=existing;
     const handler=containerId==="leaveCalendarDays"?"selectLeaveHomeDate":"selectLeaveDate";
     html+=`<button type="button" class="${cls.join(" ")}" ${disabled?'disabled':''} onclick="${handler}('${key}')">${day}</button>`;
   }
@@ -2738,10 +2740,8 @@ window.selectLeaveType=(type,description,icon)=>{
 };
 window.leaveBackToStep1=()=>{document.getElementById("leaveStep2").style.display="none";document.getElementById("leaveStep1").style.display="block";document.getElementById("leaveStepCount").textContent="1/2";document.getElementById("leaveProgressBar").style.width="50%";};
 window.leaveBackToHome=()=>{leaveGoHome();};
-window.selectLeaveHomeDate=date=>{if(date<leaveTodayKey())return;leaveHomeSelectedDate=date;renderLeaveCalendar();};
+window.selectLeaveHomeDate=date=>{if(!date)return;leaveHomeSelectedDate=date;renderLeaveCalendar();};
 window.selectLeaveDate=date=>{
-  const today=leaveTodayKey();
-  if(date<today)return;
   const occupied=leaveRecords.some(r=>leaveRecordDates(r).includes(date)||leaveDateInRange(date,leaveRecordStart(r),leaveRecordEnd(r)));
   if(occupied)return;
 
