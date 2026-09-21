@@ -1327,7 +1327,7 @@ input:focus{border-color:#ed166a}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,reauthenticateWithCredential,EmailAuthProvider,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,getDocs,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,getDocs,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig={
 apiKey:"AIzaSyAlY5ir-8IPQE77Dpfr09UFoDG4VkKZvE8",
@@ -1342,7 +1342,7 @@ measurementId:"G-0HWWENTGX6"
 const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
-let currentUser=null,driverData={},invoices=[],editingId=null,unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="",cycleCompletionRecords={};
+let currentUser=null,driverData={},invoices=[],editingId=null,editingInvoiceReturnPage="invoicePage",unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="",cycleCompletionRecords={};
 let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
@@ -1878,11 +1878,35 @@ document.getElementById("invoiceStatus").textContent="Invoice updated successful
 editingId=null;
 document.getElementById("saveInvoiceBtn").textContent="Save Invoice";
 document.getElementById("invoiceTitle").textContent="New Invoice";
+  if(editingInvoiceReturnPage==="historyPage"){
+    requestAnimationFrame(()=>showPage("historyPage"));
+  }
 }else{
-data.invoiceNumber="INV-"+Date.now();
-data.createdAt=serverTimestamp();
-await addDoc(collection(db,"drivers",currentUser.uid,"invoices"),data);
-document.getElementById("invoiceStatus").textContent="Invoice saved successfully.";
+  // Use a real sequential invoice number. The counter lives on the driver
+  // document so editing an old invoice never changes its invoice number.
+  const driverRef=doc(db,"drivers",currentUser.uid);
+  const existingSerials=(Array.isArray(invoices)?invoices:[])
+    .map(x=>Number(x?.invoiceSerial))
+    .filter(v=>Number.isInteger(v)&&v>0);
+  const existingFormattedSerials=(Array.isArray(invoices)?invoices:[])
+    .map(x=>{
+      const m=/^INV-(\d{1,6})$/i.exec(String(x?.invoiceNumber||"").trim());
+      return m?Number(m[1]):0;
+    })
+    .filter(v=>Number.isInteger(v)&&v>0);
+  const baseSerial=Math.max(0,...existingSerials,...existingFormattedSerials);
+  const nextSerial=await runTransaction(db,async tx=>{
+    const driverSnap=await tx.get(driverRef);
+    const stored=Number(driverSnap.data()?.invoiceSequence)||0;
+    const next=Math.max(stored,baseSerial)+1;
+    tx.set(driverRef,{invoiceSequence:next},{merge:true});
+    return next;
+  });
+  data.invoiceSerial=nextSerial;
+  data.invoiceNumber=`INV-${String(nextSerial).padStart(4,"0")}`;
+  data.createdAt=serverTimestamp();
+  await addDoc(collection(db,"drivers",currentUser.uid,"invoices"),data);
+  document.getElementById("invoiceStatus").textContent="Invoice saved successfully.";
 }
 clearInvoice();
 }catch(e){console.error(e);document.getElementById("invoiceStatus").textContent="Error: "+e.message}
@@ -1948,6 +1972,7 @@ document.getElementById("invDate")?.addEventListener("change",()=>{
 
 window.editInvoice=id=>{
 const x=invoices.find(i=>i.id===id);if(!x)return;
+editingInvoiceReturnPage=document.querySelector(".page.active")?.id||"invoicePage";
 editingId=id;
 document.getElementById("invoiceTitle").textContent="Edit Invoice";
 document.getElementById("saveInvoiceBtn").textContent="Update Invoice";
@@ -2033,16 +2058,12 @@ function renderSavedInvoices(){
     if(t!==0)return t;
     return String(b.date||"").localeCompare(String(a.date||""));
   });
-  const latestId=String(sorted[0]?.id||"");
-
   // The container shows roughly 15–16 invoice rows at once; older invoices scroll vertically.
   const rows=sorted.map((x,index)=>{
     const displaySerial=sorted.length-index;
     const v=k=>money(x[k]);
     const safeId=String(x.id||"").replace(/'/g,"\\'");
-    const updateButton=String(x.id||"")===latestId
-      ? `<div style="display:flex;gap:5px;align-items:center;justify-content:center"><button class="saved-invoice-update" onclick="editInvoice('${safeId}')">✏️ Update</button><button class="saved-invoice-print" onclick="printInvoice('${safeId}')">🖨️</button></div>`
-      : `<button class="saved-invoice-print" onclick="printInvoice('${safeId}')">🖨️ Print</button>`;
+    const updateButton=`<div style="display:flex;gap:5px;align-items:center;justify-content:center"><button class="saved-invoice-update" onclick="editInvoice('${safeId}')">✏️ Update</button><button class="saved-invoice-print" onclick="printInvoice('${safeId}')">🖨️</button></div>`;
     return `<tr>
       <td class="invoice-no-cell">${displaySerial}</td>
       <td class="invoice-date-cell">${x.date||"—"}</td>
