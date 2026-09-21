@@ -791,6 +791,12 @@ input:focus{border-color:#ed166a}
 .ledger-grand-total td{font-weight:900;border-top:2px solid #111;background:#f3f4f6}
 .report-detail-block{margin-top:14px}
 @media print{.report-ledger-tab,.report-control-row,.report-print{display:none!important}.report-workspace{box-shadow:none!important;border:0!important}.report-table-scroll{overflow:visible!important}.report-summary-table,.report-invoice-table{font-size:10px!important}}
+
+/* Invoice data-entry fields: center entered values */
+#invoicePage .invoice-field input {
+  text-align: center !important;
+}
+
 </style>
 </head>
 <body>
@@ -3794,38 +3800,27 @@ async function loadInvoiceCropper(){
 async function openInvoiceCropper(file){
   const modal=document.getElementById("invoiceCropModal"),img=document.getElementById("invoiceCropImage"),status=document.getElementById("invoiceCropStatus");
   if(!file)return;
-  if(!modal||!img){ await processInvoiceScan(file); return; }
   invoiceCropFile=file;
-  if(status)status.textContent="Opening crop tool...";
+  status.textContent="Opening crop tool...";
   modal.classList.add("show");
   try{
     await loadInvoiceCropper();
-    if(!window.Cropper)throw new Error("Cropper unavailable");
-    if(invoiceCropper){try{invoiceCropper.destroy();}catch(e){}invoiceCropper=null;}
+    if(invoiceCropper){invoiceCropper.destroy();invoiceCropper=null;}
     if(invoiceCropObjectUrl)URL.revokeObjectURL(invoiceCropObjectUrl);
     invoiceCropObjectUrl=URL.createObjectURL(file);
     img.onload=()=>{
       try{
-        if(invoiceCropper){try{invoiceCropper.destroy();}catch(e){}}
-        invoiceCropper=new window.Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.98,aspectRatio:null,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false,guides:true,center:true,highlight:true});
-        if(status)status.textContent="Receipt ko box mein adjust karein, phir Use Crop dabayein.";
-      }catch(e){
-        console.warn("Cropper init error",e);
-        closeInvoiceCropper();
-        processInvoiceScan(file);
-      }
-    };
-    img.onerror=()=>{
-      closeInvoiceCropper();
-      processInvoiceScan(file);
+        invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.985,aspectRatio:null,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false,guides:false,center:false,highlight:false});
+        status.textContent="Receipt ko crop box ke andar adjust karein.";
+      }catch(e){status.textContent="Crop tool error. You can use Full Photo.";}
     };
     img.src=invoiceCropObjectUrl;
   }catch(e){
-    console.warn("Cropper load error; using full photo",e);
-    closeInvoiceCropper();
-    await processInvoiceScan(file);
+    console.warn("Cropper load error",e);
+    status.textContent="Crop tool load nahi hua. Full Photo use kar sakte hain.";
   }
 }
+
 function closeInvoiceCropper(){
   const modal=document.getElementById("invoiceCropModal"),img=document.getElementById("invoiceCropImage");
   if(invoiceCropper){try{invoiceCropper.destroy();}catch(e){}invoiceCropper=null;}
@@ -3846,7 +3841,7 @@ async function applyInvoiceCrop(){
     canvas.toBlob(async blob=>{
       if(!blob){status.textContent="Crop failed. Try again.";return;}
       closeInvoiceCropper();
-      await processInvoiceScan(blob);
+      processInvoiceScan(blob);
     },"image/jpeg",.94);
   }catch(e){console.warn(e);status.textContent="Crop failed. Try Full Photo.";}
 }
@@ -4122,208 +4117,138 @@ const RTA_ROW_DIAGRAM=[
 ];
 
 async function parseInvoiceOCRValueStrip(file){
-  // Robust RTA OCR: read the receipt as text rows instead of relying on a
-  // fixed image height. This works for gallery photos, camera photos and crops
-  // with different resolutions/aspect ratios.
+  // RTA FIXED-PHYSICAL-ROW OCR v3
+  // The RTA receipt has a stable row order. We anchor the receipt at the
+  // visible "Shift Completed" heading, then read each required field only
+  // from its assigned physical row. Labels are used only as a sanity check;
+  // they are never allowed to move a value from one row to another.
   const img=new Image();
   const url=URL.createObjectURL(file);
   try{
     await new Promise((resolve,reject)=>{
       img.onload=resolve;
-      img.onerror=()=>reject(new Error("Receipt image could not be opened."));
+      img.onerror=()=>reject(new Error('Receipt image could not be opened.'));
       img.src=url;
     });
 
     const W=img.naturalWidth||860, H=img.naturalHeight||2440;
-    const worker=await getInvoiceOCRWorker("11");
+    const worker=await getInvoiceOCRWorker('6');
     const allWords=[];
 
-    // Overlapping passes preserve small receipt text while covering the full image.
-    const chunks=[[0,.42],[.30,.72],[.60,1]];
+    // Use overlapping full-width bands. Coordinates are converted back to the
+    // original image, so the physical row positions remain intact.
+    const chunks=[[0.16,0.40],[0.34,0.58],[0.52,0.76],[0.70,0.94],[0.88,1.00]];
     for(const [a,b] of chunks){
       const y1=Math.max(0,Math.floor(H*a)), y2=Math.min(H,Math.ceil(H*b));
-      const c=document.createElement("canvas");
+      const c=document.createElement('canvas');
       const scale=3;
       c.width=Math.max(1,Math.round(W*scale));
       c.height=Math.max(1,Math.round((y2-y1)*scale));
-      const ctx=c.getContext("2d",{willReadFrequently:true});
+      const ctx=c.getContext('2d',{willReadFrequently:true});
       ctx.imageSmoothingEnabled=true;
-      ctx.imageSmoothingQuality="high";
+      ctx.imageSmoothingQuality='high';
       ctx.drawImage(img,0,y1,W,y2-y1,0,0,c.width,c.height);
+
+      // Mild grayscale/contrast enhancement only. Do not crop horizontally.
       try{
-        const px=ctx.getImageData(0,0,c.width,c.height),d=px.data;
+        const px=ctx.getImageData(0,0,c.width,c.height), d=px.data;
         for(let i=0;i<d.length;i+=4){
           const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
-          const v=Math.max(0,Math.min(255,(g-128)*1.45+128));
+          let v=(g-128)*1.35+128;
+          v=Math.max(0,Math.min(255,v));
           d[i]=d[i+1]=d[i+2]=v;
         }
         ctx.putImageData(px,0,0);
       }catch(e){}
-      await worker.setParameters({tessedit_pageseg_mode:"6",preserve_interword_spaces:"1",user_defined_dpi:"300"});
+
+      await worker.setParameters({
+        tessedit_pageseg_mode:'6',
+        preserve_interword_spaces:'1',
+        user_defined_dpi:'300'
+      });
       const rec=await worker.recognize(c,{}, {blocks:false,paragraphs:false,lines:false,words:true});
       const ws=Array.isArray(rec?.data?.words)?rec.data.words:[];
       for(const w of ws){
-        const text=String(w?.text||"").trim();
+        const text=String(w?.text||'').trim();
         if(!text||!w?.bbox)continue;
-        const left=Number(w.bbox.left||0)/scale;
-        const right=Number(w.bbox.right||0)/scale;
         const top=y1+Number(w.bbox.top||0)/scale;
         const bottom=y1+Number(w.bbox.bottom||0)/scale;
-        allWords.push({text,left,right,top,bottom,cy:(top+bottom)/2,conf:Number(w.confidence??w.conf??0)});
+        const left=Number(w.bbox.left||0)/scale;
+        const right=Number(w.bbox.right||0)/scale;
+        allWords.push({text,top,bottom,left,right,cy:(top+bottom)/2,conf:Number(w.confidence??w.conf??0)});
       }
     }
+
     if(!allWords.length)return blankRTAOCRFields();
 
-    const cleanText=t=>String(t||"").toLowerCase()
-      .replace(/[|]/g,"i")
-      .replace(/[0o]/g,"o")
-      .replace(/[^a-z0-9]+/g," ")
-      .replace(/\s+/g," ").trim();
-    const compact=t=>cleanText(t).replace(/\s+/g,"");
-
-    // Remove duplicate words produced by overlapping OCR passes.
-    const unique=[];
-    const seen=new Set();
-    for(const w of allWords){
-      const key=compact(w.text)+"|"+Math.round(w.left/3)+"|"+Math.round(w.cy/3);
-      if(!seen.has(key)){seen.add(key);unique.push(w);}
+    // Find the physical Y of "Shift Completed". Require Shift and Completed
+    // to be close vertically, preventing the later "Shift ..." rows from
+    // becoming the anchor.
+    const clean=t=>String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim();
+    const shifts=allWords.filter(w=>clean(w.text)==='shift');
+    const completes=allWords.filter(w=>clean(w.text)==='completed');
+    let headingY=null,best=Infinity;
+    for(const a of shifts)for(const b of completes){
+      const d=Math.abs(a.cy-b.cy);
+      if(d<best && d<=H*.018){headingY=(a.cy+b.cy)/2;best=d;}
     }
-
-    // Group words into physical receipt rows. Same-row words have very close Y.
-    const words=unique.sort((a,b)=>a.cy-b.cy||a.left-b.left);
-    const rowGap=Math.max(7,H*.008);
-    const rows=[];
-    for(const w of words){
-      let row=rows[rows.length-1];
-      if(!row || Math.abs(w.cy-row.cy)>rowGap){
-        row={words:[],cy:w.cy};rows.push(row);
-      }
-      row.words.push(w);
-      row.cy=row.words.reduce((sum,x)=>sum+x.cy,0)/row.words.length;
+    if(headingY===null){
+      // On difficult photos Tesseract may read the heading as one token.
+      const h=allWords.find(w=>clean(w.text).includes('shiftcompleted'));
+      if(h)headingY=h.cy;
     }
+    if(headingY===null)return blankRTAOCRFields();
 
-    const labels={
-      creditCard:["credit cards","credit card"],
-      app:["app"], cash:["cash"], tips:["tips","tip"],
-      tolls:["total tollways","total tollway"],
-      shiftDiscount:["shift discount"], shiftTrips:["shift trips","shift trip"],
-      bookings:["bookings","booking"],
-      km:["kilometers hired","kilometer hired","kilometres hired","kilometre hired"],
-      careemDiscount:["careem discount"], paidCareem:["paid in careem"],
-      halaJunior:["hala juniors","hala junior"], halaPeak:["hala peak"], peak:["peak"]
+    // These are the measured row centres from the supplied RTA Shift Summary
+    // layout, normalized to a 2440px reference receipt height.
+    const rowOffsets=[
+      38,84,126,176,207,254,294,336,377,420,460,501,542,583,624,666,708,752,
+      795,838,881,923,964,1004,1042,1075,1119,1150,1192,1232,1275,1322,1365,
+      1408,1451,1502,1552,1598
+    ];
+    const scale=H/2440;
+    const fieldRows={
+      creditCard:2,app:5,cash:8,tips:10,tolls:13,shiftDiscount:16,
+      shiftTrips:18,bookings:20,km:22,careemDiscount:25,paidCareem:26,
+      halaJunior:28,halaPeak:29,peak:30
     };
-    const required=Object.keys(labels);
-    const result=blankRTAOCRFields();
 
-    const numberFromText=t=>{
-      let x=String(t||"").replace(/,/g,"").replace(/[Oo]/g,"0").replace(/[Il|]/g,"1");
-      // Avoid interpreting a stray punctuation mark as a value.
-      const m=x.match(/\d+(?:\.\d+)?/);
+    function numberFromToken(text){
+      let t=String(text||'').replace(/,/g,'').replace(/[Oo]/g,'0').replace(/[Il]/g,'1');
+      // RTA amounts are non-negative; ignore punctuation that belongs to the
+      // separator between label and AED.
+      const m=t.match(/\d+(?:\.\d+)?/);
       if(!m)return null;
       const n=Number(m[0]);
       return Number.isFinite(n)?n:null;
-    };
-
-    // First choice: exact label match within the same physical row. Keep the
-    // matched row so the numeric value can be OCR-read separately from the
-    // right-hand value column. This prevents the label OCR from corrupting
-    // numbers such as 223.50 or 153.79.
-    const matchedRows={};
-    for(const field of required){
-      let best=null;
-      for(const row of rows){
-        const rowText=cleanText(row.words.map(w=>w.text).join(" "));
-        for(const label of labels[field]){
-          const needle=cleanText(label);
-          if(!compact(rowText).includes(compact(needle)))continue;
-          const candidate={cy:row.cy,score:1,row};
-          if(!best)best=candidate;
-        }
-      }
-      if(best){
-        matchedRows[field]=best.row;
-        const direct=row=>row.words
-          .filter(w=>w.left>=W*.42)
-          .map(w=>({n:numberFromText(w.text),x:w.left,conf:w.conf}))
-          .filter(x=>x.n!==null)
-          .sort((a,b)=>b.x-a.x||b.conf-a.conf);
-        const nums=direct(best.row);
-        if(nums.length)result[field]=nums[0].n;
-      }
     }
 
-    // Numeric-only OCR pass. The RTA receipt's amounts are in a dedicated
-    // right-hand column. Reading only that small row band with digits/decimal
-    // characters is substantially more reliable than asking the normal OCR
-    // pass to recognize both English labels and numbers at once.
-    for(const field of required){
-      const row=matchedRows[field];
-      if(!row)continue;
-      try{
-        const sortedRows=rows.slice().sort((a,b)=>a.cy-b.cy);
-        const idx=sortedRows.indexOf(row);
-        const prev=idx>0?sortedRows[idx-1].cy:row.cy-H*.015;
-        const next=idx>=0&&idx<sortedRows.length-1?sortedRows[idx+1].cy:row.cy+H*.015;
-        const half=Math.max(6,Math.min(13,Math.min(row.cy-prev,next-row.cy)*.38));
-        const y1=Math.max(0,Math.floor(row.cy-half));
-        const y2=Math.min(H,Math.ceil(row.cy+half));
-        const x1=Math.floor(W*.48), x2=Math.ceil(W*.97);
-        const c=document.createElement("canvas");
-        const scale=5;
-        c.width=Math.max(1,Math.round((x2-x1)*scale));
-        c.height=Math.max(1,Math.round((y2-y1)*scale));
-        const ctx=c.getContext("2d",{willReadFrequently:true});
-        ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
-        ctx.drawImage(img,x1,y1,x2-x1,y2-y1,0,0,c.width,c.height);
-        try{
-          const px=ctx.getImageData(0,0,c.width,c.height),d=px.data;
-          for(let i=0;i<d.length;i+=4){
-            const g=d[i]*.299+d[i+1]*.587+d[i+2]*.114;
-            const v=Math.max(0,Math.min(255,(g-128)*1.75+128));
-            d[i]=d[i+1]=d[i+2]=v;
-          }
-          ctx.putImageData(px,0,0);
-        }catch(e){}
-        await worker.setParameters({tessedit_pageseg_mode:"7",tessedit_char_whitelist:"0123456789.",preserve_interword_spaces:"0",user_defined_dpi:"300"});
-        const nr=await worker.recognize(c);
-        const raw=String(nr?.data?.text||"").replace(/,/g,"");
-        const matches=raw.match(/\d+(?:\.\d+)?/g)||[];
-        if(matches.length){
-          const nums=matches.map(Number).filter(Number.isFinite);
-          if(nums.length){
-            // Prefer a decimal amount when present; otherwise use the first
-            // integer. For km/trips/bookings the integer is intentional.
-            const decimal=nums.find(n=>String(raw).includes(String(n)+"."));
-            result[field]=decimal!==undefined?decimal:nums[0];
-          }
-        }
-      }catch(e){console.warn("Numeric row OCR skipped",field,e);}
-    }
+    const result=blankRTAOCRFields();
+    for(const [field,rowNo] of Object.entries(fieldRows)){
+      const cy=headingY+rowOffsets[rowNo-1]*scale;
+      const band=Math.max(H*.009,18*scale);
+      const rowWords=allWords.filter(w=>Math.abs(w.cy-cy)<=band);
 
-    // Geometry fallback only for fields whose label was not read. Estimate the
-    // data list from the detected "Shift In Progress/Completed" heading and the
-    // first/last row density, rather than assuming the photo is 2440px tall.
-    const headingCandidates=rows.filter(r=>{
-      const t=compact(r.words.map(w=>w.text).join(" "));
-      return t.includes("shiftinprogress")||t.includes("shiftcompleted");
-    });
-    if(headingCandidates.length){
-      const headingY=headingCandidates[0].cy;
-      const dataRows=rows.filter(r=>r.cy>headingY+H*.005 && r.cy<headingY+H*.42);
-      // The RTA receipt has 38 rows. Use the detected row centres when enough
-      // rows are available; this adapts to the actual crop/photo scale.
-      const rowCenters=dataRows.slice(0,38).map(r=>r.cy);
-      const fieldRows={creditCard:2,app:5,cash:8,tips:10,tolls:13,shiftDiscount:16,shiftTrips:18,bookings:20,km:22,careemDiscount:25,paidCareem:26,halaJunior:28,halaPeak:29,peak:30};
-      for(const [field,rowNo] of Object.entries(fieldRows)){
-        if(result[field]!==0)continue;
-        const target=rowCenters[rowNo-1];
-        if(target==null)continue;
-        const nearest=rows.reduce((best,r)=>!best||Math.abs(r.cy-target)<Math.abs(best.cy-target)?r:best,null);
-        if(nearest){
-          const candidates=nearest.words.map(w=>({n:numberFromText(w.text),x:w.left,conf:w.conf})).filter(x=>x.n!==null && x.x>=W*.42).sort((a,b)=>b.x-a.x||b.conf-a.conf);
-          if(candidates.length)result[field]=candidates[0].n;
-        }
+      // The amount is on the right side of the receipt. Prefer the token with
+      // the highest X coordinate, but only within this row. This prevents the
+      // next row's value from being borrowed.
+      const rightWords=rowWords
+        .filter(w=>w.left>=W*.55)
+        .map(w=>({n:numberFromToken(w.text),x:w.left,cy:w.cy,conf:w.conf}))
+        .filter(x=>x.n!==null);
+      rightWords.sort((a,b)=>b.x-a.x || b.conf-a.conf);
+      if(rightWords.length){
+        result[field]=rightWords[0].n;
+        continue;
       }
+
+      // Fallback: if the number is slightly left of the normal value column,
+      // still keep it inside this exact physical row.
+      const fallback=rowWords
+        .map(w=>({n:numberFromToken(w.text),x:w.left,cy:w.cy,conf:w.conf}))
+        .filter(x=>x.n!==null && x.x>=W*.42)
+        .sort((a,b)=>b.x-a.x || b.conf-a.conf);
+      if(fallback.length)result[field]=fallback[0].n;
     }
     return result;
   }finally{
