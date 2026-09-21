@@ -797,6 +797,9 @@ input:focus{border-color:#ed166a}
   text-align: center !important;
 }
 
+
+/* ===== Admin Panel ===== */
+.admin-page{padding:18px 14px 40px}.admin-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.admin-head h2{margin:0;font-size:22px}.admin-badge{background:#111827;color:#fff;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:900}.admin-toolbar{display:flex;gap:8px;margin-bottom:14px}.admin-toolbar input{flex:1;border:1px solid #e1e4ea;border-radius:12px;padding:11px 12px;font-size:14px}.admin-toolbar button{border:0;border-radius:12px;padding:0 14px;background:#111827;color:#fff;font-weight:800}.admin-user-card{background:#fff;border:1px solid #e7e8ec;border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 4px 12px rgba(0,0,0,.04)}.admin-user-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.admin-user-name{font-weight:900;font-size:16px}.admin-user-id{font-size:12px;color:#737987;margin-top:3px}.admin-status{font-size:10px;font-weight:900;padding:5px 8px;border-radius:999px;background:#eaf7ef;color:#237548}.admin-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;font-size:12px}.admin-meta div{background:#f7f8fa;border-radius:10px;padding:9px}.admin-meta span{display:block;color:#7a7f8b;font-size:10px;margin-bottom:3px}.admin-view-btn{width:100%;border:0;border-radius:11px;padding:11px;background:#f0f1f5;color:#111827;font-weight:900}.admin-empty{text-align:center;color:#7b8190;padding:30px}.admin-modal{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:9999;display:none;align-items:flex-end}.admin-modal.show{display:flex}.admin-modal-box{background:#fff;width:100%;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px}.admin-modal-head{display:flex;justify-content:space-between;gap:10px;align-items:center;position:sticky;top:-18px;background:#fff;padding:4px 0 14px;z-index:2}.admin-modal-head h3{margin:0}.admin-close{border:0;background:#eef0f5;border-radius:10px;padding:8px 11px;font-weight:900}.admin-data-section{margin-top:12px;border:1px solid #e5e7eb;border-radius:13px;padding:12px}.admin-data-section h4{margin:0 0 8px;font-size:13px}.admin-json{white-space:pre-wrap;word-break:break-word;background:#f7f8fa;border-radius:10px;padding:10px;font-size:11px;line-height:1.45;max-height:420px;overflow:auto}@media(min-width:601px){.admin-modal{align-items:center}.admin-modal-box{width:min(760px,94vw);max-height:88vh;border-radius:20px}}
 </style>
 </head>
 <body>
@@ -1200,6 +1203,15 @@ input:focus{border-color:#ed166a}
   </div>
 </section>
 
+
+<section id="adminPage" class="page">
+<div class="admin-page">
+  <div class="admin-head"><h2>Admin Panel</h2><span class="admin-badge">Admin ID: 3116538</span></div>
+  <div class="admin-toolbar"><input id="adminUserSearch" type="search" placeholder="Search name, Driver ID, mobile or email" oninput="filterAdminUsers()"><button type="button" onclick="loadAdminUsers()">Refresh</button></div>
+  <div id="adminUsersList"><div class="admin-empty">Loading users...</div></div>
+</div>
+</section>
+
 <section id="profilePage" class="page">
 <h2 class="profile-page-title">Driver Profile</h2>
 
@@ -1301,6 +1313,14 @@ input:focus{border-color:#ed166a}
   </div>
 </div>
 
+
+<div class="admin-modal" id="adminUserModal" onclick="if(event.target===this)closeAdminUser()">
+  <div class="admin-modal-box">
+    <div class="admin-modal-head"><h3 id="adminModalTitle">User Details</h3><button class="admin-close" type="button" onclick="closeAdminUser()">Close</button></div>
+    <div id="adminModalBody"></div>
+  </div>
+</div>
+
 <div class="rate-setup-popup" id="rateSetupPopup">
   <div class="rate-setup-box">
     <h3 id="rateSetupPopupTitle">Setup Required</h3>
@@ -1320,6 +1340,8 @@ input:focus{border-color:#ed166a}
 <button onclick="showPage('historyPage');toggleMenu()">📋 Invoice History</button>
 <button onclick="showPage('reportsPage');toggleMenu()">📊 Reports</button>
 <button onclick="showPage('profilePage');toggleMenu()">👤 Profile</button>
+<button id="adminMenuButton" style="display:none" onclick="showPage('adminPage');toggleMenu()">🛡️ Admin Panel</button>
+
 <button onclick="logout()">↪ Logout</button>
 </nav>
 </div>
@@ -1350,9 +1372,60 @@ const n=id=>Number(document.getElementById(id)?.value||0);
 const money=v=>(Number(v)||0).toFixed(2);
 const round2=v=>Math.round((Number(v)||0)*100)/100;
 
+const ADMIN_DRIVER_ID="3116538";
+let adminUsersCache=[];
+function isAdminUser(){return !!currentUser && String(driverData?.driverId||"").trim()===ADMIN_DRIVER_ID;}
+function updateAdminMenu(){const b=document.getElementById("adminMenuButton");if(b)b.style.display=isAdminUser()?"block":"none";}
+function adminSafeJson(v){try{return JSON.stringify(v,null,2)}catch(e){return String(v)}}
+window.loadAdminUsers=async()=>{
+  if(!isAdminUser()){alert("Admin access only.");return;}
+  const box=document.getElementById("adminUsersList");
+  if(box)box.innerHTML='<div class="admin-empty">Loading users...</div>';
+  try{
+    const snap=await getDocs(collection(db,"drivers"));
+    const rows=[];
+    for(const d of snap.docs){
+      const data=d.data()||{};
+      let invoiceCount=0;
+      try{invoiceCount=(await getDocs(collection(db,"drivers",d.id,"invoices"))).size;}catch(e){}
+      rows.push({uid:d.id,data,invoiceCount});
+    }
+    rows.sort((a,b)=>String(a.data?.name||"").localeCompare(String(b.data?.name||"")));
+    adminUsersCache=rows;
+    renderAdminUsers(rows);
+  }catch(e){
+    console.error("Admin users load error:",e);
+    if(box)box.innerHTML='<div class="admin-empty">Unable to load users. Firebase permissions may need Admin rules.</div>';
+  }
+};
+window.renderAdminUsers=rows=>{
+  const box=document.getElementById("adminUsersList");if(!box)return;
+  if(!rows.length){box.innerHTML='<div class="admin-empty">No users found.</div>';return;}
+  box.innerHTML=rows.map((u,i)=>{const d=u.data||{};const paid=String(d.subscriptionStatus||"").toLowerCase()==="active";return `<div class="admin-user-card">
+    <div class="admin-user-top"><div><div class="admin-user-name">${String(d.name||"Driver").replace(/[<>]/g,"")}</div><div class="admin-user-id">Driver ID: ${String(d.driverId||"—").replace(/[<>]/g,"")}</div></div><span class="admin-status">${paid?"Active":"Not Paid / Unset"}</span></div>
+    <div class="admin-meta"><div><span>Mobile</span>${String(d.mobile||"—")}</div><div><span>Email</span>${String(d.email||"—")}</div><div><span>Invoices</span>${u.invoiceCount}</div><div><span>UID</span>${u.uid}</div></div>
+    <button class="admin-view-btn" type="button" onclick="viewAdminUser(${i})">View A-Z Data</button>
+  </div>`}).join("");
+};
+window.filterAdminUsers=()=>{const q=String(document.getElementById("adminUserSearch")?.value||"").trim().toLowerCase();renderAdminUsers(!q?adminUsersCache:adminUsersCache.filter(u=>{const d=u.data||{};return [d.name,d.driverId,d.mobile,d.email,u.uid].some(v=>String(v||"").toLowerCase().includes(q));}));};
+window.viewAdminUser=async index=>{
+  if(!isAdminUser())return;
+  const u=adminUsersCache[index];if(!u)return;
+  let invoices=[];try{const s=await getDocs(collection(db,"drivers",u.uid,"invoices"));invoices=s.docs.map(x=>({id:x.id,...x.data()}));}catch(e){invoices=[{error:e.message||"Unable to read invoices"}];}
+  const d=u.data||{};
+  document.getElementById("adminModalTitle").textContent=(d.name||"Driver")+" • "+(d.driverId||u.uid);
+  document.getElementById("adminModalBody").innerHTML=`
+    <div class="admin-data-section"><h4>Account / Driver Data</h4><div class="admin-json">${adminSafeJson(d)}</div></div>
+    <div class="admin-data-section"><h4>Invoices (${invoices.length})</h4><div class="admin-json">${adminSafeJson(invoices)}</div></div>`;
+  document.getElementById("adminUserModal").classList.add("show");
+};
+window.closeAdminUser=()=>document.getElementById("adminUserModal")?.classList.remove("show");
+
+
 window.toggleMenu=()=>document.getElementById("drawer").classList.toggle("open");
 
 window.showPage=pageId=>{
+if(pageId==="adminPage"&&!isAdminUser()){alert("Admin access only.");return;}
 document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
 document.getElementById(pageId).classList.add("active");
 
@@ -1381,6 +1454,7 @@ if(topbar&&leftBtn&&brand&&bell){
   bell.textContent="🔔";
   bell.onclick=null;
 }
+if(pageId==="adminPage")loadAdminUsers();
 if(pageId==="historyPage")renderHistory();
 if(pageId==="reportsPage")renderReports();
 if(pageId==="leavesPage"){try{leaveCalendarMonth=new Date();renderLeaveCalendar();renderLeaveHome();}catch(e){console.error("Leaves render error:",e);}}
@@ -3402,6 +3476,7 @@ currentUser=user;hideAuth();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
+updateAdminMenu();
 document.getElementById("helloText").textContent="Hi, "+(driverData.name||"Driver")+" 👋";
 document.getElementById("profileName").textContent=driverData.name||"—";
 document.getElementById("profileDriverId").textContent=driverData.driverId||"—";
@@ -3416,6 +3491,7 @@ unsubscribeDriver=onSnapshot(ref,driverSnap=>{
   if(!driverSnap.exists())return;
   const fresh=driverSnap.data()||{};
   driverData={...driverData,...fresh};
+  updateAdminMenu();
   savedTargetRecords=Array.isArray(fresh.targetRecords)?fresh.targetRecords.map(r=>({...r})):Object.values(fresh.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
   savedChargeRecords=Object.values(fresh.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
   monthlyCycleRecords={...(fresh.monthlyCycleRecords||{})};
