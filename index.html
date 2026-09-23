@@ -783,17 +783,6 @@ input:focus{border-color:#ed166a}
 .report-cycle-detail{background:#fff;border:1px solid #e3e6ec;border-radius:17px;margin:10px 0;padding:12px;box-shadow:0 3px 10px rgba(20,25,45,.04)}.report-cycle-detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:1px solid #edf0f4;padding-bottom:10px;margin-bottom:10px}.report-cycle-label{display:inline-block;background:#eef2ff;color:#3155c8;border-radius:8px;padding:4px 7px;font-size:9px;font-weight:950}.report-cycle-detail-head h3{font-size:14px;margin:5px 0 0}.report-cycle-salary{text-align:right}.report-cycle-salary small{display:block;color:#888;font-size:9px}.report-cycle-salary strong{font-size:16px}
 .report-mini-table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid #e7e9ee;border-radius:12px;overflow:hidden}.report-mini-table th,.report-mini-table td{padding:8px 6px;border-top:1px solid #edf0f4;font-size:9px}.report-mini-table tr:first-child th,.report-mini-table tr:first-child td{border-top:0}.report-mini-table th{background:#f7f8fa;color:#7b7f8a;text-align:left}.report-mini-table td{text-align:right;font-weight:900;white-space:nowrap}.report-detail-label{font-size:10px;font-weight:950;margin:12px 1px 7px}.report-invoice-wrap{overflow-x:auto}.report-invoice-table{width:100%;min-width:560px;border-collapse:collapse}.report-invoice-table th{background:#f4f5f8;color:#777b86;font-size:8px;padding:7px;text-align:right;white-space:nowrap}.report-invoice-table th:first-child,.report-invoice-table td:first-child{text-align:left}.report-invoice-table td{padding:7px 6px;border-top:1px solid #eef0f4;font-size:9px;font-weight:800;text-align:right;white-space:nowrap}
 @media(max-width:600px){.report-overview-table{border-radius:17px;padding:12px}.report-overview-title h3{font-size:16px}.report-overview-salary strong{font-size:17px}.report-summary-table{min-width:590px}.report-cycle-detail{padding:10px}.report-mini-table th,.report-mini-table td{font-size:8.5px;padding:7px 5px}}
-@media(max-width:600px){
-  /* Daily report: keep print as a real table, but show the screen view as a mobile card. */
-  .report-daily-summary-wrap{overflow:visible}
-  .report-daily-summary-table{min-width:0!important;width:100%;display:block;border-radius:14px}
-  .report-daily-summary-table thead{display:none}
-  .report-daily-summary-table tbody,.report-daily-summary-table tr{display:block;width:100%}
-  .report-daily-summary-table tbody tr{padding:4px 0}
-  .report-daily-summary-table td{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 10px!important;font-size:11px!important;white-space:normal!important;text-align:right!important}
-  .report-daily-summary-table td::before{content:attr(data-label);text-align:left;font-weight:900;color:#737783}
-  .report-daily-summary-table td:first-child{text-align:right!important}
-}
 @media print{body{background:#fff!important}.report-ledger-menu,.report-print,.report-control-row,.back,.topbar,.bottom-nav,.quick-actions,button{display:none!important}.page{display:none!important}.page#reportsPage{display:block!important}.report-workspace{display:block!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}.report-workspace-head{border-bottom:2px solid #111;margin-bottom:10px}.report-overview-table{break-inside:avoid;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.report-summary-table,.report-mini-table,.report-invoice-table{page-break-inside:auto}.report-cycle-detail,.report-detail-block{break-inside:avoid}.report-table-scroll,.report-invoice-wrap{overflow:visible!important}.report-summary-table{min-width:0!important}.report-invoice-table{min-width:0!important;width:100%!important}.report-summary-table th,.report-summary-table td,.report-invoice-table th,.report-invoice-table td{font-size:8px;padding:5px}.report-cycle-detail{box-shadow:none!important}}
 
 /* Reports: clean ledger tables */
@@ -2420,28 +2409,18 @@ function getReportCycleStats(range,cycleNumber){
 function getReportForMonth(monthKey){
   const cycle=getReportCycleForMonth(monthKey);
   if(!cycle)return {month:monthKey,cycles:[],totalSale:0,netSale:0,salary:0,workDays:0,deductions:0,invoices:0};
-  const cycleType=Number(cycle.setup?.cycleType||1);
-  // Cycle 1 has one range. Cycle 2 has two ranges, so Reports must keep
-  // both ranges separate and display their real names as C2(1) and C2(2).
   const cycles=[getReportCycleStats({start:cycle.cycle1Start,end:cycle.cycle1End},1)];
-  cycles[0].cycleLabel=cycleType===2?'C2(1)':'C1';
-  if(cycle.cycle2Start&&cycle.cycle2End){
-    const second=getReportCycleStats({start:cycle.cycle2Start,end:cycle.cycle2End},2);
-    second.cycleLabel=cycleType===2?'C2(2)':'C2(2)';
-    cycles.push(second);
-  }
+  if(cycle.cycle2Start&&cycle.cycle2End)cycles.push(getReportCycleStats({start:cycle.cycle2Start,end:cycle.cycle2End},2));
   return {month:monthKey,cycles,totalSale:cycles.reduce((s,c)=>s+c.totalSale,0),netSale:cycles.reduce((s,c)=>s+c.netSale,0),salary:cycles.reduce((s,c)=>s+c.salary,0),workDays:cycles.reduce((s,c)=>s+c.workDays,0),deductions:cycles.reduce((s,c)=>s+c.deductions,0),invoices:cycles.reduce((s,c)=>s+c.invoices,0)};
 }
-function reportCommissionAverage(cycles){
+function reportCommissionText(cycles){
+  // Summary/Total commission is the arithmetic average of the cycle
+  // commission percentages. Each cycle still keeps its own percentage
+  // in the month/year detail below.
   const cs=(cycles||[]).filter(c=>Number(c.invoices)||Number(c.netSale)||Number(c.salary)||Number(c.target));
   if(!cs.length)return '—';
   const avg=cs.reduce((sum,c)=>sum+(Number(c.target)||0),0)/cs.length;
   return `${money(avg)}%`;
-}
-function reportCommissionText(cycles){
-  const cs=(cycles||[]).filter(c=>Number(c.invoices)||Number(c.netSale)||Number(c.salary)||Number(c.target));
-  if(!cs.length)return '—';
-  return cs.length===1?`${money(cs[0].target)}%`:cs.map(c=>`${c.cycleLabel||('C'+c.cycle)}: ${money(c.target)}%`).join(' · ');
 }
 function reportInvoiceFieldTotals(rows){
   const fields=[
@@ -2470,12 +2449,13 @@ function reportInvoiceTable(rows){
   return `<div class="report-invoice-wrap"><table class="report-invoice-table"><thead><tr><th>No.</th><th>Date</th><th>Invoice</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td>${historyEscape(x.date||invoiceDateKey(x)||'—')}</td><td>${historyEscape(x.invoiceNumber||'—')}</td><td>${money(x.total)} AED</td><td>${money(x.deductions)} AED</td><td>${money(x.net)} AED</td></tr>`).join('')}</tbody></table></div>`;
 }
 function reportCycleDetail(c){
-  return `<section class="report-cycle-detail"><div class="report-cycle-detail-head"><div><span class="report-cycle-label">Cycle ${c.cycle}</span><h3>${c.start} → ${c.end}</h3></div><div class="report-cycle-salary"><small>Salary</small><strong>${money(c.salary)} AED</strong></div></div>${reportMetricTable(c)}${reportFieldTotalsTable(c.rows,`Cycle ${c.cycle} · Invoice Totals`)}<div class="report-detail-label">Invoice Ledger · ${c.invoices} invoice${c.invoices===1?'':'s'}</div>${reportInvoiceTable(c.rows)}</section>`;
+  const cycleName=`C${c.cycle}`;
+  return `<section class="report-cycle-detail"><div class="report-cycle-detail-head"><div><span class="report-cycle-label">${cycleName}</span><h3>${c.start} → ${c.end}</h3></div><div class="report-cycle-salary"><small>Salary</small><strong>${money(c.salary)} AED</strong></div></div>${reportMetricTable(c)}${reportFieldTotalsTable(c.rows,`${cycleName} · Invoice Totals`)}<div class="report-detail-label">Invoice Ledger · ${c.invoices} invoice${c.invoices===1?'':'s'}</div>${reportInvoiceTable(c.rows)}</section>`;
 }
 function reportMonthDetail(r){
   if(!r||!r.cycles.length)return '';
   const allRows=r.cycles.flatMap(c=>c.rows||[]);
-  return `<div class="report-detail-block"><div class="report-detail-heading"><div><small>MONTH DETAIL</small><h3>${reportMonthName(Number(r.month.slice(5,7)))} ${r.month.slice(0,4)}</h3></div><div class="report-detail-total"><small>Combined Salary</small><strong>${money(r.salary)} AED</strong></div></div><table class="report-summary-table"><thead><tr><th>Cycle / Range</th><th>Working Days</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${r.cycles.map(c=>`<tr><td>${c.cycleLabel||('C'+c.cycle)}<div class="report-ledger-sub">${c.start} → ${c.end}</div></td><td>${c.workDays}</td><td>${money(c.netSale)} AED</td><td>${money(c.target)}%</td><td>${money(c.salary)} AED</td></tr>`).join('')}<tr class="ledger-total"><td>Combined</td><td>${r.workDays}</td><td>${money(r.netSale)} AED</td><td>${reportCommissionAverage(r.cycles)}</td><td>${money(r.salary)} AED</td></tr></tbody></table>${reportFieldTotalsTable(allRows,`${reportMonthName(Number(r.month.slice(5,7)))} · Full Invoice Totals`)}${r.cycles.map(reportCycleDetail).join('')}</div>`;
+  return `<div class="report-detail-block"><div class="report-detail-heading"><div><small>MONTH DETAIL</small><h3>${reportMonthName(Number(r.month.slice(5,7)))} ${r.month.slice(0,4)}</h3></div><div class="report-detail-total"><small>Combined Salary</small><strong>${money(r.salary)} AED</strong></div></div><table class="report-summary-table"><thead><tr><th>Cycle</th><th>Working Days</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${r.cycles.map(c=>`<tr><td>C${c.cycle}<div class="report-ledger-sub">${c.start} → ${c.end}</div></td><td>${c.workDays}</td><td>${money(c.netSale)} AED</td><td>${money(c.target)}%</td><td>${money(c.salary)} AED</td></tr>`).join('')}<tr class="ledger-total"><td>Combined</td><td>${r.workDays}</td><td>${money(r.netSale)} AED</td><td>${reportCommissionText(r.cycles)}</td><td>${money(r.salary)} AED</td></tr></tbody></table>${reportFieldTotalsTable(allRows,`${reportMonthName(Number(r.month.slice(5,7)))} · Full Invoice Totals`)}${r.cycles.map(reportCycleDetail).join('')}</div>`;
 }
 function reportYearMonthRows(reports){
   return reports.map(r=>`<tr class="${r.cycles.length?'ledger-link':''}" ${r.cycles.length?`onclick="window.setReportMonth('${r.month}')"`:''}><td><b>${reportMonthName(Number(r.month.slice(5,7)))}</b>${r.cycles.length?`<div class="report-ledger-sub">${r.cycles.length} cycle${r.cycles.length>1?'s':''} · click for detail</div>`:''}</td><td>${r.workDays}</td><td>${money(r.totalSale)} AED</td><td>${money(r.deductions)} AED</td><td>${money(r.netSale)} AED</td><td>${reportCommissionText(r.cycles)}</td><td>${money(r.salary)} AED</td></tr>`).join('');
@@ -2500,7 +2480,7 @@ function renderDailyReport(){
  }
  if(!cycleStat){details.innerHTML=`<div class="report-detail-empty">No invoice data for ${reportDailyDate}.</div>`;return;}
  const t=reportInvoiceFieldTotals(rows);
- details.innerHTML=`<div class="report-table-scroll report-daily-summary-wrap"><table class="report-summary-table report-daily-summary-table"><thead><tr><th>Date</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody><tr><td data-label="Date">${reportDailyDate}</td><td data-label="Working Days">${cycleStat.workDays}</td><td data-label="Total Amount">${money(t.total.value)} AED</td><td data-label="Deductions">${money(t.deductions.value)} AED</td><td data-label="Net Amount">${money(t.net.value)} AED</td><td data-label="Commission %">${money(cycleStat.target)}%</td><td data-label="Salary">${money(cycleStat.salary)} AED</td></tr></tbody></table></div>${reportFieldTotalsTable(rows,'Daily Invoice Totals')}${reportCycleDetail(cycleStat)}`;
+ details.innerHTML=`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Date</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody><tr><td>${reportDailyDate}</td><td>${cycleStat.workDays}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${money(cycleStat.target)}%</td><td>${money(cycleStat.salary)} AED</td></tr></tbody></table></div>${reportFieldTotalsTable(rows,'Daily Invoice Totals')}${reportCycleDetail(cycleStat)}`;
 }
 function renderMonthlyReport(){
  const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');
@@ -2510,7 +2490,7 @@ function renderMonthlyReport(){
  const activeReports=reports.filter(r=>r.cycles.length);
  const totalRows=activeReports.flatMap(r=>r.cycles.flatMap(c=>c.rows||[]));
  const t=reportInvoiceFieldTotals(totalRows);
- const table=reports.length?`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Month</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${reportYearMonthRows(reports)}<tr class="ledger-grand-total"><td>Total ${reportYear}</td><td>${activeReports.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionAverage(activeReports.flatMap(r=>r.cycles))}</td><td>${money(activeReports.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`:'';
+ const table=reports.length?`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Month</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${reportYearMonthRows(reports)}<tr class="ledger-grand-total"><td>Total ${reportYear}</td><td>${activeReports.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionText(activeReports.flatMap(r=>r.cycles))}</td><td>${money(activeReports.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`:'';
  const selected=reportSelectedMonth?reports.find(r=>r.month===reportSelectedMonth):null;
  details.innerHTML=table+(selected?reportMonthDetail(selected):'');
 }
@@ -2520,7 +2500,7 @@ function renderYearlyReport(){
  controls.innerHTML=`<div class="report-control-row"><div><label for="reportYear">Year</label><select id="reportYear" onchange="window.setReportYear(this.value)">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div></div>`;
  const reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(reportYear,i+1)));
  const activeReports=reports.filter(r=>r.cycles.length), allRows=activeReports.flatMap(r=>r.cycles.flatMap(c=>c.rows||[])),t=reportInvoiceFieldTotals(allRows),cycles=activeReports.flatMap(r=>r.cycles);
- const table=`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Month</th><th>Cycles</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${reports.map(r=>`<tr class="${r.cycles.length?'ledger-link':''}" ${r.cycles.length?`onclick="window.setReportMonth('${r.month}')"`:''}><td>${reportMonthName(Number(r.month.slice(5,7)))}${r.cycles.length?`<div class="report-ledger-sub">click for Cycle detail</div>`:''}</td><td>${r.cycles.length}</td><td>${r.workDays}</td><td>${money(r.cycles.flatMap(c=>c.rows||[]).reduce((s,x)=>s+(Number(x.total)||0),0))} AED</td><td>${money(r.deductions)} AED</td><td>${money(r.netSale)} AED</td><td>${reportCommissionText(r.cycles)}</td><td>${money(r.salary)} AED</td></tr>`).join('')}<tr class="ledger-grand-total"><td>Total ${reportYear}</td><td>${cycles.length}</td><td>${activeReports.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionAverage(cycles)}</td><td>${money(activeReports.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`;
+ const table=`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Month</th><th>Cycles</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${reports.map(r=>`<tr class="${r.cycles.length?'ledger-link':''}" ${r.cycles.length?`onclick="window.setReportMonth('${r.month}')"`:''}><td>${reportMonthName(Number(r.month.slice(5,7)))}${r.cycles.length?`<div class="report-ledger-sub">click for Cycle detail</div>`:''}</td><td>${r.cycles.length}</td><td>${r.workDays}</td><td>${money(r.cycles.flatMap(c=>c.rows||[]).reduce((s,x)=>s+(Number(x.total)||0),0))} AED</td><td>${money(r.deductions)} AED</td><td>${money(r.netSale)} AED</td><td>${reportCommissionText(r.cycles)}</td><td>${money(r.salary)} AED</td></tr>`).join('')}<tr class="ledger-grand-total"><td>Total ${reportYear}</td><td>${cycles.length}</td><td>${activeReports.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionText(cycles)}</td><td>${money(activeReports.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`;
  const selected=reportSelectedMonth?reports.find(r=>r.month===reportSelectedMonth):null;
  details.innerHTML=table+(selected?reportMonthDetail(selected):'');
 }
@@ -2528,7 +2508,7 @@ function renderOverallReport(){
  const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');controls.innerHTML='';
  const years=getReportYears(),all=years.flatMap(y=>Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(y,i+1))).filter(r=>r.cycles.length));
  const allRows=all.flatMap(r=>r.cycles.flatMap(c=>c.rows||[])),t=reportInvoiceFieldTotals(allRows),cycles=all.flatMap(r=>r.cycles);
- const table=`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Year</th><th>Months</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${years.map(y=>{const rs=all.filter(r=>r.month.startsWith(y+'-'));if(!rs.length)return '';const rr=rs.flatMap(r=>r.cycles.flatMap(c=>c.rows||[])),tt=reportInvoiceFieldTotals(rr),cs=rs.flatMap(r=>r.cycles);return `<tr class="ledger-link" onclick="window.setReportYear('${y}')"><td>${y}</td><td>${rs.length}</td><td>${rs.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(tt.total.value)} AED</td><td>${money(tt.deductions.value)} AED</td><td>${money(tt.net.value)} AED</td><td>${reportCommissionText(cs)}</td><td>${money(rs.reduce((s,r)=>s+r.salary,0))} AED</td></tr>`}).join('')}<tr class="ledger-grand-total"><td>Overall Total</td><td>${all.length}</td><td>${all.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionAverage(cycles)}</td><td>${money(all.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`;
+ const table=`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Year</th><th>Months</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${years.map(y=>{const rs=all.filter(r=>r.month.startsWith(y+'-'));if(!rs.length)return '';const rr=rs.flatMap(r=>r.cycles.flatMap(c=>c.rows||[])),tt=reportInvoiceFieldTotals(rr),cs=rs.flatMap(r=>r.cycles);return `<tr class="ledger-link" onclick="window.setReportYear('${y}')"><td>${y}</td><td>${rs.length}</td><td>${rs.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(tt.total.value)} AED</td><td>${money(tt.deductions.value)} AED</td><td>${money(tt.net.value)} AED</td><td>${reportCommissionText(cs)}</td><td>${money(rs.reduce((s,r)=>s+r.salary,0))} AED</td></tr>`}).join('')}<tr class="ledger-grand-total"><td>Overall Total</td><td>${all.length}</td><td>${all.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionText(cycles)}</td><td>${money(all.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`;
  details.innerHTML=table+(reportSelectedMonth?(()=>{const r=all.find(x=>x.month===reportSelectedMonth);return r?reportMonthDetail(r):''})():'');
 }
 function renderReports(){
