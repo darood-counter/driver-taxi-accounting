@@ -2566,15 +2566,20 @@ function renderDailyReport(){
 }
 function renderMonthlyReport(){
  const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');
- const years=getReportYears();reportYear=years.includes(reportYear)?reportYear:(years[0]||new Date().getFullYear());
- controls.innerHTML=`<div class="report-control-row"><div><label for="reportYear">Year</label><select id="reportYear" onchange="window.setReportYear(this.value)">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div></div>`;
+ const years=getReportYears();
+ reportYear=years.includes(reportYear)?reportYear:(years[0]||new Date().getFullYear());
  const reports=Array.from({length:12},(_,i)=>getReportForMonth(reportMonthKey(reportYear,i+1)));
  const activeReports=reports.filter(r=>r.cycles.length);
- const totalRows=activeReports.flatMap(r=>r.cycles.flatMap(c=>c.rows||[]));
- const t=reportInvoiceFieldTotals(totalRows);
- const table=reports.length?`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Month</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${reportYearMonthRows(reports)}<tr class="ledger-grand-total"><td>Total ${reportYear}</td><td>${activeReports.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionAverageText(activeReports.flatMap(r=>r.cycles))}</td><td>${money(activeReports.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`:'';
- const selected=reportSelectedMonth?reports.find(r=>r.month===reportSelectedMonth):null;
- details.innerHTML=table+(selected?reportMonthDetail(selected):'');
+ const currentMonth=reportMonthKey(new Date().getFullYear(),new Date().getMonth()+1);
+ if(!reportSelectedMonth || !reports.some(r=>r.month===reportSelectedMonth)){
+   reportSelectedMonth=(reportYear===new Date().getFullYear() && reports.some(r=>r.month===currentMonth && r.cycles.length))
+     ? currentMonth
+     : (activeReports[0]?.month || reports[0]?.month || reportMonthKey(reportYear,1));
+ }
+ const monthOptions=reports.map(r=>`<option value="${r.month}"${r.month===reportSelectedMonth?' selected':''}>${reportMonthName(Number(r.month.slice(5)))}</option>`).join('');
+ controls.innerHTML=`<div class="report-control-row"><div><label for="reportYear">Year</label><select id="reportYear" onchange="window.setReportYear(this.value)">${years.map(y=>`<option value="${y}"${y===reportYear?' selected':''}>${y}</option>`).join('')}</select></div><div><label for="reportMonth">Month</label><select id="reportMonth" onchange="window.setReportMonth(this.value)">${monthOptions}</select></div></div>`;
+ const selected=reports.find(r=>r.month===reportSelectedMonth);
+ details.innerHTML=selected?reportMonthDetail(selected):'<div class="report-empty">No data available for this month.</div>';
 }
 function renderYearlyReport(){
  const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');
