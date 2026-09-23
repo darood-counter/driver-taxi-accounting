@@ -500,7 +500,7 @@ input:focus{border-color:#ed166a}
 .invoice-field label{flex:0 0 44%;margin:0;font-size:12px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .invoice-field input{flex:1;min-width:0;width:56%;box-sizing:border-box;min-height:40px;padding:8px 7px;font-size:13px}
 .saved-invoice-title{font-size:20px;font-weight:900;margin:18px 0 10px}
-.saved-invoice-table-wrap{width:100%;max-height:760px;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.07);border:1px solid #e9ebf0}
+.saved-invoice-table-wrap{width:100%;max-height:285px;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.07);border:1px solid #e9ebf0}
 .saved-invoice-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;font-size:12px;white-space:nowrap}
 .saved-invoice-table th{position:sticky;top:0;background:#f4f6fa;color:#4b5060;font-weight:900;padding:11px 9px;border-bottom:1px solid #e1e4ea;text-align:center}
 .saved-invoice-table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:center;font-weight:650}
@@ -806,6 +806,11 @@ input:focus{border-color:#ed166a}
 .ledger-grand-total td{font-weight:900;border-top:2px solid #111;background:#f3f4f6}
 .report-detail-block{margin-top:14px}
 @media print{.report-ledger-tab,.report-control-row,.report-print{display:none!important}.report-workspace{box-shadow:none!important;border:0!important}.report-table-scroll{overflow:visible!important}.report-summary-table,.report-invoice-table{font-size:10px!important}}
+
+.invoice-confirm-toast{position:fixed;top:78px;left:50%;transform:translate(-50%,-12px);background:#137333;color:#fff;padding:12px 20px;border-radius:14px;font-size:14px;font-weight:900;box-shadow:0 10px 28px rgba(0,0,0,.2);opacity:0;pointer-events:none;z-index:9999;transition:all .25s ease;white-space:nowrap}
+.invoice-confirm-toast.show{opacity:1;transform:translate(-50%,0)}
+#saveInvoiceBtn:disabled{opacity:.65;cursor:not-allowed}
+@media(max-width:600px){.invoice-confirm-toast{top:68px;max-width:calc(100% - 28px);font-size:13px;text-align:center;white-space:normal}}
 
 /* Invoice data-entry fields: center entered values */
 #invoicePage .invoice-field input {
@@ -1415,7 +1420,7 @@ const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
 const functions=getFunctions(appFirebase);
-let currentUser=null,driverData={},invoices=[],editingId=null,editingInvoiceReturnPage="invoicePage",unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="",cycleCompletionRecords={};
+let currentUser=null,driverData={},invoices=[],editingId=null,editingInvoiceReturnPage="invoicePage",unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let invoiceSaveBusy=false;let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="",cycleCompletionRecords={};
 let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
@@ -2079,7 +2084,17 @@ function validateInvoiceSetups(date){
   return "";
 }
 
+function showInvoiceConfirmation(message){
+  let toast=document.getElementById("invoiceConfirmToast");
+  if(!toast){toast=document.createElement("div");toast.id="invoiceConfirmToast";toast.className="invoice-confirm-toast";document.body.appendChild(toast);}
+  toast.textContent="✓ "+message;
+  toast.classList.add("show");
+  clearTimeout(window.__invoiceConfirmTimer);
+  window.__invoiceConfirmTimer=setTimeout(()=>toast.classList.remove("show"),2600);
+}
+
 window.saveInvoice=async()=>{
+if(invoiceSaveBusy)return;
 if(!requireActiveSubscription())return;
 if(!currentUser){alert("Please login first.");return}
 const date=document.getElementById("invDate").value;
@@ -2093,6 +2108,9 @@ if(setupError){
 }
 const data={date};
 ids.forEach(id=>data[id]=n(id));
+const saveBtn=document.getElementById("saveInvoiceBtn");
+invoiceSaveBusy=true;
+if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.originalText=saveBtn.textContent;saveBtn.textContent="Saving...";}
 
 // Do not save a completely empty invoice. At least one invoice data field
 // must contain a value greater than zero.
@@ -2125,7 +2143,8 @@ data.total=total;data.deductions=deductions;data.net=net;data.updatedAt=serverTi
 try{
 if(editingId){
 await updateDoc(doc(db,"drivers",currentUser.uid,"invoices",editingId),data);
-document.getElementById("invoiceStatus").textContent="Invoice updated successfully.";
+showInvoiceConfirmation("Invoice updated successfully.");
+ document.getElementById("invoiceStatus").textContent="Invoice updated successfully.";
 editingId=null;
 document.getElementById("saveInvoiceBtn").textContent="Save Invoice";
 const invoiceTitleEl=document.getElementById("invoiceTitle"); if(invoiceTitleEl) invoiceTitleEl.textContent="New Invoice";
@@ -2157,10 +2176,16 @@ const invoiceTitleEl=document.getElementById("invoiceTitle"); if(invoiceTitleEl)
   data.invoiceNumber=`INV-${String(nextSerial).padStart(4,"0")}`;
   data.createdAt=serverTimestamp();
   await addDoc(collection(db,"drivers",currentUser.uid,"invoices"),data);
+  showInvoiceConfirmation("Invoice saved successfully.");
   document.getElementById("invoiceStatus").textContent="Invoice saved successfully.";
 }
 clearInvoice();
 }catch(e){console.error(e);document.getElementById("invoiceStatus").textContent="Error: "+e.message}
+finally{
+  invoiceSaveBusy=false;
+  const btn=document.getElementById("saveInvoiceBtn");
+  if(btn){btn.disabled=false;btn.textContent=editingId?"Update Invoice":"Save Invoice";}
+}
 };
 
 function clearInvoice(){
@@ -2297,7 +2322,10 @@ window.printInvoice=id=>{
   const w=window.open("","_blank","width=900,height=1000");
   if(!w){alert("Please allow pop-ups to print the invoice.");return;}
   w.document.open();w.document.write(html);w.document.close();
-   setTimeout(()=>{try{w.focus();w.print();}catch(e){console.error("Invoice print error:",e);}},600);
+  let printStarted=false;
+  const startPrint=()=>{if(printStarted||w.closed)return;printStarted=true;try{w.focus();setTimeout(()=>{try{w.print();}catch(e){console.error("Invoice print error:",e);}},150);}catch(e){console.error("Invoice print focus error:",e);}};
+  if(w.document.readyState==="complete") startPrint(); else w.onload=startPrint;
+  setTimeout(startPrint,1200);
 };
 
 function renderSavedInvoices(){
