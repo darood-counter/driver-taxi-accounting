@@ -2125,6 +2125,8 @@ if(invoiceDataTotal<=0){
   const msg="Please pehle data fields mein data enter karein.";
   showRateSetupPopup(msg,"Data Required");
   document.getElementById("invoiceStatus").textContent=msg;
+  invoiceSaveBusy=false;
+  if(saveBtn){saveBtn.disabled=false;saveBtn.textContent="Save Invoice";}
   return;
 }
 
@@ -2185,7 +2187,13 @@ const invoiceTitleEl=document.getElementById("invoiceTitle"); if(invoiceTitleEl)
   showInvoiceConfirmation("Invoice saved successfully.");
   document.getElementById("invoiceStatus").textContent="Invoice saved successfully.";
 }
+// Always reset the form into a fresh New Invoice state after a successful save.
 clearInvoice();
+editingId=null;
+const freshSaveBtn=document.getElementById("saveInvoiceBtn");
+if(freshSaveBtn){freshSaveBtn.disabled=false;freshSaveBtn.textContent="Save Invoice";}
+const freshTitle=document.getElementById("invoiceTitle");
+if(freshTitle) freshTitle.textContent="New Invoice";
 }catch(e){console.error(e);document.getElementById("invoiceStatus").textContent="Error: "+e.message}
 finally{
   invoiceSaveBusy=false;
