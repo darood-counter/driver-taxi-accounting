@@ -2612,10 +2612,24 @@ window.setReportMonth=setReportMonth;
 window.renderReports=renderReports;
 window.printReports=printReports;
 function printReports(){
-  if(!reportMode)return;
+  if(!reportMode){alert("Pehle Daily, Monthly ya Yearly report select karein.");return;}
   renderReports();
-  const start=()=>{try{window.focus();window.print()}catch(e){console.error('Report print error:',e)}};
-  setTimeout(start,500);
+  const source=document.getElementById("reportsPage");
+  if(!source){alert("Report print ke liye nahi mil rahi.");return;}
+  const clone=source.cloneNode(true);
+  clone.querySelectorAll(".report-print,.report-mode-tabs,.report-control-row,button").forEach(el=>el.remove());
+  const styles=[...document.querySelectorAll("style")].map(x=>x.outerHTML).join("\n");
+  const w=window.open("","_blank","width=1000,height=900");
+  if(!w){alert("Print ke liye browser mein pop-up allow karein.");return;}
+  w.document.open();
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${(document.getElementById("reportTitle")?.textContent||"Report")}</title>${styles}<style>
+    @media print{body{background:#fff!important}.page{display:block!important}.report-workspace{display:block!important;box-shadow:none!important;border:0!important;margin:0!important}.report-table-scroll{overflow:visible!important;max-height:none!important}.report-summary-table,.report-invoice-table{min-width:0!important;width:100%!important}.report-print,.report-mode-tabs,.report-control-row,button{display:none!important}}
+    body{background:#fff!important;margin:0;padding:20px}.page{display:block!important}.report-workspace{box-shadow:none!important}
+  </style></head><body>${clone.innerHTML}</body></html>`);
+  w.document.close();
+  const doPrint=()=>{try{w.focus();w.print()}catch(e){console.error("Report print error:",e)}};
+  if(w.document.readyState==="complete") setTimeout(doPrint,250); else w.onload=()=>setTimeout(doPrint,250);
+  setTimeout(doPrint,1500);
 }
 
 function renderHistory(){
