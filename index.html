@@ -61,6 +61,8 @@ main{padding:0 22px}
 .quick span{display:block;font-size:27px;margin-bottom:9px}
 .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .summary{background:#fff;border-radius:20px;padding:18px}.summary small{display:block;color:#737783;margin-bottom:8px}.summary strong{font-size:25px}
+.commission-forecast{margin-top:18px}.commission-forecast-title{font-size:20px;font-weight:800;margin:0 0 10px}.commission-forecast-subtitle{font-size:12px;color:#737783;margin:0 0 12px}.commission-forecast-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.commission-forecast-card{background:#fff;border-radius:18px;padding:15px;box-shadow:0 4px 14px rgba(0,0,0,.05);border:1px solid rgba(0,0,0,.04);min-width:0}.commission-forecast-card.current{border:2px solid #ed166a}.commission-forecast-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}.commission-forecast-pct{font-size:20px;font-weight:900}.commission-forecast-badge{font-size:10px;font-weight:800;border-radius:999px;padding:4px 7px;background:#f1f3f6;color:#606572;white-space:nowrap}.commission-forecast-card.current .commission-forecast-badge{background:#fde7ef;color:#d81763}.commission-forecast-amount{font-size:24px;font-weight:900;line-height:1.1;margin:5px 0}.commission-forecast-label{font-size:11px;color:#737783;line-height:1.35}.commission-forecast-empty{background:#fff;border-radius:18px;padding:15px;color:#737783;font-size:13px}.commission-forecast-note{font-size:10px;color:#8a8e99;margin-top:9px}
+@media(max-width:600px){.commission-forecast{margin-top:15px}.commission-forecast-title{font-size:18px}.commission-forecast-grid{grid-template-columns:1fr;gap:8px}.commission-forecast-card{padding:13px 14px;border-radius:16px}.commission-forecast-top{margin-bottom:5px}.commission-forecast-pct{font-size:18px}.commission-forecast-amount{font-size:22px}.commission-forecast-label{font-size:10.5px}.commission-forecast-note{font-size:9.5px}}
 .drawer{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:20}.drawer.open{display:block}
 .menu{width:82%;max-width:360px;height:100%;background:#fff;padding:30px 22px;border-radius:0 28px 28px 0}
 .menu h2{margin:0 0 16px;font-size:27px}.menu button{width:100%;text-align:left;border:0;background:transparent;padding:16px 8px;font-size:18px;border-radius:12px;cursor:pointer}
@@ -913,6 +915,11 @@ input:focus{border-color:#ed166a}
 <div class="summary"><small>Net Amount</small><strong id="sumNet">0 AED</strong></div>
 <div class="summary"><small>Days Work</small><strong id="sumDaysWork">0</strong></div>
 <div class="summary"><small>Days Remaining</small><strong id="sumDaysRemaining">0</strong></div>
+</div>
+<div class="commission-forecast" id="commissionForecastSection">
+  <h2 class="commission-forecast-title">Collections Forecast</h2>
+  <p class="commission-forecast-subtitle">Current commission aur aglay 2 commission levels tak pohanchne ke liye daily required collection.</p>
+  <div class="commission-forecast-grid" id="commissionForecastGrid"></div>
 </div>
 </section>
 
@@ -3492,6 +3499,58 @@ function getTargetPercentForDailyAverage(dailyAvg,dateKey){
   return matched;
 }
 
+function renderCommissionForecast(total,dayStats,dailyAvg,dateKey){
+  const box=document.getElementById("commissionForecastGrid");
+  if(!box)return;
+  const target=getTargetSetupForDate(dateKey);
+  if(!target){
+    box.innerHTML='<div class="commission-forecast-empty">Target Setup ka data available nahi hai.</div>';
+    return;
+  }
+  const amounts=Array.isArray(target.amounts)?target.amounts:[];
+  const percentages=Array.isArray(target.percentages)?target.percentages:TARGET_PERCENTAGES;
+  const currentPct=getTargetPercentForDailyAverage(dailyAvg,dateKey);
+  const currentIndex=percentages.findIndex(p=>Number(p)===Number(currentPct));
+  const valid=[];
+  percentages.forEach((pct,i)=>{
+    const amount=Number(amounts[i]);
+    if(Number.isFinite(amount)&&amount>0)valid.push({pct:Number(pct),amount,index:i});
+  });
+  let start=valid.findIndex(x=>x.index===currentIndex);
+  if(start<0){
+    // If the current average is below the first configured threshold, start
+    // from the first configured commission level.
+    start=0;
+  }
+  const selected=valid.slice(start,start+3);
+  if(!selected.length){
+    box.innerHTML='<div class="commission-forecast-empty">Commission forecast ke liye Target Setup mein amounts enter karein.</div>';
+    return;
+  }
+  const workDays=Math.max(0,Number(dayStats?.workDays)||0);
+  const remainingDays=Math.max(0,Number(dayStats?.remainingDays)||0);
+  const elapsedPlusRemaining=workDays+remainingDays;
+  box.innerHTML=selected.map((item,i)=>{
+    let required=0;
+    if(remainingDays>0){
+      required=(item.amount*elapsedPlusRemaining-total)/remainingDays;
+      if(!Number.isFinite(required))required=0;
+      required=Math.max(0,required);
+    }else{
+      required=Math.max(0,item.amount*elapsedPlusRemaining-total);
+    }
+    const isCurrent=i===0 && Number(item.pct)===Number(currentPct);
+    const badge=isCurrent?'Current':(i===1?'Next':'Next +1');
+    const status=required<=0?'Target achieved':'Required per day';
+    return `<div class="commission-forecast-card ${isCurrent?'current':''}">
+      <div class="commission-forecast-top"><span class="commission-forecast-pct">${money(item.pct)}%</span><span class="commission-forecast-badge">${badge}</span></div>
+      <div class="commission-forecast-amount">${money(required)} AED</div>
+      <div class="commission-forecast-label">${status}</div>
+      <div class="commission-forecast-note">Target level: ${money(item.amount)} AED/day</div>
+    </div>`;
+  }).join('');
+}
+
 function updateDashboard(){
   const cycle=getCurrentDashboardCycle();
   const cycleMonth=(dashboardSelectedDate||dateKeyLocal(new Date())).slice(0,7);
@@ -3559,6 +3618,8 @@ function updateDashboard(){
   const daysRemainingEl=document.getElementById("sumDaysRemaining");
   if(daysWorkEl)daysWorkEl.textContent=String(dayStats.workDays);
   if(daysRemainingEl)daysRemainingEl.textContent=String(dayStats.remainingDays);
+
+  renderCommissionForecast(total,dayStats,avg,dashboardSelectedDate||dateKeyLocal(new Date()));
 
   const badge=document.getElementById("invoiceBadge");
   if(badge)badge.textContent=cycle?cycleInvoices.length+" ›":(dashboardSelectedDate?cycleInvoices.length+" ›":invoices.length+" ›");
