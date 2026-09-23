@@ -61,8 +61,21 @@ main{padding:0 22px}
 .quick span{display:block;font-size:27px;margin-bottom:9px}
 .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .summary{background:#fff;border-radius:20px;padding:18px}.summary small{display:block;color:#737783;margin-bottom:8px}.summary strong{font-size:25px}
-.commission-forecast{margin-top:18px}.commission-forecast-title{font-size:20px;font-weight:800;margin:0 0 10px}.commission-forecast-subtitle{font-size:12px;color:#737783;margin:0 0 12px}.commission-forecast-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.commission-forecast-card{background:#fff;border-radius:18px;padding:15px;box-shadow:0 4px 14px rgba(0,0,0,.05);border:1px solid rgba(0,0,0,.04);min-width:0}.commission-forecast-card.current{border:2px solid #ed166a}.commission-forecast-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}.commission-forecast-pct{font-size:20px;font-weight:900}.commission-forecast-badge{font-size:10px;font-weight:800;border-radius:999px;padding:4px 7px;background:#f1f3f6;color:#606572;white-space:nowrap}.commission-forecast-card.current .commission-forecast-badge{background:#fde7ef;color:#d81763}.commission-forecast-amount{font-size:24px;font-weight:900;line-height:1.1;margin:5px 0}.commission-forecast-label{font-size:11px;color:#737783;line-height:1.35}.commission-forecast-empty{background:#fff;border-radius:18px;padding:15px;color:#737783;font-size:13px}.commission-forecast-note{font-size:10px;color:#8a8e99;margin-top:9px}
-@media(max-width:600px){.commission-forecast{margin-top:15px}.commission-forecast-title{font-size:18px}.commission-forecast-grid{grid-template-columns:1fr;gap:8px}.commission-forecast-card{padding:13px 14px;border-radius:16px}.commission-forecast-top{margin-bottom:5px}.commission-forecast-pct{font-size:18px}.commission-forecast-amount{font-size:22px}.commission-forecast-label{font-size:10.5px}.commission-forecast-note{font-size:9.5px}}
+.commission-forecast{margin-top:18px}
+.commission-forecast-card-main{background:#fff;border-radius:30px;padding:28px 26px 24px;box-shadow:0 8px 28px rgba(0,0,0,.07);border:1px solid #f0f0f2;overflow:hidden}
+.commission-forecast-heading{font-size:23px;line-height:1.15;font-weight:850;color:#6d7182;margin:0 0 28px}
+.commission-forecast-copy{font-size:22px;line-height:1.35;color:#6d7182;font-weight:500;max-width:920px}
+.commission-forecast-value{text-align:center;font-size:50px;line-height:1.08;font-weight:900;color:#e61768;margin:28px 0 10px;letter-spacing:-1px}
+.commission-forecast-estimated{text-align:center;font-size:21px;line-height:1.2;color:#666b7b;font-weight:800;margin-bottom:27px}
+.commission-forecast-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:#dddfe7;border-radius:40px;padding:6px;margin:0 0 28px}
+.commission-forecast-option{appearance:none;border:0;background:transparent;color:#111;font-size:20px;font-weight:500;border-radius:34px;padding:17px 10px;min-width:0;cursor:pointer}
+.commission-forecast-option.active{background:#fff;color:#e61768;font-weight:750;box-shadow:0 2px 8px rgba(0,0,0,.02)}
+.commission-forecast-info-row{display:flex;align-items:center;gap:20px;padding:2px 2px 0}
+.commission-forecast-info-icon{width:62px;height:62px;flex:0 0 62px;border-radius:50%;background:#000;color:#fff;display:grid;place-items:center;font-size:34px;font-weight:800;font-family:Arial,sans-serif}
+.commission-forecast-info-text{font-size:21px;line-height:1.45;color:#111;font-weight:450}
+.commission-forecast-info-text strong{font-weight:850}
+.commission-forecast-info-text span{color:#e61768;font-weight:500}
+@media(max-width:600px){.commission-forecast{margin-top:15px}.commission-forecast-card-main{border-radius:24px;padding:22px 18px 20px}.commission-forecast-heading{font-size:20px;margin-bottom:22px}.commission-forecast-copy{font-size:18px;line-height:1.4}.commission-forecast-value{font-size:37px;margin:23px 0 9px}.commission-forecast-estimated{font-size:17px;margin-bottom:21px}.commission-forecast-switch{padding:5px;margin-bottom:22px}.commission-forecast-option{font-size:17px;padding:14px 5px}.commission-forecast-info-row{gap:14px}.commission-forecast-info-icon{width:48px;height:48px;flex-basis:48px;font-size:27px}.commission-forecast-info-text{font-size:16px;line-height:1.45}}
 .drawer{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:20}.drawer.open{display:block}
 .menu{width:82%;max-width:360px;height:100%;background:#fff;padding:30px 22px;border-radius:0 28px 28px 0}
 .menu h2{margin:0 0 16px;font-size:27px}.menu button{width:100%;text-align:left;border:0;background:transparent;padding:16px 8px;font-size:18px;border-radius:12px;cursor:pointer}
@@ -917,9 +930,17 @@ input:focus{border-color:#ed166a}
 <div class="summary"><small>Days Remaining</small><strong id="sumDaysRemaining">0</strong></div>
 </div>
 <div class="commission-forecast" id="commissionForecastSection">
-  <h2 class="commission-forecast-title">Collections Forecast</h2>
-  <p class="commission-forecast-subtitle">Current commission aur aglay 2 commission levels tak pohanchne ke liye daily required collection.</p>
-  <div class="commission-forecast-grid" id="commissionForecastGrid"></div>
+  <div class="commission-forecast-card-main">
+    <div class="commission-forecast-heading">Collections forecast</div>
+    <div class="commission-forecast-copy">Based on your current collections and your commission percentage, your collection forecast is:</div>
+    <div class="commission-forecast-value" id="commissionForecastValue">0.00 AED</div>
+    <div class="commission-forecast-estimated">Estimated value</div>
+    <div class="commission-forecast-switch" id="commissionForecastGrid"></div>
+    <div class="commission-forecast-info-row">
+      <div class="commission-forecast-info-icon">i</div>
+      <div class="commission-forecast-info-text" id="commissionForecastInfo">To achieve it, in the <strong>next 0 days</strong> you will have to collect <span>at least 0.00 AED</span> per day.</div>
+    </div>
+  </div>
 </div>
 </section>
 
@@ -3500,55 +3521,69 @@ function getTargetPercentForDailyAverage(dailyAvg,dateKey){
 }
 
 function renderCommissionForecast(total,dayStats,dailyAvg,dateKey){
+  const section=document.getElementById("commissionForecastSection");
   const box=document.getElementById("commissionForecastGrid");
-  if(!box)return;
+  const valueEl=document.getElementById("commissionForecastValue");
+  const infoEl=document.getElementById("commissionForecastInfo");
+  if(!section||!box||!valueEl||!infoEl)return;
+
+  const remainingDays=Math.max(0,Number(dayStats?.remainingDays)||0);
+  // Once the cycle has no days left, the forecast is no longer relevant.
+  if(remainingDays<=0){
+    section.style.display="none";
+    return;
+  }
+  section.style.display="block";
+
   const target=getTargetSetupForDate(dateKey);
   if(!target){
-    box.innerHTML='<div class="commission-forecast-empty">Target Setup ka data available nahi hai.</div>';
+    section.style.display="none";
     return;
   }
   const amounts=Array.isArray(target.amounts)?target.amounts:[];
   const percentages=Array.isArray(target.percentages)?target.percentages:TARGET_PERCENTAGES;
   const currentPct=getTargetPercentForDailyAverage(dailyAvg,dateKey);
   const currentIndex=percentages.findIndex(p=>Number(p)===Number(currentPct));
+
   const valid=[];
   percentages.forEach((pct,i)=>{
     const amount=Number(amounts[i]);
     if(Number.isFinite(amount)&&amount>0)valid.push({pct:Number(pct),amount,index:i});
   });
   let start=valid.findIndex(x=>x.index===currentIndex);
-  if(start<0){
-    // If the current average is below the first configured threshold, start
-    // from the first configured commission level.
-    start=0;
-  }
+  if(start<0)start=0;
   const selected=valid.slice(start,start+3);
   if(!selected.length){
-    box.innerHTML='<div class="commission-forecast-empty">Commission forecast ke liye Target Setup mein amounts enter karein.</div>';
+    section.style.display="none";
     return;
   }
-  const workDays=Math.max(0,Number(dayStats?.workDays)||0);
-  const remainingDays=Math.max(0,Number(dayStats?.remainingDays)||0);
-  const elapsedPlusRemaining=workDays+remainingDays;
-  box.innerHTML=selected.map((item,i)=>{
-    let required=0;
-    if(remainingDays>0){
-      required=(item.amount*elapsedPlusRemaining-total)/remainingDays;
-      if(!Number.isFinite(required))required=0;
-      required=Math.max(0,required);
-    }else{
-      required=Math.max(0,item.amount*elapsedPlusRemaining-total);
-    }
-    const isCurrent=i===0 && Number(item.pct)===Number(currentPct);
-    const badge=isCurrent?'Current':(i===1?'Next':'Next +1');
-    const status=required<=0?'Target achieved':'Required per day';
-    return `<div class="commission-forecast-card ${isCurrent?'current':''}">
-      <div class="commission-forecast-top"><span class="commission-forecast-pct">${money(item.pct)}%</span><span class="commission-forecast-badge">${badge}</span></div>
-      <div class="commission-forecast-amount">${money(required)} AED</div>
-      <div class="commission-forecast-label">${status}</div>
-      <div class="commission-forecast-note">Target level: ${money(item.amount)} AED/day</div>
-    </div>`;
-  }).join('');
+
+  const totalDays=Math.max(0,(Number(dayStats?.workDays)||0)+remainingDays);
+  const calculations=selected.map(item=>{
+    let required=(item.amount*totalDays-total)/remainingDays;
+    if(!Number.isFinite(required))required=0;
+    required=Math.max(0,required);
+    return {...item,required};
+  });
+
+  const active=calculations[0];
+  valueEl.textContent=money(active.required)+" AED";
+
+  box.innerHTML=calculations.map((item,i)=>{
+    const activeClass=i===0?" active":"";
+    return `<button type="button" class="commission-forecast-option${activeClass}" data-forecast-index="${i}">${money(item.pct)}%</button>`;
+  }).join("");
+
+  const applyForecast=(index)=>{
+    const item=calculations[index]||calculations[0];
+    valueEl.textContent=money(item.required)+" AED";
+    [...box.querySelectorAll('.commission-forecast-option')].forEach((el,i)=>el.classList.toggle('active',i===index));
+    infoEl.innerHTML=`To achieve it, in the <strong>next ${remainingDays} days</strong> you will have to collect <span>at least ${money(item.required)} AED</span> per day.`;
+  };
+  box.querySelectorAll('.commission-forecast-option').forEach((btn,i)=>{
+    btn.addEventListener('click',()=>applyForecast(i));
+  });
+  applyForecast(0);
 }
 
 function updateDashboard(){
