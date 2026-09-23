@@ -2611,7 +2611,12 @@ window.setReportYear=setReportYear;
 window.setReportMonth=setReportMonth;
 window.renderReports=renderReports;
 window.printReports=printReports;
-function printReports(){if(!reportMode)return;renderReports();window.print()}
+function printReports(){
+  if(!reportMode)return;
+  renderReports();
+  const start=()=>{try{window.focus();window.print()}catch(e){console.error('Report print error:',e)}};
+  setTimeout(start,500);
+}
 
 function renderHistory(){
   const box=document.getElementById("historyList"); if(!box)return;
