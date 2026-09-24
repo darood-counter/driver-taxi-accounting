@@ -3676,6 +3676,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   const chart=document.getElementById("chart");
   if(!chart)return;
   chart.innerHTML="";
+  chart.style.transformOrigin="bottom left";
 
   const todayKey=dateKeyLocal(new Date());
   let startKey,endKey;
@@ -3725,7 +3726,11 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     arr.push({key,value:row.value,saleTotal:row.saleTotal,count:row.count,hasSales,date:new Date(d)});
   }
 
-  const maxNet=Math.max(...arr.map(x=>Math.max(0,x.value)),0);
+  // Keep the candle chart anchored to an explicit zero baseline.
+  // The Y-axis always starts at 0 and every positive candle is scaled
+  // between 0 and the calculated upper bound.
+  const min=0;
+  const maxNet=Math.max(...arr.map(x=>Math.max(min,x.value)),0);
   const niceStep=(()=>{
     if(maxNet<=0)return 100;
     const raw=maxNet/4;
@@ -3735,6 +3740,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     return nice*power;
   })();
   const max=Math.max(niceStep*4,100);
+  const range=Math.max(1,max-min);
   const activeDays=arr.filter(x=>x.hasSales).length;
   const avg=activeDays?arr.filter(x=>x.hasSales).reduce((sum,x)=>sum+x.value,0)/activeDays:0;
 
@@ -3790,7 +3796,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     wrap.className="bar-wrap";
     const bar=document.createElement("div");
     bar.className="bar";
-    const height=x.hasSales?Math.max(3,(x.value/max)*100):3;
+    const height=x.hasSales?Math.max(3,((x.value-min)/range)*100):3;
     bar.style.background=x.hasSales?"#2563eb":"#dfe3ea";
     bar.style.height=height+"%";
     bar.title=x.hasSales?`${x.date.toLocaleDateString("en-GB")}: Net ${money(x.value)} AED · Sale ${money(x.saleTotal)} AED`:`${x.date.toLocaleDateString("en-GB")}: No positive Net Sale`;
@@ -3817,7 +3823,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       callout.className="chart-selected-value";
       callout.textContent=money(x.value)+" AED";
 
-      const barHeightPx=Math.max(3,(x.value/max)*plotHeight);
+      const barHeightPx=Math.max(3,((x.value-min)/range)*plotHeight);
       const candleLeft=8+(i*56)+23;
       const gap=6;
 
