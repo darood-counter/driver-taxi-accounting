@@ -1767,8 +1767,21 @@ window.saveAdminSubscriptionForm=async()=>{
   const status=adminSubscriptionEditStatus,days=Math.max(1,Number(document.getElementById("adminDaysInput").value)||30),payment=Math.max(0,Number(document.getElementById("adminPaymentInput").value)||0),mode=document.getElementById("adminModeInput").value,note=document.getElementById("adminSubscriptionNote").value.trim();
   const btn=document.getElementById("adminSubscriptionSaveBtn");if(btn)btn.disabled=true;
   try{
-    const fn=httpsCallable(functions,"setUserSubscription");
-    await fn({uid:u.uid,status,days:status==="active"?days:0,mode,note:note||("Admin update: "+status),paymentAmount:payment,plan:document.getElementById("adminPlanInput").value});
+    const ref=doc(db,"drivers",u.uid);
+    const snap=await getDoc(ref);
+    const current=snap.exists()?snap.data():{};
+    const now=new Date();
+    let expiry=null;
+    if(status==="active"){
+      const oldExpiry=subDate(current.subscriptionExpiry);
+      const base=oldExpiry && oldExpiry.getTime()>now.getTime()?oldExpiry:now;
+      expiry=new Date(base.getTime()+days*24*60*60*1000);
+    }
+    const plan=document.getElementById("adminPlanInput").value;
+    const previousPlans=Array.isArray(current.plansPurchased)?current.plansPurchased:[];
+    const purchaseRecord={plan,days:status==="active"?days:0,amount:payment,mode,source:"admin",note:note||("Admin update: "+status),activatedAt:now.toISOString(),expiry:expiry?expiry.toISOString():null};
+    const nextPlans=[...previousPlans,purchaseRecord];
+    await updateDoc(ref,{subscriptionStatus:status,subscriptionMode:mode,activationMode:mode,subscriptionPlan:status==="active"?plan:(current.subscriptionPlan||plan),subscriptionStartAt:status==="active"?now:(current.subscriptionStartAt||now),subscriptionExpiry:status==="active"?expiry:(status==="suspended"?current.subscriptionExpiry:null),subscriptionTotalPaid:payment,plansPurchased:nextPlans,adminUpdatedAt:serverTimestamp(),adminUpdatedBy:currentUser.uid,adminNote:note||("Admin update: "+status)});
     alert("Subscription updated successfully."); closeAdminSubscriptionForm(); await loadAdminUsers();
   }catch(e){console.error(e);alert(e?.message||"Subscription update failed. The secure setUserSubscription Cloud Function must be deployed and allow the Admin claim.");}
   finally{if(btn)btn.disabled=false;}
