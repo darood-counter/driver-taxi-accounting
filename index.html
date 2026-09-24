@@ -845,6 +845,24 @@ input:focus{border-color:#ed166a}
 /* ===== Membership / Subscription ===== */
 .membership-page{padding:18px 14px 42px}.membership-hero{background:linear-gradient(135deg,#111827,#27314d);color:#fff;border-radius:22px;padding:20px;margin-bottom:14px;box-shadow:0 8px 24px rgba(17,24,39,.12)}.membership-hero h2{margin:0 0 7px;font-size:25px}.membership-hero p{margin:0;color:#dbe2ef;font-size:13px;line-height:1.5}.membership-status{margin-top:14px;background:rgba(255,255,255,.1);border-radius:14px;padding:12px}.membership-status-row{display:flex;justify-content:space-between;gap:10px;align-items:center}.membership-pill{font-size:11px;font-weight:900;padding:6px 9px;border-radius:999px;background:#f59e0b;color:#fff}.membership-pill.active{background:#16a34a}.membership-pill.expired{background:#dc2626}.membership-countdown{font-size:12px;color:#e5e7eb;margin-top:7px}.membership-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.membership-plan{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:15px 11px;box-shadow:0 4px 14px rgba(0,0,0,.04);display:flex;flex-direction:column}.membership-plan.featured{border:2px solid #111827}.membership-plan h3{margin:0;font-size:15px}.membership-plan .plan-price{font-size:25px;font-weight:950;margin:8px 0 2px}.membership-plan .plan-period{font-size:11px;color:#737783;min-height:28px}.membership-plan ul{margin:10px 0 14px;padding-left:17px;color:#5f6470;font-size:11px;line-height:1.55;flex:1}.membership-buy{border:0;border-radius:11px;padding:10px 7px;background:#111827;color:#fff;font-weight:900;cursor:pointer}.membership-buy:disabled{opacity:.55}.membership-history{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:14px;margin-top:14px}.membership-history h3{margin:0 0 10px;font-size:15px}.membership-detail{display:grid;grid-template-columns:1fr 1fr;gap:8px}.membership-detail div{background:#f7f8fa;border-radius:10px;padding:9px}.membership-detail b{display:block;font-size:10px;color:#777;margin-bottom:3px}.membership-detail span{font-size:12px;font-weight:800;word-break:break-word}.locked-quick{position:relative;opacity:.72}.locked-quick::after{content:'🔒';position:absolute;right:8px;top:7px;font-size:12px}.membership-note{font-size:11px;color:#6b7280;line-height:1.45;margin-top:10px}@media(max-width:600px){.membership-plans{grid-template-columns:1fr}.membership-plan{padding:14px}.membership-plan .plan-period{min-height:0}.membership-page{padding:16px 14px 36px}}
 </style>
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+// Paddle Sandbox configuration
+const PADDLE_CLIENT_TOKEN = "test_026a3d8a4142b6d9e6167edcda7";
+const PADDLE_PRICE_IDS = {
+  monthly: "pri_01m38k102kt90na7cbj8dm7emn",
+  yearly: "pri_01m38k54f4k0jjmebcznt58r73",
+  lifetime: "pri_01m38kb8276mx2psh1k4ym8r6m"
+};
+(function initPaddle(){
+  try{
+    if(typeof Paddle === "undefined") return;
+    Paddle.Environment.set("sandbox");
+    if(!PADDLE_CLIENT_TOKEN || PADDLE_CLIENT_TOKEN.includes("PASTE_YOUR")) return;
+    Paddle.Initialize({token:PADDLE_CLIENT_TOKEN,eventCallback:function(data){console.log("Paddle event:",data);}});
+  }catch(e){console.error("Paddle initialization error:",e);}
+})();
+</script>
 </head>
 <body>
 
@@ -1298,7 +1316,7 @@ input:focus{border-color:#ed166a}
       <div><b>Total Paid</b><span id="membershipPaidDetail">0.00 AED</span></div>
       <div><b>Plans Purchased</b><span id="membershipPlansDetail">0</span></div>
     </div>
-    <div class="membership-note">Payment button abhi plan selection ko handle karta hai. Real AED payment ke liye Stripe/PayPal ya aapke preferred payment gateway ki merchant details connect karni hongi; successful payment ke baad subscription automatically active karna isi page mein connect kiya ja sakta hai.</div>
+    <div class="membership-note">Payment Paddle Sandbox checkout se hoga. Test payment ke baad subscription ko automatically active karne ke liye webhook/fulfillment setup next step mein connect hoga.</div>
   </div>
 </div>
 </section>
@@ -1551,7 +1569,22 @@ function updateMembershipUI(){
 function openProtectedPage(pageId){if(isAdminUser()||isSubscriptionActive()){showPage(pageId);return;}showPage("membershipPage");}
 window.startMembershipPurchase=async(plan,price,days)=>{
   if(isAdminUser())return;
-  alert(`Selected ${plan} plan (${price.toFixed(2)} AED). Real payment gateway connect karne ke baad yahan payment checkout open hoga.`);
+  const priceId=PADDLE_PRICE_IDS[String(plan||"").toLowerCase()];
+  if(!priceId){alert("Membership price ID not found.");return;}
+  if(typeof Paddle === "undefined"){alert("Paddle checkout load nahi hua. Internet connection check karein.");return;}
+  if(!PADDLE_CLIENT_TOKEN || PADDLE_CLIENT_TOKEN.includes("PASTE_YOUR")){
+    alert("Paddle Client-side Token abhi HTML mein add nahi hua. Sandbox ka test_ token add karein.");
+    return;
+  }
+  try{
+    const email=currentUser?.email||undefined;
+    const checkout={settings:{displayMode:"overlay"},items:[{priceId,quantity:1}]};
+    if(email)checkout.customer={email};
+    Paddle.Checkout.open(checkout);
+  }catch(e){
+    console.error("Paddle checkout error:",e);
+    alert("Paddle checkout open nahi ho saka. Paddle Sandbox settings check karein.");
+  }
 };
 function updateSubscriptionUI(){
   const b=document.getElementById("subscriptionBanner");if(b){const active=isSubscriptionActive();b.style.display=active?"none":"flex";const badge=document.getElementById("subscriptionBadge");if(badge)badge.textContent=active?"ACTIVE":"VIEW ONLY";}
