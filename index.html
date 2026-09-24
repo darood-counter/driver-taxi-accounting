@@ -849,7 +849,12 @@ input:focus{border-color:#ed166a}
 .membership-logo{width:62px;height:62px;margin:0 auto 8px;border-radius:20px;display:grid;place-items:center;font-size:34px;background:linear-gradient(145deg,#f9e3a2,#b27b16);box-shadow:0 8px 22px rgba(214,164,44,.28);position:relative}
 .membership-hero h2{text-align:center;margin:0 0 5px;font-size:27px;letter-spacing:-.4px}.membership-hero p{text-align:center;margin:0 auto;color:#d8d2c2;font-size:12px;line-height:1.45;max-width:330px}
 .membership-status{margin-top:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);border-radius:15px;padding:12px}.membership-status-row{display:flex;justify-content:space-between;gap:10px;align-items:center}.membership-pill{font-size:10px;font-weight:950;padding:6px 10px;border-radius:999px;background:#b88722;color:#fff}.membership-pill.active{background:#16803d}.membership-pill.expired{background:#9e1111}.membership-countdown{font-size:11px;color:#d8d2c2;margin-top:7px}
-.membership-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.membership-plan{position:relative;background:linear-gradient(145deg,#262626,#181818);color:#fff;border:1px solid #414141;border-radius:22px;padding:15px 12px;box-shadow:0 7px 22px rgba(0,0,0,.25);display:flex;flex-direction:column;min-width:0}.membership-plan.featured{border:1.5px solid #c89527;box-shadow:0 8px 25px rgba(201,149,39,.17)}.membership-popular{position:absolute;top:-10px;right:10px;background:linear-gradient(135deg,#f2d276,#a66d0e);color:#201506;border-radius:999px;padding:4px 8px;font-size:9px;font-weight:950}.membership-plan h3{margin:0;font-size:16px}.membership-plan .plan-price{font-size:23px;font-weight:950;margin:9px 0 2px;color:#f5f0e6}.membership-plan .plan-period{font-size:10px;color:#aaa;min-height:25px}.membership-plan ul{margin:10px 0 14px;padding-left:16px;color:#c5c5c5;font-size:10px;line-height:1.55;flex:1}.membership-buy{border:0;border-radius:13px;padding:10px 7px;background:linear-gradient(135deg,#f3d77f,#a87519);color:#171006;font-weight:950;cursor:pointer;box-shadow:0 5px 14px rgba(213,164,53,.16)}.membership-buy:disabled{opacity:.55}.membership-history{background:linear-gradient(145deg,#202020,#151515);color:#fff;border:1px solid #393939;border-radius:20px;padding:14px;margin-top:14px}.membership-history h3{margin:0 0 10px;font-size:15px}.membership-detail{display:grid;grid-template-columns:1fr 1fr;gap:8px}.membership-detail div{background:#292929;border:1px solid #353535;border-radius:11px;padding:9px}.membership-detail b{display:block;font-size:9px;color:#999;margin-bottom:3px}.membership-detail span{font-size:11px;font-weight:800;word-break:break-word}.membership-note{font-size:10px;color:#999;line-height:1.45;margin-top:10px}.admin-membership-card{display:none;background:linear-gradient(145deg,#2b2110,#111);border:1px solid #c99528;border-radius:22px;padding:20px;text-align:center;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.3)}.admin-membership-card .admin-vip-icon{font-size:42px;margin-bottom:6px}.admin-membership-card h3{margin:0 0 5px;font-size:21px}.admin-membership-card p{margin:0;color:#d8d0be;font-size:12px;line-height:1.5}.locked-quick{position:relative;opacity:.72}.locked-quick::after{content:'🔒';position:absolute;right:8px;top:7px;font-size:12px}@media(max-width:600px){.membership-plans{grid-template-columns:1fr}.membership-plan{padding:14px}.membership-plan .plan-period{min-height:0}.membership-page{padding:10px 10px 34px}.membership-logo{width:58px;height:58px;font-size:31px}}
+.membership-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.membership-plan{position:relative;background:linear-gradient(145deg,#262626,#181818);color:#fff;border:1px solid #414141;border-radius:22px;padding:15px 12px;box-shadow:0 7px 22px rgba(0,0,0,.25);display:flex;flex-direction:column;min-width:0}.membership-plan.featured{border:1.5px solid #c89527;box-shadow:0 8px 25px rgba(201,149,39,.17)}.membership-popular{position:absolute;top:-10px;right:10px;background:linear-gradient(135deg,#f2d276,#a66d0e);color:#201506;border-radius:999px;padding:4px 8px;font-size:9px;font-weight:950}.membership-plan h3{margin:0;font-size:16px}.membership-plan .plan-price{font-size:23px;font-weight:950;margin:9px 0 2px;color:#f5f0e6}.membership-plan .plan-period{font-size:10px;color:#aaa;min-height:25px}.membership-plan ul{margin:10px 0 14px;padding-left:16px;color:#c5c5c5;font-size:10px;line-height:1.55;flex:1}.membership-buy{border:0;border-radius:13px;padding:10px 7px;background:linear-gradient(135deg,#f3d77f,#a87519);color:#171006;font-weight:950;cursor:pointer;box-shadow:0 5px 14px rgba(213,164,53,.16)}
+.membership-plan.selected{outline:2px solid #f3d77f;transform:translateY(-1px)}
+.membership-purchase-bar{margin-top:12px;background:linear-gradient(145deg,#2b2110,#17120a);border:1px solid #c99528;border-radius:20px;padding:12px;display:flex;align-items:center;gap:10px;justify-content:space-between;color:#fff}
+.membership-purchase-info{font-size:11px;line-height:1.4}.membership-purchase-info b{display:block;font-size:14px;color:#f5d77c}
+.membership-purchase-main{border:0;border-radius:13px;padding:12px 18px;background:linear-gradient(135deg,#f3d77f,#a87519);color:#171006;font-weight:950;cursor:pointer;white-space:nowrap}
+@media(max-width:600px){.membership-purchase-bar{position:sticky;bottom:8px;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.35)}}.membership-buy:disabled{opacity:.55}.membership-history{background:linear-gradient(145deg,#202020,#151515);color:#fff;border:1px solid #393939;border-radius:20px;padding:14px;margin-top:14px}.membership-history h3{margin:0 0 10px;font-size:15px}.membership-detail{display:grid;grid-template-columns:1fr 1fr;gap:8px}.membership-detail div{background:#292929;border:1px solid #353535;border-radius:11px;padding:9px}.membership-detail b{display:block;font-size:9px;color:#999;margin-bottom:3px}.membership-detail span{font-size:11px;font-weight:800;word-break:break-word}.membership-note{font-size:10px;color:#999;line-height:1.45;margin-top:10px}.admin-membership-card{display:none;background:linear-gradient(145deg,#2b2110,#111);border:1px solid #c99528;border-radius:22px;padding:20px;text-align:center;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.3)}.admin-membership-card .admin-vip-icon{font-size:42px;margin-bottom:6px}.admin-membership-card h3{margin:0 0 5px;font-size:21px}.admin-membership-card p{margin:0;color:#d8d0be;font-size:12px;line-height:1.5}.locked-quick{position:relative;opacity:.72}.locked-quick::after{content:'🔒';position:absolute;right:8px;top:7px;font-size:12px}@media(max-width:600px){.membership-plans{grid-template-columns:1fr}.membership-plan{padding:14px}.membership-plan .plan-period{min-height:0}.membership-page{padding:10px 10px 34px}.membership-logo{width:58px;height:58px;font-size:31px}}
 </style>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
@@ -1302,22 +1307,26 @@ const PADDLE_PRICE_IDS = {
     <p>Admin account ke liye membership charge nahi hoga. All features permanently available hain.</p>
   </div>
   <div class="membership-plans" id="membershipPlansWrap">
-    <div class="membership-plan">
+    <div class="membership-plan selected" data-membership-plan="monthly" data-membership-price="1.5" data-membership-days="30" onclick="selectMembershipPlan('monthly',1.5,30,this)">
       <h3>Monthly</h3><div class="plan-price">1.50 AED</div><div class="plan-period">Every month</div>
       <ul><li>Invoice Entry</li><li>Leaves</li><li>Charge Setup</li><li>Target Setup</li></ul>
-      <button class="membership-buy" onclick="startMembershipPurchase('monthly',1.5,30)">Subscribe</button>
+      <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('monthly',1.5,30,this.closest('.membership-plan'));purchaseSelectedMembership()">Subscribe</button>
     </div>
-    <div class="membership-plan featured">
+    <div class="membership-plan featured" data-membership-plan="yearly" data-membership-price="15" data-membership-days="365" onclick="selectMembershipPlan('yearly',15,365,this)">
       <span class="membership-popular">🔥 POPULAR</span>
       <h3>Yearly</h3><div class="plan-price">15 AED</div><div class="plan-period">Every year</div>
       <ul><li>All protected features</li><li>12 months access</li><li>Lower monthly cost</li><li>Membership details saved</li></ul>
-      <button class="membership-buy" onclick="startMembershipPurchase('yearly',15,365)">Subscribe</button>
+      <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('yearly',15,365,this.closest('.membership-plan'));purchaseSelectedMembership()">Subscribe</button>
     </div>
-    <div class="membership-plan">
+    <div class="membership-plan" data-membership-plan="lifetime" data-membership-price="50" data-membership-days="0" onclick="selectMembershipPlan('lifetime',50,0,this)">
       <h3>Lifetime</h3><div class="plan-price">50 AED</div><div class="plan-period">One-time</div>
       <ul><li>All protected features</li><li>No expiry</li><li>One-time membership</li><li>Saved in your account</li></ul>
-      <button class="membership-buy" onclick="startMembershipPurchase('lifetime',50,0)">Get Lifetime</button>
+      <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('lifetime',50,0,this.closest('.membership-plan'));purchaseSelectedMembership()">Get Lifetime</button>
     </div>
+  </div>
+  <div class="membership-purchase-bar" id="membershipPurchaseBar">
+    <div class="membership-purchase-info"><b id="selectedMembershipName">Monthly Membership</b><span id="selectedMembershipPrice">Select a plan and continue to Paddle Checkout</span></div>
+    <button type="button" class="membership-purchase-main" id="membershipPurchaseMain" onclick="purchaseSelectedMembership()">Purchase</button>
   </div>
   <div class="membership-history">
     <h3>Membership Details</h3>
@@ -1588,6 +1597,21 @@ function updateMembershipUI(){
   document.getElementById("membershipPlansDetail").textContent=String(Array.isArray(driverData?.plansPurchased)?driverData.plansPurchased.length:(driverData?.subscriptionPlan?1:0));
 }
 function openProtectedPage(pageId){if(isAdminUser()||isSubscriptionActive()){showPage(pageId);return;}showPage("membershipPage");}
+let selectedMembership={plan:'monthly',price:1.5,days:30};
+window.selectMembershipPlan=function(plan,price,days,el){
+  selectedMembership={plan,price,days};
+  document.querySelectorAll('.membership-plan[data-membership-plan]').forEach(x=>x.classList.remove('selected'));
+  if(el) el.classList.add('selected');
+  const labels={monthly:'Monthly Membership',yearly:'Yearly Membership',lifetime:'Lifetime Membership'};
+  const name=document.getElementById('selectedMembershipName');
+  const priceEl=document.getElementById('selectedMembershipPrice');
+  if(name) name.textContent=labels[plan]||'Membership';
+  if(priceEl) priceEl.textContent=(plan==='lifetime'?'One-time payment':'Recurring membership')+' • Paddle Sandbox Checkout';
+};
+window.purchaseSelectedMembership=function(){
+  if(isAdminUser()) return;
+  startMembershipPurchase(selectedMembership.plan,selectedMembership.price,selectedMembership.days);
+};
 window.startMembershipPurchase=async(plan,price,days)=>{
   if(isAdminUser())return;
   const priceId=PADDLE_PRICE_IDS[String(plan||"").toLowerCase()];
