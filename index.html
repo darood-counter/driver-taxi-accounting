@@ -44,7 +44,7 @@ main{padding:0 22px}
 .chart-average-line{position:absolute;height:3px;background:#111827;left:8px;right:8px;z-index:1;border-radius:2px;pointer-events:none}
 .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#111827;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;z-index:3;white-space:nowrap}
 .chart-average-overlay{position:absolute;inset:0;z-index:20;pointer-events:none;display:none}
-.chart-average-overlay .chart-average-line{position:absolute;left:8px;right:58px;height:3px;background:#d62970;border-radius:2px}
+.chart-average-overlay .chart-average-line{position:absolute;left:8px;right:58px;height:2px;background:#d62970;border-radius:2px}
 .chart-average-overlay .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#d62970;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;white-space:nowrap}
 .chart-highlight-value{position:absolute;transform:translateX(-50%);background:#fff;color:#3155c8;border:2px solid #3155c8;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:900;line-height:1;white-space:nowrap;z-index:9;box-shadow:0 1px 2px rgba(0,0,0,.06);pointer-events:none}.chart-highlight-value:after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #3155c8}.chart-highlight-value:before{content:"";position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #fff;z-index:1}
 .chart-col.active-click .bar{transform:scaleY(.94);transform-origin:bottom;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
@@ -3824,16 +3824,6 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       openDashboardDateInvoices(x.key);
     });
 
-    if(i===maxIndex && chartSelectedDate!==x.key){
-      const callout=document.createElement("div");
-      callout.className="chart-highlight-value";
-      callout.textContent=money(x.value)+" AED";
-      const barHeightPx=Math.max(3,((x.value-min)/range)*plotHeight*1.25);
-      const candleLeft=8+(i*55)+23;
-      callout.style.left=candleLeft+"px";
-      callout.style.top=Math.max(2,(plotTop+plotHeight-Math.min(plotHeight-4,barHeightPx)-10))+"px";
-      chart.appendChild(callout);
-    }
 
     if(chartSelectedDate===x.key){
       // Selected value stays attached to this candle and is positioned
