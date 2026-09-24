@@ -1528,7 +1528,7 @@ const PADDLE_PRICE_IDS = {
 <button onclick="openProtectedPage('calculatorPage');toggleMenu()">🧮 Charge Setup</button>
 <button onclick="openProtectedPage('targetPage');toggleMenu()">🎯 Target Setup</button>
 <button onclick="openProtectedPage('leavesPage');toggleMenu()">🗓️ Leaves</button>
-<button onclick="showPage('historyPage');toggleMenu()">📋 Invoice History</button>
+<button onclick="openProtectedPage('historyPage');toggleMenu()">📋 Invoice History</button>
 <button onclick="showPage('reportsPage');toggleMenu()">📊 Reports</button>
 <button onclick="showPage('profilePage');toggleMenu()">👤 Profile</button>
 <button id="adminMenuButton" style="display:none" onclick="showPage('adminPage');toggleMenu()">🛡️ Admin Panel</button>
@@ -1569,7 +1569,13 @@ const ADMIN_DRIVER_ID="3116538";
 let adminUsersCache=[];
 let adminClaim=false;
 async function refreshAdminClaim(){try{if(!currentUser){adminClaim=false;return;}const t=await currentUser.getIdTokenResult(true);adminClaim=t?.claims?.admin===true;}catch(e){adminClaim=false;}updateAdminMenu();}
-function isAdminUser(){return !!currentUser && (adminClaim || String(driverData?.driverId||"").trim()===ADMIN_DRIVER_ID);}
+function isAdminUser(){
+  if(!currentUser)return false;
+  const id=String(driverData?.driverId??"").trim();
+  const role=String(driverData?.role??driverData?.accountRole??"").trim().toLowerCase();
+  const email=String(currentUser?.email??"").trim().toLowerCase();
+  return adminClaim || id===ADMIN_DRIVER_ID || role==="admin" || role==="administrator" || email===String(driverData?.adminEmail??"").trim().toLowerCase() && email!=="";
+}
 function updateAdminMenu(){const b=document.getElementById("adminMenuButton");if(b)b.style.display=isAdminUser()?"block":"none";}
 function adminSafeJson(v){try{return JSON.stringify(v,null,2)}catch(e){return String(v)}}
 function subDate(v){try{const d=v?.toDate?v.toDate():new Date(v);return Number.isNaN(d.getTime())?null:d}catch(e){return null}}
@@ -1585,10 +1591,9 @@ function ensureTrialForNewOrLegacyUser(){
 function isSubscriptionActive(){
   if(isAdminUser())return true;
   const status=String(driverData?.subscriptionStatus||"").toLowerCase();
-  const expiry=subDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
-  if(status==="trial")return !!expiry&&expiry.getTime()>Date.now();
   if(status!=="active")return false;
   if(String(driverData?.subscriptionPlan||"").toLowerCase()==="lifetime")return true;
+  const expiry=subDate(driverData?.subscriptionExpiry);
   return !!expiry&&expiry.getTime()>Date.now();
 }
 function updateMembershipUI(){
@@ -1603,9 +1608,8 @@ function updateMembershipUI(){
     const status=String(driverData?.subscriptionStatus||"inactive").toLowerCase();
     const expiry=subDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
     const active=isSubscriptionActive();
-    if(status==="trial"&&active){const days=Math.max(0,Math.ceil((expiry-Date.now())/86400000));statusEl.textContent="7 Day Free Trial";pill.textContent="FREE TRIAL";pill.className="membership-pill active";count.textContent=`${days} day(s) remaining • Expires ${formatSubDate(expiry)}`;}
-    else if(active){statusEl.textContent="Membership Active";pill.textContent="ACTIVE";pill.className="membership-pill active";count.textContent=expiry?`Valid until ${formatSubDate(expiry)}`:"Lifetime access";}
-    else {statusEl.textContent="Membership Required";pill.textContent="EXPIRED";pill.className="membership-pill expired";count.textContent="Purchase a plan to unlock Invoice, Leaves, Charge Setup and Target Setup.";}
+    if(active){statusEl.textContent="Membership Active";pill.textContent="ACTIVE";pill.className="membership-pill active";count.textContent=expiry?`Valid until ${formatSubDate(expiry)}`:"Lifetime access";}
+    else {statusEl.textContent="Membership Required";pill.textContent="LOCKED";pill.className="membership-pill expired";count.textContent="Purchase a plan to unlock Invoice, Invoice History, Leaves, Charge Setup and Target Setup.";}
   }
   const plan=driverData?.subscriptionPlan||"7 Day Free Trial";
   document.getElementById("membershipPlanDetail").textContent=plan;
@@ -1615,7 +1619,11 @@ function updateMembershipUI(){
   document.getElementById("membershipPaidDetail").textContent=money(driverData?.subscriptionTotalPaid||0)+" AED";
   document.getElementById("membershipPlansDetail").textContent=String(Array.isArray(driverData?.plansPurchased)?driverData.plansPurchased.length:(driverData?.subscriptionPlan?1:0));
 }
-function openProtectedPage(pageId){if(isAdminUser()||isSubscriptionActive()){showPage(pageId);return;}showPage("membershipPage");}
+function openProtectedPage(pageId){
+  const protectedPages=["invoicePage","calculatorPage","targetPage","leavesPage","historyPage"];
+  if(protectedPages.includes(pageId) && !isAdminUser() && !isSubscriptionActive()){showPage("membershipPage");return;}
+  showPage(pageId);
+}
 window.startMembershipPurchase=async(plan,price,days)=>{
   if(isAdminUser())return;
   const priceId=PADDLE_PRICE_IDS[String(plan||"").toLowerCase()];
@@ -1764,6 +1772,7 @@ window.selectAdminSubscriptionStatus=status=>{
 window.closeAdminSubscriptionForm=()=>document.getElementById("adminSubscriptionModal")?.classList.remove("show");
 window.saveAdminSubscriptionForm=async()=>{
   if(!isAdminUser()||adminSubscriptionEditIndex===null)return; const u=adminUsersCache[adminSubscriptionEditIndex];if(!u)return;
+  if(String(u.uid)===String(currentUser?.uid)){alert("Admin account cannot be changed here.");return;}
   const status=adminSubscriptionEditStatus,days=Math.max(1,Number(document.getElementById("adminDaysInput").value)||30),payment=Math.max(0,Number(document.getElementById("adminPaymentInput").value)||0),mode=document.getElementById("adminModeInput").value,note=document.getElementById("adminSubscriptionNote").value.trim();
   const btn=document.getElementById("adminSubscriptionSaveBtn");if(btn)btn.disabled=true;
   try{
@@ -1781,9 +1790,11 @@ window.saveAdminSubscriptionForm=async()=>{
     const previousPlans=Array.isArray(current.plansPurchased)?current.plansPurchased:[];
     const purchaseRecord={plan,days:status==="active"?days:0,amount:payment,mode,source:"admin",note:note||("Admin update: "+status),activatedAt:now.toISOString(),expiry:expiry?expiry.toISOString():null};
     const nextPlans=[...previousPlans,purchaseRecord];
-    await updateDoc(ref,{subscriptionStatus:status,subscriptionMode:mode,activationMode:mode,subscriptionPlan:status==="active"?plan:(current.subscriptionPlan||plan),subscriptionStartAt:status==="active"?now:(current.subscriptionStartAt||now),subscriptionExpiry:status==="active"?expiry:(status==="suspended"?current.subscriptionExpiry:null),subscriptionTotalPaid:payment,plansPurchased:nextPlans,adminUpdatedAt:serverTimestamp(),adminUpdatedBy:currentUser.uid,adminNote:note||("Admin update: "+status)});
+    const fn=httpsCallable(functions,"setUserSubscription");
+    const result=await fn({uid:u.uid,status,days:status==="active"?days:0,paymentTotal:payment,plan,mode,note});
+    if(!result?.data?.ok)throw new Error(result?.data?.message||"Subscription update was not accepted by the server.");
     alert("Subscription updated successfully."); closeAdminSubscriptionForm(); await loadAdminUsers();
-  }catch(e){console.error(e);alert(e?.message||"Subscription update failed. The secure setUserSubscription Cloud Function must be deployed and allow the Admin claim.");}
+  }catch(e){console.error("Admin subscription update error:",e);alert(e?.message||"Subscription update failed. Make sure the secure setUserSubscription Cloud Function is deployed and the Admin account has the admin claim.");}
   finally{if(btn)btn.disabled=false;}
 };
 window.adminSetSubscription=(index,status)=>openAdminSubscriptionForm(index,status);
