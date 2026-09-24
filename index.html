@@ -3745,7 +3745,11 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   const activeDays=arr.filter(x=>x.hasSales).length;
   const avg=activeDays?arr.filter(x=>x.hasSales).reduce((sum,x)=>sum+x.value,0)/activeDays:0;
 
-  const plotTop=22,plotHeight=170;
+  // Keep the Y-axis labels locked to the real chart height, especially on mobile.
+  const chartHeight=chart.clientHeight||276;
+  const plotTop=22;
+  const plotHeight=Math.max(1,chartHeight-plotTop-8);
+  if(fixedAxis)fixedAxis.style.height=chartHeight+"px";
   [1,.75,.5,.25,0].forEach(ratio=>{
     const yl=document.createElement("div");
     yl.className="chart-y-label";
