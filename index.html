@@ -1574,7 +1574,8 @@ function isAdminUser(){
   const id=String(driverData?.driverId??"").trim();
   const role=String(driverData?.role??driverData?.accountRole??"").trim().toLowerCase();
   const email=String(currentUser?.email??"").trim().toLowerCase();
-  return adminClaim || id===ADMIN_DRIVER_ID || role==="admin" || role==="administrator" || email===String(driverData?.adminEmail??"").trim().toLowerCase() && email!=="";
+  const configuredEmail=String(driverData?.adminEmail??"").trim().toLowerCase();
+  return adminClaim || id===ADMIN_DRIVER_ID || role==="admin" || role==="administrator" || (configuredEmail!=="" && email===configuredEmail);
 }
 function updateAdminMenu(){const b=document.getElementById("adminMenuButton");if(b)b.style.display=isAdminUser()?"block":"none";}
 function adminSafeJson(v){try{return JSON.stringify(v,null,2)}catch(e){return String(v)}}
@@ -1790,11 +1791,42 @@ window.saveAdminSubscriptionForm=async()=>{
     const previousPlans=Array.isArray(current.plansPurchased)?current.plansPurchased:[];
     const purchaseRecord={plan,days:status==="active"?days:0,amount:payment,mode,source:"admin",note:note||("Admin update: "+status),activatedAt:now.toISOString(),expiry:expiry?expiry.toISOString():null};
     const nextPlans=[...previousPlans,purchaseRecord];
-    const fn=httpsCallable(functions,"setUserSubscription");
-    const result=await fn({uid:u.uid,status,days:status==="active"?days:0,paymentTotal:payment,plan,mode,note});
-    if(!result?.data?.ok)throw new Error(result?.data?.message||"Subscription update was not accepted by the server.");
-    alert("Subscription updated successfully."); closeAdminSubscriptionForm(); await loadAdminUsers();
-  }catch(e){console.error("Admin subscription update error:",e);alert(e?.message||"Subscription update failed. Make sure the secure setUserSubscription Cloud Function is deployed and the Admin account has the admin claim.");}
+    // First try the secure server function. If it is not deployed, fall back to
+    // a direct Firestore update for projects whose Firestore rules explicitly
+    // allow the authenticated Admin account to manage driver subscriptions.
+    let serverError=null;
+    try{
+      const fn=httpsCallable(functions,"setUserSubscription");
+      const result=await fn({uid:u.uid,status,days:status==="active"?days:0,paymentTotal:payment,plan,mode,note});
+      if(result?.data?.ok){
+        alert("Subscription updated successfully."); closeAdminSubscriptionForm(); await loadAdminUsers(); return;
+      }
+      serverError=new Error(result?.data?.message||"Server did not accept the subscription update.");
+    }catch(e){serverError=e;}
+
+    const patch={
+      subscriptionStatus:status,
+      subscriptionMode:mode,
+      activationMode:mode,
+      subscriptionPlan:status==="active"?plan:(current.subscriptionPlan||plan),
+      subscriptionStartAt:status==="active"?now:(current.subscriptionStartAt||now),
+      subscriptionExpiry:status==="active"?expiry:(status==="suspended"?current.subscriptionExpiry:null),
+      subscriptionTotalPaid:payment,
+      plansPurchased:nextPlans,
+      adminUpdatedAt:serverTimestamp(),
+      adminUpdatedBy:currentUser.uid,
+      adminNote:note||("Admin update: "+status)
+    };
+    try{
+      await updateDoc(ref,patch);
+      alert("Subscription updated successfully."); closeAdminSubscriptionForm(); await loadAdminUsers();
+    }catch(directError){
+      console.error("Admin subscription server error:",serverError);
+      console.error("Admin subscription direct Firestore error:",directError);
+      const msg=String(directError?.message||serverError?.message||"Subscription update failed.");
+      alert("Subscription update nahi ho saki. Firebase Admin permission/function setup required.\n\nError: "+msg);
+    }
+  }catch(e){console.error("Admin subscription update error:",e);alert(e?.message||"Subscription update failed.");}
   finally{if(btn)btn.disabled=false;}
 };
 window.adminSetSubscription=(index,status)=>openAdminSubscriptionForm(index,status);
