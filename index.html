@@ -30,22 +30,23 @@ main{padding:0 22px}
 .cycle-badge-day{font-size:13px;font-weight:800;letter-spacing:-.6px}
 .cycle-badge-month{font-size:6px;font-weight:800;text-transform:uppercase;margin-top:2px;color:#fff;letter-spacing:.2px}
 .cycle-date-badge input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:0}
-.chart-area{position:relative;width:100%}
-.chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding-bottom:3px;scrollbar-width:thin}.chart-fixed-axis{position:absolute;top:0;right:0;width:58px;height:276px;pointer-events:none;z-index:15}
-.chart{height:276px;display:flex;align-items:flex-end;gap:10px;padding:28px 62px 8px 8px;border-bottom:2px solid #171717;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 67px,rgba(130,134,145,.20) 68px,transparent 69px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#777;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:58px}
+.chart-area{position:relative;width:100%;margin-top:8px}
+.chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:0 0 3px;scrollbar-width:thin}.chart-fixed-axis{position:absolute;top:0;right:0;width:58px;height:276px;pointer-events:none;z-index:15}
+.chart{height:276px;display:flex;align-items:flex-end;gap:9px;padding:24px 62px 8px 8px;border-bottom:2px solid #161922;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 59px,rgba(120,126,145,.18) 60px,transparent 61px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#666a76;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:58px}
 .chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2}
 .chart-value{display:block;font-size:10px;font-weight:900;color:#3155c8;white-space:nowrap;line-height:1.1;cursor:pointer;min-height:11px}
 .bar-wrap{height:205px;flex:0 0 205px;width:100%;display:flex;align-items:flex-end;justify-content:center}
 @media(max-width:600px){.bar-wrap{height:170px;flex:0 0 170px}.chart-col{height:100%;flex:0 0 46px}.chart{padding-top:22px;padding-bottom:8px}.chart-value{min-height:16px}}
-.bar{width:40px;background:#dfe3ea;border-radius:7px 7px 0 0;min-height:3px;transition:height .2s ease,background .2s ease}
-.chart-col.selected .bar{background:#2563eb}.chart-col.has-sales .bar{background:#2563eb}.chart-col.has-sales .chart-date{color:#3155c8;font-weight:900}.chart-col.has-sales{cursor:pointer}.chart-col.has-sales:hover .bar{background:#1d4ed8}
+.bar{width:40px;background:#cbd4f5;border-radius:7px 7px 0 0;min-height:3px;transition:height .2s ease,background .2s ease;box-shadow:none}
+.chart-col.selected .bar{background:#b9c6f3}.chart-col.has-sales .bar{background:#cbd4f5}.chart-col.has-sales .chart-date{color:#555b68;font-weight:800}.chart-col.has-sales{cursor:pointer}.chart-col.has-sales:hover .bar{background:#bdc9f1}
 .chart-col.selected .chart-date{color:#d62970;font-weight:900}
 .chart-date{font-size:11px;color:#555;white-space:nowrap}
 .chart-average-line{position:absolute;height:3px;background:#111827;left:8px;right:8px;z-index:1;border-radius:2px;pointer-events:none}
 .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#111827;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;z-index:3;white-space:nowrap}
 .chart-average-overlay{position:absolute;inset:0;z-index:20;pointer-events:none;display:none}
-.chart-average-overlay .chart-average-line{position:absolute;left:8px;right:58px;height:3px;background:#e11d48;border-radius:2px}
-.chart-average-overlay .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#e11d48;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;white-space:nowrap}
+.chart-average-overlay .chart-average-line{position:absolute;left:8px;right:58px;height:3px;background:#d62970;border-radius:2px}
+.chart-average-overlay .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#d62970;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;white-space:nowrap}
+.chart-highlight-value{position:absolute;transform:translateX(-50%);background:#fff;color:#3155c8;border:2px solid #3155c8;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:900;line-height:1;white-space:nowrap;z-index:9;box-shadow:0 1px 2px rgba(0,0,0,.06);pointer-events:none}.chart-highlight-value:after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #3155c8}.chart-highlight-value:before{content:"";position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #fff;z-index:1}
 .chart-col.active-click .bar{transform:scaleY(.94);transform-origin:bottom;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
 .chart-col.active-click .chart-value{font-size:11px}
 .chart-click-value{position:absolute;left:50%;transform:translateX(-50%);background:#fff;color:#2563eb;border:1px solid #2563eb;border-radius:5px;padding:2px 5px;font-size:10px;font-weight:900;white-space:nowrap;z-index:8;box-shadow:0 2px 5px rgba(0,0,0,.12);pointer-events:none}
@@ -3780,6 +3781,9 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     if(avgLabel){avgLabel.style.top=top+"px";avgLabel.textContent=money(avg)+" AED";}
   }
 
+  const positiveIndexes=arr.map((x,i)=>x.hasSales?i:-1).filter(i=>i>=0);
+  const maxIndex=positiveIndexes.length?positiveIndexes.reduce((best,i)=>arr[i].value>arr[best].value?i:best,positiveIndexes[0]):-1;
+
   arr.forEach((x,i)=>{
     const col=document.createElement("div");
     col.className="chart-col";
@@ -3789,7 +3793,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
 
     const value=document.createElement("div");
     value.className="chart-value";
-    value.textContent=x.hasSales?money(x.value)+" AED":"";
+    value.textContent=(x.hasSales && i===maxIndex)?money(x.value)+" AED":"";
     if(!x.hasSales)value.setAttribute("aria-hidden","true");
 
     const wrap=document.createElement("div");
@@ -3797,7 +3801,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     const bar=document.createElement("div");
     bar.className="bar";
     const height=x.hasSales?Math.min(96,Math.max(4,((x.value-min)/range)*100*1.25)):3;
-    bar.style.background=x.hasSales?"#2563eb":"#dfe3ea";
+    bar.style.background=x.hasSales?"#cbd4f5":"#eef0f5";
     bar.style.height=height+"%";
     bar.title=x.hasSales?`${x.date.toLocaleDateString("en-GB")}: Net ${money(x.value)} AED · Sale ${money(x.saleTotal)} AED`:`${x.date.toLocaleDateString("en-GB")}: No positive Net Sale`;
     wrap.appendChild(bar);
@@ -3815,6 +3819,17 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       renderChart(cycle);
       openDashboardDateInvoices(x.key);
     });
+
+    if(i===maxIndex && chartSelectedDate!==x.key){
+      const callout=document.createElement("div");
+      callout.className="chart-highlight-value";
+      callout.textContent=money(x.value)+" AED";
+      const barHeightPx=Math.max(3,((x.value-min)/range)*plotHeight*1.25);
+      const candleLeft=8+(i*55)+23;
+      callout.style.left=candleLeft+"px";
+      callout.style.top=Math.max(2,(plotTop+plotHeight-Math.min(plotHeight-4,barHeightPx)-10))+"px";
+      chart.appendChild(callout);
+    }
 
     if(chartSelectedDate===x.key){
       // Selected value stays attached to this candle and is positioned
