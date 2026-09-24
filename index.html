@@ -1581,45 +1581,46 @@ function updateAdminMenu(){const b=document.getElementById("adminMenuButton");if
 function adminSafeJson(v){try{return JSON.stringify(v,null,2)}catch(e){return String(v)}}
 function subDate(v){try{const d=v?.toDate?v.toDate():new Date(v);return Number.isNaN(d.getTime())?null:d}catch(e){return null}}
 function formatSubDate(v){const d=subDate(v);return d?d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}):"—"}
-function ensureTrialForNewOrLegacyUser(){
-  if(!currentUser||isAdminUser())return;
-  const hasAny=driverData?.trialStartAt||driverData?.trialExpiry||driverData?.subscriptionStatus||driverData?.subscriptionPlan;
-  if(hasAny)return;
-  const start=new Date(); const expiry=new Date(start.getTime()+7*24*60*60*1000);
-  driverData={...driverData,subscriptionStatus:"trial",trialStartAt:start,trialExpiry:expiry,subscriptionExpiry:expiry,subscriptionPlan:"7 Day Free Trial"};
-  setDoc(doc(db,"drivers",currentUser.uid),{subscriptionStatus:"trial",trialStartAt:start,trialExpiry:expiry,subscriptionExpiry:expiry,subscriptionPlan:"7 Day Free Trial",accountCreatedAt:driverData.accountCreatedAt||serverTimestamp()},{merge:true}).catch(e=>console.error("Trial setup error:",e));
-}
 function isSubscriptionActive(){
   if(isAdminUser())return true;
-  const status=String(driverData?.subscriptionStatus||"").toLowerCase();
+  const status=String(driverData?.subscriptionStatus||"").trim().toLowerCase();
   if(status!=="active")return false;
-  if(String(driverData?.subscriptionPlan||"").toLowerCase()==="lifetime")return true;
+  const plan=String(driverData?.subscriptionPlan||"").trim().toLowerCase();
+  if(plan==="lifetime"||plan==="life time")return true;
+  if(driverData?.subscriptionActive===true){
+    const expiry=subDate(driverData?.subscriptionExpiry);
+    return !expiry || expiry.getTime()>Date.now();
+  }
   const expiry=subDate(driverData?.subscriptionExpiry);
-  return !!expiry&&expiry.getTime()>Date.now();
+  return !!expiry && expiry.getTime()>Date.now();
 }
+
 function updateMembershipUI(){
   const statusEl=document.getElementById("membershipStatusText"),pill=document.getElementById("membershipStatusPill"),count=document.getElementById("membershipCountdown");
   if(!statusEl)return;
+  const admin=isAdminUser();
+  const status=String(driverData?.subscriptionStatus||"inactive").trim().toLowerCase();
+  const expiry=subDate(driverData?.subscriptionExpiry);
+  const active=isSubscriptionActive();
   const plansWrap=document.getElementById("membershipPlansWrap");
-  if(isAdminUser()){
-    statusEl.textContent="Active";pill.textContent="ACTIVE";pill.className="membership-pill active";count.textContent="No membership payment required • Unlimited access";
+  if(admin){
+    statusEl.textContent="Active"; if(pill){pill.textContent="ACTIVE";pill.className="membership-pill active";} if(count)count.textContent="No membership payment required • Unlimited access";
     if(plansWrap)plansWrap.style.display="none";
-  } else {
+  }else{
     if(plansWrap)plansWrap.style.display="flex";
-    const status=String(driverData?.subscriptionStatus||"inactive").toLowerCase();
-    const expiry=subDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
-    const active=isSubscriptionActive();
-    if(active){statusEl.textContent="Membership Active";pill.textContent="ACTIVE";pill.className="membership-pill active";count.textContent=expiry?`Valid until ${formatSubDate(expiry)}`:"Lifetime access";}
-    else {statusEl.textContent="Membership Required";pill.textContent="LOCKED";pill.className="membership-pill expired";count.textContent="Purchase a plan to unlock Invoice, Invoice History, Leaves, Charge Setup and Target Setup.";}
+    if(active){statusEl.textContent="Membership Active";if(pill){pill.textContent="ACTIVE";pill.className="membership-pill active";}if(count)count.textContent=String(driverData?.subscriptionPlan||"").toLowerCase().includes("lifetime")?"Lifetime access":(expiry?`Valid until ${formatSubDate(expiry)}`:"Active");}
+    else{statusEl.textContent="Membership Required";if(pill){pill.textContent="LOCKED";pill.className="membership-pill expired";}if(count)count.textContent="Purchase a plan to unlock Invoice, Invoice History, Leaves, Charge Setup and Target Setup.";}
   }
-  const plan=driverData?.subscriptionPlan||"7 Day Free Trial";
-  document.getElementById("membershipPlanDetail").textContent=plan;
-  document.getElementById("membershipStatusDetail").textContent=isAdminUser()?"Admin":(driverData?.subscriptionStatus||"—");
-  document.getElementById("membershipStartDetail").textContent=formatSubDate(driverData?.subscriptionStartAt||driverData?.trialStartAt||driverData?.createdAt);
-  document.getElementById("membershipExpiryDetail").textContent=String(plan).toLowerCase()==="lifetime"?"Never":formatSubDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
-  document.getElementById("membershipPaidDetail").textContent=money(driverData?.subscriptionTotalPaid||0)+" AED";
-  document.getElementById("membershipPlansDetail").textContent=String(Array.isArray(driverData?.plansPurchased)?driverData.plansPurchased.length:(driverData?.subscriptionPlan?1:0));
+  const plan=driverData?.subscriptionPlan||"—";
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  set("membershipPlanDetail",admin?"Administrator":plan);
+  set("membershipStatusDetail",admin?"Admin":status);
+  set("membershipStartDetail",formatSubDate(driverData?.subscriptionStartAt||driverData?.createdAt));
+  set("membershipExpiryDetail",String(plan).toLowerCase().includes("lifetime")?"Never":formatSubDate(expiry));
+  set("membershipPaidDetail",money(driverData?.subscriptionTotalPaid||0)+" AED");
+  set("membershipPlansDetail",String(Array.isArray(driverData?.plansPurchased)?driverData.plansPurchased.length:(driverData?.subscriptionPlan?1:0)));
 }
+
 function openProtectedPage(pageId){
   const protectedPages=["invoicePage","calculatorPage","targetPage","leavesPage","historyPage"];
   if(protectedPages.includes(pageId) && !isAdminUser() && !isSubscriptionActive()){showPage("membershipPage");return;}
@@ -1689,7 +1690,7 @@ window.adminSubscriptionInfo=d=>{
   const status=String(d?.subscriptionStatus||"").toLowerCase();
   const raw=d?.subscriptionExpiry;
   let expiry=null;try{expiry=raw?.toDate?raw.toDate():raw?new Date(raw):null}catch(e){}
-  const active=status==="active" && expiry && !Number.isNaN(expiry.getTime()) && expiry.getTime()>Date.now();
+  const active=status==="active" && (d?.subscriptionActive===true || (expiry && !Number.isNaN(expiry.getTime()) && expiry.getTime()>Date.now()));
   return {active,expiry,status};
 };
 window.adminCreatedDate=d=>d?.accountCreatedAt||d?.createdAt||d?.registeredAt||d?.created_at;
@@ -1772,63 +1773,52 @@ window.selectAdminSubscriptionStatus=status=>{
 };
 window.closeAdminSubscriptionForm=()=>document.getElementById("adminSubscriptionModal")?.classList.remove("show");
 window.saveAdminSubscriptionForm=async()=>{
-  if(!isAdminUser()||adminSubscriptionEditIndex===null)return; const u=adminUsersCache[adminSubscriptionEditIndex];if(!u)return;
+  if(!isAdminUser()||adminSubscriptionEditIndex===null)return;
+  const u=adminUsersCache[adminSubscriptionEditIndex]; if(!u)return;
   if(String(u.uid)===String(currentUser?.uid)){alert("Admin account cannot be changed here.");return;}
-  const status=adminSubscriptionEditStatus,days=Math.max(1,Number(document.getElementById("adminDaysInput").value)||30),payment=Math.max(0,Number(document.getElementById("adminPaymentInput").value)||0),mode=document.getElementById("adminModeInput").value,note=document.getElementById("adminSubscriptionNote").value.trim();
-  const btn=document.getElementById("adminSubscriptionSaveBtn");if(btn)btn.disabled=true;
+  const status=adminSubscriptionEditStatus;
+  const days=Math.max(1,Number(document.getElementById("adminDaysInput")?.value)||30);
+  const payment=Math.max(0,Number(document.getElementById("adminPaymentInput")?.value)||0);
+  const mode=document.getElementById("adminModeInput")?.value||"manual";
+  const note=document.getElementById("adminSubscriptionNote")?.value.trim()||"";
+  const plan=document.getElementById("adminPlanInput")?.value||"30 Day Membership";
+  const btn=document.getElementById("adminSubscriptionSaveBtn"); if(btn)btn.disabled=true;
   try{
     const ref=doc(db,"drivers",u.uid);
     const snap=await getDoc(ref);
     const current=snap.exists()?snap.data():{};
     const now=new Date();
     let expiry=null;
-    if(status==="active"){
-      const oldExpiry=subDate(current.subscriptionExpiry);
-      const base=oldExpiry && oldExpiry.getTime()>now.getTime()?oldExpiry:now;
-      expiry=new Date(base.getTime()+days*24*60*60*1000);
-    }
-    const plan=document.getElementById("adminPlanInput").value;
+    if(status==="active") expiry=new Date(now.getTime()+days*24*60*60*1000);
     const previousPlans=Array.isArray(current.plansPurchased)?current.plansPurchased:[];
     const purchaseRecord={plan,days:status==="active"?days:0,amount:payment,mode,source:"admin",note:note||("Admin update: "+status),activatedAt:now.toISOString(),expiry:expiry?expiry.toISOString():null};
-    const nextPlans=[...previousPlans,purchaseRecord];
-    // First try the secure server function. If it is not deployed, fall back to
-    // a direct Firestore update for projects whose Firestore rules explicitly
-    // allow the authenticated Admin account to manage driver subscriptions.
-    let serverError=null;
-    try{
-      const fn=httpsCallable(functions,"setUserSubscription");
-      const result=await fn({uid:u.uid,status,days:status==="active"?days:0,paymentTotal:payment,plan,mode,note});
-      if(result?.data?.ok){
-        alert("Subscription updated successfully."); closeAdminSubscriptionForm(); await loadAdminUsers(); return;
-      }
-      serverError=new Error(result?.data?.message||"Server did not accept the subscription update.");
-    }catch(e){serverError=e;}
-
     const patch={
       subscriptionStatus:status,
+      subscriptionActive:status==="active",
       subscriptionMode:mode,
       activationMode:mode,
       subscriptionPlan:status==="active"?plan:(current.subscriptionPlan||plan),
       subscriptionStartAt:status==="active"?now:(current.subscriptionStartAt||now),
       subscriptionExpiry:status==="active"?expiry:(status==="suspended"?current.subscriptionExpiry:null),
       subscriptionTotalPaid:payment,
-      plansPurchased:nextPlans,
+      plansPurchased:[...previousPlans,purchaseRecord],
       adminUpdatedAt:serverTimestamp(),
       adminUpdatedBy:currentUser.uid,
       adminNote:note||("Admin update: "+status)
     };
-    try{
-      await updateDoc(ref,patch);
-      alert("Subscription updated successfully."); closeAdminSubscriptionForm(); await loadAdminUsers();
-    }catch(directError){
-      console.error("Admin subscription server error:",serverError);
-      console.error("Admin subscription direct Firestore error:",directError);
-      const msg=String(directError?.message||serverError?.message||"Subscription update failed.");
-      alert("Subscription update nahi ho saki. Firebase Admin permission/function setup required.\n\nError: "+msg);
-    }
-  }catch(e){console.error("Admin subscription update error:",e);alert(e?.message||"Subscription update failed.");}
-  finally{if(btn)btn.disabled=false;}
+    await updateDoc(ref,patch);
+    // Update the cached Admin row immediately so the panel reflects the same data.
+    u.data={...(u.data||{}),...patch,subscriptionStartAt:status==="active"?now:u.data?.subscriptionStartAt,subscriptionExpiry:status==="active"?expiry:u.data?.subscriptionExpiry};
+    renderAdminUsers(adminUsersCache);
+    alert(status==="active"?`User activated for ${days} days.`:"Subscription status updated successfully.");
+    closeAdminSubscriptionForm();
+    await loadAdminUsers();
+  }catch(e){
+    console.error("Admin subscription update error:",e);
+    alert("Subscription update nahi ho saki. Firebase Firestore Admin write permission check karein.\n\nError: "+(e?.message||e));
+  }finally{if(btn)btn.disabled=false;}
 };
+
 window.adminSetSubscription=(index,status)=>openAdminSubscriptionForm(index,status);
 window.adminEditAccount=async index=>{
   if(!isAdminUser())return; const u=adminUsersCache[index];if(!u)return; const d=u.data||{};
@@ -4119,7 +4109,6 @@ await refreshAdminClaim();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
-ensureTrialForNewOrLegacyUser();
 updateAdminMenu();
 updateSubscriptionUI();
 document.getElementById("helloText").textContent="Hi, "+(driverData.name||"Driver")+" 👋";
@@ -4136,8 +4125,7 @@ unsubscribeDriver=onSnapshot(ref,driverSnap=>{
   if(!driverSnap.exists())return;
   const fresh=driverSnap.data()||{};
   driverData={...driverData,...fresh};
-  ensureTrialForNewOrLegacyUser();
-  updateAdminMenu();
+    updateAdminMenu();
   updateSubscriptionUI();
   savedTargetRecords=Array.isArray(fresh.targetRecords)?fresh.targetRecords.map(r=>({...r})):Object.values(fresh.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
   savedChargeRecords=Object.values(fresh.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
