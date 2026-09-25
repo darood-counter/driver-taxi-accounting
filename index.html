@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="membership-workflow-version" content="2026-09-25-access-fix-v3">
+<meta name="membership-workflow-version" content="2026-09-25-membership-complete-v1">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#f5f5f5">
@@ -871,7 +871,16 @@ const PADDLE_PRICE_IDS = {
     if(typeof Paddle === "undefined") return;
     Paddle.Environment.set("sandbox");
     if(!PADDLE_CLIENT_TOKEN || PADDLE_CLIENT_TOKEN.includes("PASTE_YOUR")) return;
-    Paddle.Initialize({token:PADDLE_CLIENT_TOKEN});
+    Paddle.Initialize({
+      token:PADDLE_CLIENT_TOKEN,
+      eventCallback:function(event){
+        try{
+          if(event?.name==="checkout.completed"){
+            window.handlePaddleCheckoutCompleted(event);
+          }
+        }catch(e){console.error("Paddle event callback error:",e);}
+      }
+    });
   }catch(e){console.error("Paddle initialization error:",e);}
 })();
 </script>
@@ -1339,7 +1348,7 @@ const PADDLE_PRICE_IDS = {
       <div><b>Total Paid</b><span id="membershipPaidDetail">0.00 AED</span></div>
       <div><b>Plans Purchased</b><span id="membershipPlansDetail">0</span></div>
     </div>
-    <div class="membership-note">Payment Paddle Sandbox checkout se hoga. Test payment ke baad subscription ko automatically active karne ke liye webhook/fulfillment setup next step mein connect hoga.</div>
+    <div class="membership-note">Payment Paddle Sandbox checkout se hoga. Successful test payment ke baad membership automatically verify aur activate hogi.</div>
   </div>
 </div>
 </section>
@@ -1676,12 +1685,35 @@ window.startMembershipPurchase=async(plan,price,days)=>{
     const email=currentUser?.email||undefined;
     const checkout={items:[{priceId,quantity:1}],customData:{firebase_uid:currentUser?.uid||"",membership_plan:String(plan||"").toLowerCase(),membership_price_id:priceId}};
     if(email)checkout.customer={email};
+    window.__pendingPaddleMembership={plan:String(plan||"").toLowerCase(),priceId,days:Number(days)||0};
     Paddle.Checkout.open(checkout);
   }catch(e){
     console.error("Paddle checkout error:",e);
     alert("Paddle checkout open nahi ho saka. Paddle Sandbox settings check karein.");
   }
 };
+window.handlePaddleCheckoutCompleted=async function(data){
+  const pending=window.__pendingPaddleMembership||{};
+  const transactionId=data?.data?.transaction_id||data?.data?.id||data?.transaction_id||"";
+  if(!transactionId || !currentUser) return;
+  try{
+    const fn=httpsCallable(functions,"verifyAndActivateMembership");
+    const result=await fn({transactionId,uid:currentUser.uid,plan:pending.plan||"",priceId:pending.priceId||""});
+    if(result?.data?.ok){
+      alert("Payment successful. Membership activate ho gayi hai.");
+      await refreshDriverDataFromFirestore();
+      updateSubscriptionUI();
+      window.__pendingPaddleMembership=null;
+      if(typeof showPage==="function") showPage("dashboardPage");
+    }else{
+      alert("Payment complete ho gaya, lekin membership verification abhi pending hai. Thori dair baad refresh karein.");
+    }
+  }catch(e){
+    console.error("Membership activation error:",e);
+    alert("Payment complete ho gaya, lekin membership activate karne ke liye server verification pending hai.");
+  }
+};
+
 function updateSubscriptionUI(){
   const b=document.getElementById("subscriptionBanner");if(b){const active=isSubscriptionActive();b.style.display=active?"none":"flex";const badge=document.getElementById("subscriptionBadge");if(badge)badge.textContent=active?"ACTIVE":"VIEW ONLY";}
   updateMembershipUI();
