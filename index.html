@@ -1461,7 +1461,7 @@ const PADDLE_PRICE_IDS = {
     <div class="admin-form-field full"><label>Status</label><div class="admin-status-choice"><button type="button" data-status="active" onclick="selectAdminSubscriptionStatus('active')">Active</button><button type="button" data-status="inactive" onclick="selectAdminSubscriptionStatus('inactive')">Deactive</button><button type="button" data-status="suspended" onclick="selectAdminSubscriptionStatus('suspended')">Suspended</button></div></div>
     <div class="admin-form-grid" style="margin-top:10px">
       <div class="admin-form-field"><label>Plan</label><select id="adminPlanInput" onchange="adminPlanChanged()"><option value="1 Month">1 Month</option><option value="1 Year">1 Year</option><option value="Lifetime">Lifetime</option></select></div>
-      <div class="admin-form-field"><label>Duration (Days)</label><input id="adminDaysInput" type="number" min="1" value="30"></div>
+      <div class="admin-form-field"><label>Days</label><input id="adminDaysInput" type="number" min="0" value="30"></div>
       <div class="admin-form-field"><label>Payment / Subscription Total (AED)</label><input id="adminPaymentInput" type="number" min="0" step="0.01" placeholder="0.00"></div>
       <div class="admin-form-field"><label>Activation Mode</label><select id="adminModeInput"><option value="manual">Manual Active</option><option value="auto">Auto Active</option></select></div>
       <div class="admin-form-field full"><label>Admin Note</label><textarea id="adminSubscriptionNote" placeholder="Optional note"></textarea></div>
@@ -1610,11 +1610,7 @@ function updateMembershipUI(){
 }
 function openProtectedPage(pageId){
   const protectedPages=["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","reportsPage"];
-  if(protectedPages.includes(pageId)&&!isAdminUser()&&!isSubscriptionActive()){
-    updateSubscriptionUI();
-    showPage("membershipPage");
-    return;
-  }
+  if(protectedPages.includes(pageId)&&!isAdminUser()&&!isSubscriptionActive()){showPage("membershipPage");return;}
   showPage(pageId);
 }
 let selectedMembership={plan:'monthly',price:1.5,days:30};
@@ -1643,7 +1639,7 @@ window.startMembershipPurchase=async(plan,price,days)=>{
   }
   try{
     const email=currentUser?.email||undefined;
-    const checkout={items:[{priceId,quantity:1}]};
+    const checkout={items:[{priceId,quantity:1}],customData:{firebase_uid:currentUser?.uid||"",membership_plan:String(plan||"").toLowerCase(),membership_price_id:priceId}};
     if(email)checkout.customer={email};
     Paddle.Checkout.open(checkout);
   }catch(e){
@@ -1713,7 +1709,7 @@ window.renderAdminUsers=rows=>{
       <div class="admin-meta"><div><span>Mobile</span>${String(d.mobile||"—")}</div><div><span>Email</span>${String(d.email||"—")}</div><div><span>Created</span>${created}</div><div><span>Plans Purchased</span>${adminPlanCount(d)}</div><div><span>Subscription Total</span>${adminMoney(paymentTotal)}</div><div><span>Total Net Amount</span>${adminMoney(u.netTotal)}</div><div><span>Mode</span>${method}</div><div><span>Expiry</span>${si.expiry?adminDateValue(si.expiry):"—"}</div></div>
       <button class="admin-view-btn" type="button" onclick="viewAdminUser(${i})">User Detail / Edit</button>
       <div class="admin-sub-actions">
-        <button class="activate" type="button" onclick="adminSetSubscription(${i},'active')">Activate Membership</button>
+        <button class="activate" type="button" onclick="adminSetSubscription(${i},'active')">Activate 30 Days</button>
         <button class="viewonly" type="button" onclick="adminSetSubscription(${i},'inactive')">Deactivate</button>
         <button class="suspend" type="button" onclick="adminSetSubscription(${i},'suspended')">Suspend</button>
       </div>
@@ -1736,16 +1732,10 @@ window.openAdminSubscriptionForm=(index,status)=>{
   const d=u.data||{};
   document.getElementById("adminSubscriptionTitle").textContent="Update Subscription — "+(d.name||d.driverId||"Driver");
   document.getElementById("adminSubscriptionUserNote").textContent="Driver ID: "+(d.driverId||"—")+" • Current status: "+(d.subscriptionStatus||"Not set");
-  const existingPlan=String(d.subscriptionPlan||"").toLowerCase();
-  const planInput=document.getElementById("adminPlanInput");
-  if(planInput){
-    planInput.value=existingPlan.includes("lifetime")?"Lifetime":(existingPlan.includes("year")?"1 Year":"1 Month");
-  }
-  document.getElementById("adminDaysInput").value=planInput?.value==="Lifetime"?0:(planInput?.value==="1 Year"?365:30);
+  document.getElementById("adminDaysInput").value=30;
   document.getElementById("adminPaymentInput").value=Number(d.subscriptionTotalPaid??d.paymentTotal??d.totalSubscriptionPaid??0)||0;
   document.getElementById("adminModeInput").value=String(d.subscriptionMode||d.activationMode||"manual").toLowerCase()==="auto"?"auto":"manual";
   document.getElementById("adminSubscriptionNote").value="";
-  adminPlanChanged();
   selectAdminSubscriptionStatus(adminSubscriptionEditStatus);
   document.getElementById("adminSubscriptionModal").classList.add("show");
 };
@@ -1761,7 +1751,7 @@ window.selectAdminSubscriptionStatus=status=>{
   adminSubscriptionEditStatus=status;
   document.querySelectorAll("#adminSubscriptionModal [data-status]").forEach(b=>b.classList.toggle("selected",b.dataset.status===status));
   const days=document.getElementById("adminDaysInput");
-  if(days)days.disabled=status!=="active";
+  if(days)days.disabled=(status!=="active"||String(document.getElementById("adminPlanInput")?.value||"")==="Lifetime");
 };
 window.closeAdminSubscriptionForm=()=>document.getElementById("adminSubscriptionModal")?.classList.remove("show");
 window.saveAdminSubscriptionForm=async()=>{
@@ -1771,8 +1761,7 @@ window.saveAdminSubscriptionForm=async()=>{
   if(String(u.uid)===String(currentUser?.uid)){alert("Admin account cannot be changed from this user subscription form.");return;}
   const status=adminSubscriptionEditStatus;
   const plan=String(document.getElementById("adminPlanInput").value||"1 Month");
-  const selectedDays=plan==="Lifetime"?0:(plan==="1 Year"?365:30);
-  const days=status==="active"?selectedDays:0;
+  const days=status==="active"?(plan==="Lifetime"?0:(plan==="1 Year"?365:30)):0;
   const payment=Math.max(0,Number(document.getElementById("adminPaymentInput").value)||0);
   const mode=String(document.getElementById("adminModeInput").value||"manual");
   const note=document.getElementById("adminSubscriptionNote").value.trim();
@@ -1833,7 +1822,7 @@ window.viewAdminUser=async index=>{
       <div><b>Plans Purchased</b><span>${plans.join(", ")}</span></div><div><b>Subscription Total</b><span>${adminMoney(paymentTotal)}</span></div>
       <div><b>Total Net Amount</b><span>${adminMoney(u.netTotal)}</span></div><div><b>Invoices</b><span>${invoices.length}</span></div>
     </div>
-    <div class="admin-detail-actions"><button type="button" onclick="adminEditAccount(${index})">Edit Account</button><button type="button" onclick="adminChangePassword(${index})">Change Password</button><button type="button" onclick="adminSetSubscription(${index},'active')">Activate Membership</button><button type="button" onclick="adminSetSubscription(${index},'inactive')">Deactivate</button><button type="button" onclick="adminSetSubscription(${index},'suspended')">Suspend</button><button type="button" class="danger" onclick="adminDeleteAccount(${index})">Delete Account</button></div>
+    <div class="admin-detail-actions"><button type="button" onclick="adminEditAccount(${index})">Edit Account</button><button type="button" onclick="adminChangePassword(${index})">Change Password</button><button type="button" onclick="adminSetSubscription(${index},'active')">Activate 30 Days</button><button type="button" onclick="adminSetSubscription(${index},'inactive')">Deactivate</button><button type="button" onclick="adminSetSubscription(${index},'suspended')">Suspend</button><button type="button" class="danger" onclick="adminDeleteAccount(${index})">Delete Account</button></div>
     <div class="admin-data-section"><h4>Subscription / Payment Data</h4><div class="admin-json">${adminSafeJson({status:d.subscriptionStatus,mode:d.subscriptionMode||d.activationMode,expiry:d.subscriptionExpiry,plansPurchased:d.plansPurchased,subscriptionTotalPaid:d.subscriptionTotalPaid||d.paymentTotal||d.totalSubscriptionPaid})}</div></div>
     <div class="admin-data-section"><h4>Invoices (${invoices.length})</h4><div class="admin-json">${adminSafeJson(invoices)}</div></div>`;
   document.getElementById("adminUserModal").classList.add("show");
@@ -1844,13 +1833,7 @@ window.toggleMenu=()=>document.getElementById("drawer").classList.toggle("open")
 
 window.showPage=pageId=>{
 if(pageId==="adminPage"&&!isAdminUser()){alert("Admin access only.");return;}
-const protectedPages=["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","reportsPage"];
-if(protectedPages.includes(pageId)&&!isAdminUser()&&!isSubscriptionActive()){
-  updateSubscriptionUI();
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.getElementById("membershipPage").classList.add("active");
-  return;
-}
+if(["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","reportsPage"].includes(pageId)&&!isAdminUser()&&!isSubscriptionActive()){showPage("membershipPage");return;}
 document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
 document.getElementById(pageId).classList.add("active");
 
@@ -1999,7 +1982,7 @@ window.signupUser=async()=>{
     }
     const cred=await createUserWithEmailAndPassword(auth,email,password);
     await setDoc(doc(db,"drivers",cred.user.uid),{
-      name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,subscriptionStatus:"trial",trialStartAt:serverTimestamp(),trialExpiry:new Date(Date.now()+7*24*60*60*1000),subscriptionExpiry:new Date(Date.now()+7*24*60*60*1000),subscriptionPlan:"7 Day Free Trial",subscriptionTotalPaid:0,plansPurchased:[],createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
+      name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,subscriptionStatus:"inactive",subscriptionActive:false,subscriptionMode:"",activationMode:"",subscriptionPlan:"",subscriptionStartAt:null,subscriptionExpiry:null,subscriptionLifetime:false,subscriptionTotalPaid:0,plansPurchased:[],createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
     },{merge:true});
     await setDoc(doc(db,"driverLogin",driverKey),{
       driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
