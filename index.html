@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="membership-workflow-version" content="2026-09-25-access-fix-v2">
+<meta name="membership-workflow-version" content="2026-09-25-access-fix-v3">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#f5f5f5">
@@ -1624,7 +1624,7 @@ function updateMembershipUI(){
   document.getElementById("membershipPaidDetail").textContent=money(driverData?.subscriptionTotalPaid||0)+" AED";
   document.getElementById("membershipPlansDetail").textContent=String(Array.isArray(driverData?.plansPurchased)?driverData.plansPurchased.length:(driverData?.subscriptionPlan?1:0));
 }
-async function openProtectedPage(pageId){
+window.openProtectedPage=async function openProtectedPage(pageId){
   const protectedPages=["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","reportsPage"];
   if(!protectedPages.includes(pageId)){showPage(pageId);return;}
   // Always read the latest Firebase driver document before deciding access.
@@ -1641,7 +1641,11 @@ async function openProtectedPage(pageId){
   if(isAdminUser()||isSubscriptionActive()){
     showPage(pageId);
   }else{
+    // Locked users are sent directly to the membership purchase page.
     showPage("membershipPage");
+    setTimeout(()=>{
+      document.getElementById("membershipPage")?.scrollIntoView({block:"start"});
+    },0);
   }
 }
 let selectedMembership={plan:'monthly',price:1.5,days:30};
@@ -1740,7 +1744,7 @@ window.renderAdminUsers=rows=>{
       <div class="admin-meta"><div><span>Mobile</span>${String(d.mobile||"—")}</div><div><span>Email</span>${String(d.email||"—")}</div><div><span>Created</span>${created}</div><div><span>Plans Purchased</span>${adminPlanCount(d)}</div><div><span>Subscription Total</span>${adminMoney(paymentTotal)}</div><div><span>Total Net Amount</span>${adminMoney(u.netTotal)}</div><div><span>Mode</span>${method}</div><div><span>Expiry</span>${si.expiry?adminDateValue(si.expiry):"—"}</div></div>
       <button class="admin-view-btn" type="button" onclick="viewAdminUser(${i})">User Detail / Edit</button>
       <div class="admin-sub-actions">
-        <button class="activate" type="button" onclick="adminSetSubscription(${i},'active')">Activate 30 Days</button>
+        <button class="activate" type="button" onclick="adminSetSubscription(${i},'active')">Activate Membership</button>
         <button class="viewonly" type="button" onclick="adminSetSubscription(${i},'inactive')">Deactivate</button>
         <button class="suspend" type="button" onclick="adminSetSubscription(${i},'suspended')">Suspend</button>
       </div>
@@ -1858,7 +1862,7 @@ window.viewAdminUser=async index=>{
       <div><b>Plans Purchased</b><span>${plans.join(", ")}</span></div><div><b>Subscription Total</b><span>${adminMoney(paymentTotal)}</span></div>
       <div><b>Total Net Amount</b><span>${adminMoney(u.netTotal)}</span></div><div><b>Invoices</b><span>${invoices.length}</span></div>
     </div>
-    <div class="admin-detail-actions"><button type="button" onclick="adminEditAccount(${index})">Edit Account</button><button type="button" onclick="adminChangePassword(${index})">Change Password</button><button type="button" onclick="adminSetSubscription(${index},'active')">Activate 30 Days</button><button type="button" onclick="adminSetSubscription(${index},'inactive')">Deactivate</button><button type="button" onclick="adminSetSubscription(${index},'suspended')">Suspend</button><button type="button" class="danger" onclick="adminDeleteAccount(${index})">Delete Account</button></div>
+    <div class="admin-detail-actions"><button type="button" onclick="adminEditAccount(${index})">Edit Account</button><button type="button" onclick="adminChangePassword(${index})">Change Password</button><button type="button" onclick="adminSetSubscription(${index},'active')">Activate Membership</button><button type="button" onclick="adminSetSubscription(${index},'inactive')">Deactivate</button><button type="button" onclick="adminSetSubscription(${index},'suspended')">Suspend</button><button type="button" class="danger" onclick="adminDeleteAccount(${index})">Delete Account</button></div>
     <div class="admin-data-section"><h4>Subscription / Payment Data</h4><div class="admin-json">${adminSafeJson({status:d.subscriptionStatus,mode:d.subscriptionMode||d.activationMode,expiry:d.subscriptionExpiry,plansPurchased:d.plansPurchased,subscriptionTotalPaid:d.subscriptionTotalPaid||d.paymentTotal||d.totalSubscriptionPaid})}</div></div>
     <div class="admin-data-section"><h4>Invoices (${invoices.length})</h4><div class="admin-json">${adminSafeJson(invoices)}</div></div>`;
   document.getElementById("adminUserModal").classList.add("show");
@@ -1869,7 +1873,11 @@ window.toggleMenu=()=>document.getElementById("drawer").classList.toggle("open")
 
 window.showPage=pageId=>{
 if(pageId==="adminPage"&&!isAdminUser()){alert("Admin access only.");return;}
-if(["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","reportsPage"].includes(pageId)&&!isAdminUser()&&!isSubscriptionActive()){showPage("membershipPage");return;}
+if(["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","reportsPage"].includes(pageId)&&!isAdminUser()&&!isSubscriptionActive()){
+  showPage("membershipPage");
+  setTimeout(()=>document.getElementById("membershipPage")?.scrollIntoView({block:"start"}),0);
+  return;
+}
 document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
 document.getElementById(pageId).classList.add("active");
 
