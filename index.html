@@ -844,7 +844,8 @@ input:focus{border-color:#ed166a}
 .admin-form-modal{position:fixed;inset:0;background:rgba(15,23,42,.58);z-index:10001;display:none;align-items:flex-end;padding:0}.admin-form-modal.show{display:flex}.admin-form-box{background:#fff;width:100%;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:20px}.admin-form-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.admin-form-head h3{margin:0;font-size:19px}.admin-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.admin-form-field{display:flex;flex-direction:column;gap:6px}.admin-form-field.full{grid-column:1/-1}.admin-form-field label{font-size:11px;font-weight:800;color:#596273}.admin-form-field input,.admin-form-field select,.admin-form-field textarea{width:100%;box-sizing:border-box;border:1px solid #dfe3ea;border-radius:11px;padding:11px;background:#fff;font:inherit}.admin-form-field textarea{min-height:80px;resize:vertical}.admin-status-choice{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.admin-status-choice button{border:1px solid #dfe3ea;background:#f8fafc;border-radius:10px;padding:10px 5px;font-weight:800;font-size:11px}.admin-status-choice button.selected{outline:2px solid #0d3b22;background:#ecfdf5}.admin-form-actions{display:flex;gap:8px;margin-top:15px}.admin-form-actions button{flex:1;border:0;border-radius:11px;padding:12px;font-weight:900}.admin-form-actions .save{background:#0d3b22;color:#fff}.admin-form-actions .cancel{background:#eef0f5;color:#1f2937}.admin-form-note{font-size:11px;color:#6b7280;margin:8px 0 12px;line-height:1.4}@media(min-width:601px){.admin-form-modal{align-items:center;padding:18px}.admin-form-box{width:min(620px,94vw);border-radius:20px}}
 
 /* ===== Membership / Subscription ===== */
-.membership-page{padding:10px 12px 42px;background:#070707;min-height:calc(100vh - 64px)}
+.membership-page{position:relative;padding:10px 12px 42px;background:#070707;min-height:calc(100vh - 64px)}
+.membership-close{position:absolute;top:10px;right:14px;z-index:30;width:38px;height:38px;border:1px solid rgba(255,255,255,.18);border-radius:50%;background:rgba(255,255,255,.08);color:#fff;font-size:28px;line-height:34px;font-weight:300;cursor:pointer;display:grid;place-items:center}.membership-close:hover{background:rgba(255,255,255,.16)}
 .membership-hero{position:relative;overflow:hidden;background:radial-gradient(circle at 50% -20%,rgba(244,196,74,.28),transparent 48%),linear-gradient(145deg,#17130a,#0b0b0b 62%,#17110a);color:#fff;border:1px solid rgba(224,175,57,.34);border-radius:26px;padding:22px 16px 18px;margin-bottom:14px;box-shadow:0 14px 34px rgba(0,0,0,.35)}
 .membership-hero:before{content:'◆';position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:78px;color:rgba(246,203,91,.13);line-height:1}
 .membership-logo{width:62px;height:62px;margin:0 auto 8px;border-radius:20px;display:grid;place-items:center;font-size:34px;background:linear-gradient(145deg,#f9e3a2,#b27b16);box-shadow:0 8px 22px rgba(214,164,44,.28);position:relative}
@@ -1302,6 +1303,7 @@ const PADDLE_PRICE_IDS = {
 
 <section id="membershipPage" class="page">
 <div class="membership-page">
+  <button type="button" class="membership-close" aria-label="Close membership" onclick="closeMembershipPage()">×</button>
   <div class="membership-hero">
     <div class="membership-logo">💎</div>
     <h2>Unlock VIP Membership</h2>
@@ -1317,25 +1319,25 @@ const PADDLE_PRICE_IDS = {
     <p>Admin account ke liye membership charge nahi hoga. All features permanently available hain.</p>
   </div>
   <div class="membership-plans" id="membershipPlansWrap">
-    <div class="membership-plan selected" data-membership-plan="monthly" data-membership-price="1.5" data-membership-days="30" onclick="selectMembershipPlan('monthly',1.5,30,this)">
-      <h3>Monthly</h3><div class="plan-price">1.50 AED</div><div class="plan-period">Every month</div>
+    <div class="membership-plan selected" data-membership-plan="monthly" data-membership-price="0.99" data-membership-days="30" onclick="selectMembershipPlan('monthly',0.99,30,this)">
+      <h3>Monthly</h3><div class="plan-price">$0.99</div><div class="plan-period">Every month</div>
       <ul><li>Invoice Entry</li><li>Leaves</li><li>Charge Setup</li><li>Target Setup</li></ul>
-      <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('monthly',1.5,30,this.closest('.membership-plan'));purchaseSelectedMembership()">Subscribe</button>
+      <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('monthly',0.99,30,this.closest('.membership-plan'));purchaseSelectedMembership()">Subscribe</button>
     </div>
-    <div class="membership-plan featured" data-membership-plan="yearly" data-membership-price="15" data-membership-days="365" onclick="selectMembershipPlan('yearly',15,365,this)">
+    <div class="membership-plan featured" data-membership-plan="yearly" data-membership-price="9.99" data-membership-days="365" onclick="selectMembershipPlan('yearly',9.99,365,this)">
       <span class="membership-popular">🔥 POPULAR</span>
-      <h3>Yearly</h3><div class="plan-price">15 AED</div><div class="plan-period">Every year</div>
+      <h3>Yearly</h3><div class="plan-price">$9.99</div><div class="plan-period">Every year</div>
       <ul><li>All protected features</li><li>12 months access</li><li>Lower monthly cost</li><li>Membership details saved</li></ul>
-      <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('yearly',15,365,this.closest('.membership-plan'));purchaseSelectedMembership()">Subscribe</button>
+      <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('yearly',9.99,365,this.closest('.membership-plan'));purchaseSelectedMembership()">Subscribe</button>
     </div>
-    <div class="membership-plan" data-membership-plan="lifetime" data-membership-price="50" data-membership-days="0" onclick="selectMembershipPlan('lifetime',50,0,this)">
-      <h3>Lifetime</h3><div class="plan-price">50 AED</div><div class="plan-period">One-time</div>
+    <div class="membership-plan" data-membership-plan="lifetime" data-membership-price="49.99" data-membership-days="0" onclick="selectMembershipPlan('lifetime',49.99,0,this)">
+      <h3>Lifetime</h3><div class="plan-price">$49.99</div><div class="plan-period">One-time</div>
       <ul><li>All protected features</li><li>No expiry</li><li>One-time membership</li><li>Saved in your account</li></ul>
-      <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('lifetime',50,0,this.closest('.membership-plan'));purchaseSelectedMembership()">Get Lifetime</button>
+      <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('lifetime',49.99,0,this.closest('.membership-plan'));purchaseSelectedMembership()">Get Lifetime</button>
     </div>
   </div>
   <div class="membership-purchase-bar" id="membershipPurchaseBar">
-    <div class="membership-purchase-info"><b id="selectedMembershipName">Monthly Membership</b><span id="selectedMembershipPrice">Select a plan and continue to Paddle Checkout</span></div>
+    <div class="membership-purchase-info"><b id="selectedMembershipName">Monthly Membership</b><span id="selectedMembershipPrice">Prices shown in USD • Paddle Checkout</span></div>
     <button type="button" class="membership-purchase-main" id="membershipPurchaseMain" onclick="purchaseSelectedMembership()">Purchase</button>
   </div>
   <div class="membership-history">
@@ -1657,7 +1659,15 @@ window.openProtectedPage=async function openProtectedPage(pageId){
     },0);
   }
 }
-let selectedMembership={plan:'monthly',price:1.5,days:30};
+window.closeMembershipPage=function(){
+  const activePage=document.querySelector('.page.active');
+  if(activePage && activePage.id==='membershipPage'){
+    showPage('dashboardPage');
+  }else{
+    showPage('dashboardPage');
+  }
+};
+let selectedMembership={plan:'monthly',price:0.99,days:30};
 window.selectMembershipPlan=function(plan,price,days,el){
   selectedMembership={plan,price,days};
   document.querySelectorAll('.membership-plan[data-membership-plan]').forEach(x=>x.classList.remove('selected'));
