@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta name="membership-workflow-version" content="2026-09-25-access-fix-v2">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#f5f5f5">
@@ -854,7 +855,7 @@ input:focus{border-color:#ed166a}
 .membership-purchase-bar{margin-top:12px;background:linear-gradient(145deg,#2b2110,#17120a);border:1px solid #c99528;border-radius:20px;padding:12px;display:flex;align-items:center;gap:10px;justify-content:space-between;color:#fff}
 .membership-purchase-info{font-size:11px;line-height:1.4}.membership-purchase-info b{display:block;font-size:14px;color:#f5d77c}
 .membership-purchase-main{border:0;border-radius:13px;padding:12px 18px;background:linear-gradient(135deg,#f3d77f,#a87519);color:#171006;font-weight:950;cursor:pointer;white-space:nowrap}
-@media(max-width:600px){.membership-purchase-bar{position:sticky;bottom:8px;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.35)}}.membership-buy:disabled{opacity:.55}.membership-history{background:linear-gradient(145deg,#202020,#151515);color:#fff;border:1px solid #393939;border-radius:20px;padding:14px;margin-top:14px}.membership-history h3{margin:0 0 10px;font-size:15px}.membership-detail{display:grid;grid-template-columns:1fr 1fr;gap:8px}.membership-detail div{background:#292929;border:1px solid #353535;border-radius:11px;padding:9px}.membership-detail b{display:block;font-size:9px;color:#999;margin-bottom:3px}.membership-detail span{font-size:11px;font-weight:800;word-break:break-word}.membership-note{font-size:10px;color:#999;line-height:1.45;margin-top:10px}.admin-membership-card{display:none;background:linear-gradient(145deg,#2b2110,#111);border:1px solid #c99528;border-radius:22px;padding:20px;text-align:center;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.3)}.admin-membership-card .admin-vip-icon{font-size:42px;margin-bottom:6px}.admin-membership-card h3{margin:0 0 5px;font-size:21px}.admin-membership-card p{margin:0;color:#d8d0be;font-size:12px;line-height:1.5}.locked-quick{position:relative;opacity:.72}.locked-quick::after{content:'🔒';position:absolute;right:8px;top:7px;font-size:12px}@media(max-width:600px){.membership-plans{grid-template-columns:1fr}.membership-plan{padding:14px}.membership-plan .plan-period{min-height:0}.membership-page{padding:10px 10px 34px}.membership-logo{width:58px;height:58px;font-size:31px}}
+@media(max-width:600px){.membership-purchase-bar{position:sticky;bottom:8px;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.35)}}.membership-buy:disabled{opacity:.55}.membership-history{background:linear-gradient(145deg,#202020,#151515);color:#fff;border:1px solid #393939;border-radius:20px;padding:14px;margin-top:14px}.membership-history h3{margin:0 0 10px;font-size:15px}.membership-detail{display:grid;grid-template-columns:1fr 1fr;gap:8px}.membership-detail div{background:#292929;border:1px solid #353535;border-radius:11px;padding:9px}.membership-detail b{display:block;font-size:9px;color:#999;margin-bottom:3px}.membership-detail span{font-size:11px;font-weight:800;word-break:break-word}.membership-note{font-size:10px;color:#999;line-height:1.45;margin-top:10px}.admin-membership-card{display:none;background:linear-gradient(145deg,#2b2110,#111);border:1px solid #c99528;border-radius:22px;padding:20px;text-align:center;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.3)}.admin-membership-card .admin-vip-icon{font-size:42px;margin-bottom:6px}.admin-membership-card h3{margin:0 0 5px;font-size:21px}.admin-membership-card p{margin:0;color:#d8d0be;font-size:12px;line-height:1.5}.locked-quick{position:relative}.locked-quick:not(.has-access){opacity:.72}.locked-quick:not(.has-access)::after{content:'🔒';position:absolute;right:8px;top:7px;font-size:12px}@media(max-width:600px){.membership-plans{grid-template-columns:1fr}.membership-plan{padding:14px}.membership-plan .plan-period{min-height:0}.membership-page{padding:10px 10px 34px}.membership-logo{width:58px;height:58px;font-size:31px}}
 </style>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
@@ -1546,7 +1547,11 @@ const ADMIN_DRIVER_ID="3116538";
 let adminUsersCache=[];
 let adminClaim=false;
 async function refreshAdminClaim(){try{if(!currentUser){adminClaim=false;return;}const t=await currentUser.getIdTokenResult(true);adminClaim=t?.claims?.admin===true;}catch(e){adminClaim=false;}updateAdminMenu();}
-function isAdminUser(){return !!currentUser && (adminClaim || String(driverData?.driverId||"").trim()===ADMIN_DRIVER_ID);}
+function isAdminUser(){
+  if(!currentUser)return false;
+  const role=String(driverData?.role||driverData?.accountRole||"").trim().toLowerCase();
+  return adminClaim || String(driverData?.driverId||"").trim()===ADMIN_DRIVER_ID || role==="admin" || role==="administrator";
+}
 function updateAdminMenu(){const b=document.getElementById("adminMenuButton");if(b)b.style.display=isAdminUser()?"block":"none";}
 function adminSafeJson(v){try{return JSON.stringify(v,null,2)}catch(e){return String(v)}}
 function subDate(v){try{const d=v?.toDate?v.toDate():new Date(v);return Number.isNaN(d.getTime())?null:d}catch(e){return null}}
@@ -1557,18 +1562,29 @@ function ensureTrialForNewOrLegacyUser(){
 }
 function isSubscriptionActive(){
   if(isAdminUser())return true;
-  const status=String(driverData?.subscriptionStatus||"").toLowerCase();
-  if(status==="active" && (driverData?.subscriptionLifetime===true || String(driverData?.subscriptionPlan||"").toLowerCase().includes("lifetime")))return true;
-  const expiry=subDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
-  if(status==="trial")return !!expiry&&expiry.getTime()>Date.now();
+  const d=driverData||{};
+  const status=String(d.subscriptionStatus||"").trim().toLowerCase();
+  const plan=String(d.subscriptionPlan||"").trim().toLowerCase();
   if(status!=="active")return false;
-  return !!expiry&&expiry.getTime()>Date.now();
+  if(d.subscriptionLifetime===true || plan.includes("lifetime"))return true;
+  const expiry=subDate(d.subscriptionExpiry||d.trialExpiry);
+  return !!expiry && expiry.getTime()>Date.now();
 }
+function membershipAccessState(){
+  const active=isSubscriptionActive();
+  return {active,admin:isAdminUser(),status:String(driverData?.subscriptionStatus||"").toLowerCase(),plan:String(driverData?.subscriptionPlan||"")};
+}
+
 function updateMembershipUI(){
   const statusEl=document.getElementById("membershipStatusText"),pill=document.getElementById("membershipStatusPill"),count=document.getElementById("membershipCountdown");
   if(!statusEl)return;
   const adminCard=document.getElementById("adminMembershipCard"),plansWrap=document.getElementById("membershipPlansWrap");
   const admin=isAdminUser();
+  const access=isSubscriptionActive();
+  document.querySelectorAll(".locked-quick").forEach(btn=>{
+    btn.classList.toggle("has-access",admin||access);
+    btn.setAttribute("aria-label",admin||access?"Open":"Membership required");
+  });
   if(admin){
     statusEl.textContent="Administrator access";
     pill.textContent="ADMIN";
@@ -1608,10 +1624,25 @@ function updateMembershipUI(){
   document.getElementById("membershipPaidDetail").textContent=money(driverData?.subscriptionTotalPaid||0)+" AED";
   document.getElementById("membershipPlansDetail").textContent=String(Array.isArray(driverData?.plansPurchased)?driverData.plansPurchased.length:(driverData?.subscriptionPlan?1:0));
 }
-function openProtectedPage(pageId){
+async function openProtectedPage(pageId){
   const protectedPages=["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","reportsPage"];
-  if(protectedPages.includes(pageId)&&!isAdminUser()&&!isSubscriptionActive()){showPage("membershipPage");return;}
-  showPage(pageId);
+  if(!protectedPages.includes(pageId)){showPage(pageId);return;}
+  // Always read the latest Firebase driver document before deciding access.
+  // This prevents an old in-memory subscription value from keeping an approved
+  // user locked after Admin approval.
+  try{
+    if(currentUser){
+      const latest=await getDoc(doc(db,"drivers",currentUser.uid));
+      if(latest.exists()){driverData={...driverData,...(latest.data()||{})};}
+      await refreshAdminClaim();
+    }
+  }catch(e){console.error("Membership access refresh error:",e);}
+  updateSubscriptionUI();
+  if(isAdminUser()||isSubscriptionActive()){
+    showPage(pageId);
+  }else{
+    showPage("membershipPage");
+  }
 }
 let selectedMembership={plan:'monthly',price:1.5,days:30};
 window.selectMembershipPlan=function(plan,price,days,el){
@@ -1732,20 +1763,25 @@ window.openAdminSubscriptionForm=(index,status)=>{
   const d=u.data||{};
   document.getElementById("adminSubscriptionTitle").textContent="Update Subscription — "+(d.name||d.driverId||"Driver");
   document.getElementById("adminSubscriptionUserNote").textContent="Driver ID: "+(d.driverId||"—")+" • Current status: "+(d.subscriptionStatus||"Not set");
-  document.getElementById("adminDaysInput").value=30;
+  const existingPlan=String(d.subscriptionPlan||"").toLowerCase();
+  const planSelect=document.getElementById("adminPlanInput");
+  if(planSelect)planSelect.value=existingPlan.includes("lifetime")?"Lifetime":(existingPlan.includes("year")?"1 Year":"1 Month");
+  document.getElementById("adminDaysInput").value=planSelect?.value==="Lifetime"?0:(planSelect?.value==="1 Year"?365:30);
   document.getElementById("adminPaymentInput").value=Number(d.subscriptionTotalPaid??d.paymentTotal??d.totalSubscriptionPaid??0)||0;
   document.getElementById("adminModeInput").value=String(d.subscriptionMode||d.activationMode||"manual").toLowerCase()==="auto"?"auto":"manual";
   document.getElementById("adminSubscriptionNote").value="";
   selectAdminSubscriptionStatus(adminSubscriptionEditStatus);
+  adminPlanChanged();
   document.getElementById("adminSubscriptionModal").classList.add("show");
 };
 window.adminPlanChanged=()=>{
   const plan=String(document.getElementById("adminPlanInput")?.value||"1 Month");
   const days=document.getElementById("adminDaysInput");
   if(!days)return;
-  if(plan==="1 Year"){days.value=365;days.disabled=false;}
-  else if(plan==="Lifetime"){days.value=0;days.disabled=true;}
-  else {days.value=30;days.disabled=false;}
+  if(plan==="1 Year")days.value=365;
+  else if(plan==="Lifetime")days.value=0;
+  else days.value=30;
+  days.disabled=adminSubscriptionEditStatus!=="active"||plan==="Lifetime";
 };
 window.selectAdminSubscriptionStatus=status=>{
   adminSubscriptionEditStatus=status;
