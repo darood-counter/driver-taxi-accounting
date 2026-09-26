@@ -1528,7 +1528,7 @@ const PADDLE_PRICE_IDS = {
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,reauthenticateWithCredential,EmailAuthProvider,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,deleteUser,reauthenticateWithCredential,EmailAuthProvider,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,getDocs,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import {getFunctions,httpsCallable} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-functions.js";
 
@@ -1756,21 +1756,42 @@ window.loadAdminUsers=async()=>{
   const box=document.getElementById("adminUsersList");
   if(box)box.innerHTML='<div class="admin-empty">Loading users...</div>';
   try{
+    // Refresh the custom admin claim before the collection query so a newly
+    // promoted admin does not use an old ID token.
+    await refreshAdminClaim();
+    if(!isAdminUser()){
+      if(box)box.innerHTML='<div class="admin-empty">Admin access could not be verified. Please refresh and login again.</div>';
+      return;
+    }
+
     const snap=await getDocs(collection(db,"drivers"));
     const rows=[];
     for(const d of snap.docs){
       const data=d.data()||{};
-      let invoices=[];
-      try{invoices=(await getDocs(collection(db,"drivers",d.id,"invoices"))).docs.map(x=>x.data()||{});}catch(e){}
-      const netTotal=invoices.reduce((sum,x)=>sum+(Number(x.net)||0),0);
-      rows.push({uid:d.id,data,invoiceCount:invoices.length,netTotal});
+      // A valid driver record must have a driver ID and email. Keep older
+      // records visible even if one optional field is missing.
+      if(!data.driverId && !data.email && !data.name)continue;
+      let invoiceCount=0,netTotal=0;
+      try{
+        const invSnap=await getDocs(collection(db,"drivers",d.id,"invoices"));
+        invoiceCount=invSnap.size;
+        netTotal=invSnap.docs.reduce((sum,x)=>sum+(Number(x.data()?.net)||0),0);
+      }catch(e){
+        console.warn("Invoice totals unavailable for admin user",d.id,e);
+      }
+      rows.push({uid:d.id,data,invoiceCount,netTotal});
     }
-    rows.sort((a,b)=>String(a.data?.name||"").localeCompare(String(b.data?.name||"")));
+    rows.sort((a,b)=>String(a.data?.name||a.data?.driverId||"").localeCompare(String(b.data?.name||b.data?.driverId||"")));
     adminUsersCache=rows;
     renderAdminUsers(rows);
   }catch(e){
     console.error("Admin users load error:",e);
-    if(box)box.innerHTML='<div class="admin-empty">Unable to load users. Firebase permissions may need Admin rules.</div>';
+    const code=String(e?.code||"");
+    if(box){
+      box.innerHTML=code==="permission-denied"
+        ? '<div class="admin-empty">Users could not be loaded because Firestore Admin read permission is denied. Check the Firestore rule for the drivers collection.</div>'
+        : '<div class="admin-empty">Unable to load users. Please refresh and try again.</div>';
+    }
   }
 };
 window.renderAdminUsers=rows=>{
@@ -2015,6 +2036,25 @@ window.togglePassword=(id,btn)=>{
   input.type=showing?"password":"text";
   btn.textContent=showing?"Show":"Hide";
 };
+async function ensureDriverProfileForUser(user, fallbackData={}){
+  if(!user?.uid)return {ok:false,created:false};
+  const ref=doc(db,"drivers",user.uid);
+  const snap=await getDoc(ref);
+  if(snap.exists())return {ok:true,created:false,data:snap.data()||{}};
+  const data={
+    name:String(fallbackData.name||user.displayName||"Driver").trim(),
+    driverId:String(fallbackData.driverId||"").trim(),
+    mobile:String(fallbackData.mobile||"").trim(),
+    email:String(user.email||fallbackData.email||"").trim(),
+    targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,
+    subscriptionStatus:"inactive",subscriptionActive:false,subscriptionMode:"",activationMode:"",
+    subscriptionPlan:"",subscriptionStartAt:null,subscriptionExpiry:null,subscriptionLifetime:false,
+    subscriptionTotalPaid:0,plansPurchased:[],createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
+  };
+  await setDoc(ref,data,{merge:true});
+  return {ok:true,created:true,data};
+}
+
 window.loginUser=async()=>{
   const identifier=document.getElementById("loginIdentifier").value.trim();
   const password=document.getElementById("loginPassword").value;
@@ -2024,12 +2064,14 @@ window.loginUser=async()=>{
   try{
     let email=identifier;
     if(!identifier.includes("@")){
-      const mapSnap=await getDoc(doc(db,"driverLogin",normalizeDriverId(identifier)));
+      const driverKey=normalizeDriverId(identifier);
+      const mapSnap=await getDoc(doc(db,"driverLogin",driverKey));
       if(!mapSnap.exists()){
-        document.getElementById("authError").textContent="Account not found. Check your ID or sign up first.";
+        document.getElementById("authError").textContent="Account not found. Please use your registered Email to login once, then your Driver ID will work again.";
         return;
       }
-      email=mapSnap.data().email||"";
+      const mapData=mapSnap.data()||{};
+      email=String(mapData.email||"").trim();
       if(!email){
         document.getElementById("authError").textContent="This Driver ID account setup is incomplete.";
         return;
@@ -2045,11 +2087,12 @@ window.loginUser=async()=>{
     }
   }
 };
+
 window.signupUser=async()=>{
   const name=document.getElementById("signupName").value.trim();
   const driverId=document.getElementById("signupDriverId").value.trim();
   const mobile=document.getElementById("signupMobile").value.trim();
-  const email=document.getElementById("signupEmail").value.trim();
+  const email=document.getElementById("signupEmail").value.trim().toLowerCase();
   const password=document.getElementById("signupPassword").value;
   document.getElementById("authError").textContent="";
   document.getElementById("authSuccess").textContent="";
@@ -2059,22 +2102,53 @@ window.signupUser=async()=>{
   if(password.length<6){
     document.getElementById("authError").textContent="Password must be at least 6 characters.";return
   }
+  const driverKey=normalizeDriverId(driverId);
+  // Store recovery data before Firebase Auth creates the session, because
+  // onAuthStateChanged can fire immediately after createUserWithEmailAndPassword.
+  try{sessionStorage.setItem("pendingDriverProfile",JSON.stringify({name,driverId,mobile,email,driverKey}));}catch(e){}
+  let cred=null;
+  let driverDocCreated=false;
+  let loginMapCreated=false;
   try{
-    const driverKey=normalizeDriverId(driverId);
+    // Check the Driver ID before creating the Auth account.
     const existing=await getDoc(doc(db,"driverLogin",driverKey));
     if(existing.exists()){
       document.getElementById("authError").textContent="This Driver ID is already registered.";
       return;
     }
-    const cred=await createUserWithEmailAndPassword(auth,email,password);
-    await setDoc(doc(db,"drivers",cred.user.uid),{
-      name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,subscriptionStatus:"inactive",subscriptionActive:false,subscriptionMode:"",activationMode:"",subscriptionPlan:"",subscriptionStartAt:null,subscriptionExpiry:null,subscriptionLifetime:false,subscriptionTotalPaid:0,plansPurchased:[],createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
-    },{merge:true});
+
+    // Firebase signs the new user in immediately after successful signup.
+    cred=await createUserWithEmailAndPassword(auth,email,password);
+
+    const profile={
+      name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,
+      subscriptionStatus:"inactive",subscriptionActive:false,subscriptionMode:"",activationMode:"",
+      subscriptionPlan:"",subscriptionStartAt:null,subscriptionExpiry:null,subscriptionLifetime:false,
+      subscriptionTotalPaid:0,plansPurchased:[],createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
+    };
+
+    // Save the ID mapping with enough profile information to repair the driver
+    // document if a transient Firestore write fails during signup.
     await setDoc(doc(db,"driverLogin",driverKey),{
-      driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
-    });
+      ...profile,driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
+    },{merge:false});
+    loginMapCreated=true;
+
+    await setDoc(doc(db,"drivers",cred.user.uid),profile,{merge:true});
+    driverDocCreated=true;
+
+    // Keep the repair payload until the authenticated profile has been read.
+    try{sessionStorage.setItem("pendingDriverProfile",JSON.stringify({uid:cred.user.uid,driverKey,name,driverId,mobile,email}));}catch(e){}
     document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
-  }catch(e){document.getElementById("authError").textContent=authMsg(e)}
+  }catch(e){
+    console.error("Signup flow error:",e);
+    // If Firestore setup failed after Auth creation, remove the partial records
+    // we created. The Auth account is deleted while it is still freshly signed in.
+    try{if(cred?.user && loginMapCreated && !driverDocCreated)await deleteDoc(doc(db,"driverLogin",driverKey));}catch(cleanupError){console.error("Signup mapping cleanup error:",cleanupError);}
+    try{if(cred?.user && driverDocCreated)await deleteDoc(doc(db,"drivers",cred.user.uid));}catch(cleanupError){console.error("Signup profile cleanup error:",cleanupError);}
+    try{if(cred?.user)await cred.user.delete();}catch(cleanupError){console.error("Signup Auth cleanup error:",cleanupError);}
+    document.getElementById("authError").textContent=authMsg(e)+" Account setup was not completed.";
+  }
 };
 window.openFactoryResetConfirm=()=>{
   const modal=document.getElementById("factoryResetModal");
@@ -4143,6 +4217,26 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   if(followDate)requestAnimationFrame(()=>scrollDashboardChartToDate(followDate,{smooth:true}));
 }
 
+async function ensureDriverLoginMapping(user,data={}){
+  if(!user?.uid || !data?.driverId || !user.email)return;
+  const key=normalizeDriverId(data.driverId);
+  const ref=doc(db,"driverLogin",key);
+  const snap=await getDoc(ref);
+  const existing=snap.exists()?snap.data()||{}:{};
+  if(snap.exists() && String(existing.uid||"")===String(user.uid) && String(existing.email||"").toLowerCase()===String(user.email||"").toLowerCase())return;
+  // Never overwrite another user's Driver ID mapping.
+  if(snap.exists() && existing.uid && String(existing.uid)!==String(user.uid))return;
+  await setDoc(ref,{
+    driverId:String(data.driverId).trim(),
+    email:String(user.email).trim().toLowerCase(),
+    uid:user.uid,
+    name:String(data.name||"").trim(),
+    mobile:String(data.mobile||"").trim(),
+    updatedAt:serverTimestamp(),
+    createdAt:existing.createdAt||serverTimestamp()
+  },{merge:true});
+}
+
 onAuthStateChanged(auth,async user=>{
 try{
 if(!user){
@@ -4157,8 +4251,39 @@ if(!user){
 currentUser=user;hideAuth();
 await refreshAdminClaim();
 const ref=doc(db,"drivers",user.uid);
-const snap=await getDoc(ref);
+let snap=await getDoc(ref);
+
+// Self-heal an Auth user whose driver profile was not written during an older
+// or interrupted signup. First use the Driver ID mapping, then the current
+// signup session payload as a fallback.
+if(!snap.exists()) {
+  let recovery={};
+  try{
+    const pending=JSON.parse(sessionStorage.getItem("pendingDriverProfile")||"null");
+    if(pending && String(pending.uid)===String(user.uid)) recovery=pending;
+  }catch(e){}
+  if(!recovery.driverId){
+    try{
+      const maps=await getDocs(collection(db,"driverLogin"));
+      const found=maps.docs.find(x=>String(x.data()?.uid||"")===String(user.uid));
+      if(found){const md=found.data()||{};recovery={...md,driverKey:found.id};}
+    }catch(e){console.warn("Driver mapping recovery lookup failed:",e);}
+  }
+  if(recovery.driverId || user.email){
+    try{
+      await ensureDriverProfileForUser(user,recovery);
+      snap=await getDoc(ref);
+    }catch(e){
+      console.error("Driver profile recovery failed:",e);
+    }
+  }
+}
+
 driverData=snap.exists()?snap.data():{};
+if(snap.exists()){
+  try{await ensureDriverLoginMapping(user,driverData);}catch(e){console.warn("Driver ID mapping repair failed:",e);}
+}
+try{sessionStorage.removeItem("pendingDriverProfile");}catch(e){}
 ensureTrialForNewOrLegacyUser();
 updateAdminMenu();
 updateSubscriptionUI();
