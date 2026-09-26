@@ -2134,31 +2134,35 @@ window.signupUser=async()=>{
   const mobile=document.getElementById("signupMobile").value.trim();
   const email=document.getElementById("signupEmail").value.trim().toLowerCase();
   const password=document.getElementById("signupPassword").value;
-  document.getElementById("authError").textContent="";
-  document.getElementById("authSuccess").textContent="";
+  const errorEl=document.getElementById("authError");
+  const successEl=document.getElementById("authSuccess");
+  errorEl.textContent="";
+  successEl.textContent="";
   if(!name||!driverId||!mobile||!email||!password){
-    document.getElementById("authError").textContent="Please fill in Name, Driver ID, Mobile, Email and Password.";return
+    errorEl.textContent="Please fill in Name, Driver ID, Mobile, Email and Password.";return;
   }
   if(password.length<6){
-    document.getElementById("authError").textContent="Password must be at least 6 characters.";return
+    errorEl.textContent="Password must be at least 6 characters.";return;
   }
+
   const driverKey=normalizeDriverId(driverId);
-  // Firebase signs the user in immediately after createUserWithEmailAndPassword.
-  // Keep the auth-state handler paused until both Firestore records are written.
   signupInProgress=true;
   try{sessionStorage.setItem("pendingDriverProfile",JSON.stringify({name,driverId,mobile,email,driverKey}));}catch(e){}
+
   let cred=null;
   let driverDocCreated=false;
   let loginMapCreated=false;
+
   try{
     // Check the Driver ID before creating the Auth account.
     const existing=await getDoc(doc(db,"driverLogin",driverKey));
     if(existing.exists()){
-      document.getElementById("authError").textContent="This Driver ID is already registered.";
+      errorEl.textContent="This Driver ID is already registered.";
       return;
     }
 
-    // Firebase signs the new user in immediately after successful signup.
+    // Firebase signs the new user in automatically. We keep the auth-state
+    // handler paused until BOTH Firestore records have been saved.
     cred=await createUserWithEmailAndPassword(auth,email,password);
 
     const profile={
@@ -2168,8 +2172,6 @@ window.signupUser=async()=>{
       subscriptionTotalPaid:0,plansPurchased:[],createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
     };
 
-    // Save the ID mapping with enough profile information to repair the driver
-    // document if a transient Firestore write fails during signup.
     await setDoc(doc(db,"driverLogin",driverKey),{
       ...profile,driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
     },{merge:false});
@@ -2178,22 +2180,43 @@ window.signupUser=async()=>{
     await setDoc(doc(db,"drivers",cred.user.uid),profile,{merge:true});
     driverDocCreated=true;
 
-    // Keep the repair payload until the authenticated profile has been read.
-    try{sessionStorage.setItem("pendingDriverProfile",JSON.stringify({uid:cred.user.uid,driverKey,name,driverId,mobile,email}));}catch(e){}
+    // Signup is now fully complete. Do NOT open the dashboard automatically.
+    // Keep signupInProgress=true until signOut finishes so onAuthStateChanged
+    // cannot race ahead and open the dashboard.
+    try{await signOut(auth);}
+    catch(signoutError){
+      console.error("Post-signup signOut error:",signoutError);
+      // The account itself is already complete. Do not delete it just because
+      // the automatic sign-out failed.
+      signupInProgress=false;
+      document.getElementById("loginIdentifier").value=driverId;
+      document.getElementById("loginPassword").value=password;
+      showAuthMode("login");
+      successEl.textContent="Account created successfully. Please logout once, then login with your new ID and password.";
+      return;
+    }
+
     signupInProgress=false;
-    document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
+    try{sessionStorage.removeItem("pendingDriverProfile");}catch(e){}
+    document.getElementById("loginIdentifier").value=driverId;
+    document.getElementById("loginPassword").value=password;
+    showAuthMode("login");
+    successEl.textContent="Account created successfully. Please login with your new ID and password.";
   }catch(e){
     console.error("Signup flow error:",e);
-    // If Firestore setup failed after Auth creation, remove the partial records
-    // we created. The Auth account is deleted while it is still freshly signed in.
+    // Only clean up records created by THIS signup attempt. A completed
+    // Firestore setup is never reported as a failed signup.
     try{if(cred?.user && loginMapCreated && !driverDocCreated)await deleteDoc(doc(db,"driverLogin",driverKey));}catch(cleanupError){console.error("Signup mapping cleanup error:",cleanupError);}
     try{if(cred?.user && driverDocCreated)await deleteDoc(doc(db,"drivers",cred.user.uid));}catch(cleanupError){console.error("Signup profile cleanup error:",cleanupError);}
     try{if(cred?.user)await cred.user.delete();}catch(cleanupError){console.error("Signup Auth cleanup error:",cleanupError);}
     signupInProgress=false;
     try{sessionStorage.removeItem("pendingDriverProfile");}catch(cleanupError){}
-    document.getElementById("authError").textContent=authMsg(e)+" Account setup was not completed.";
+    // IMPORTANT: on any real signup error, remain on the Signup tab.
+    showAuthMode("signup");
+    errorEl.textContent=authMsg(e)+" Account setup was not completed.";
   }
 };
+
 window.openFactoryResetConfirm=()=>{
   const modal=document.getElementById("factoryResetModal");
   if(!modal)return;
