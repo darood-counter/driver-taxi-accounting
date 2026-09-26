@@ -1546,7 +1546,7 @@ const appFirebase=initializeApp(firebaseConfig);
 const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
 const functions=getFunctions(appFirebase);
-let currentUser=null,driverData={},invoices=[],editingId=null,editingInvoiceReturnPage="invoicePage",unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let invoiceSaveBusy=false;let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="",cycleCompletionRecords={};
+let currentUser=null,driverData={},invoices=[],editingId=null,editingInvoiceReturnPage="invoicePage",unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let invoiceSaveBusy=false;let signupInProgress=false;let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="",cycleCompletionRecords={};
 let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
@@ -1764,23 +1764,52 @@ window.loadAdminUsers=async()=>{
       return;
     }
 
-    const snap=await getDocs(collection(db,"drivers"));
     const rows=[];
-    for(const d of snap.docs){
-      const data=d.data()||{};
-      // A valid driver record must have a driver ID and email. Keep older
-      // records visible even if one optional field is missing.
-      if(!data.driverId && !data.email && !data.name)continue;
-      let invoiceCount=0,netTotal=0;
-      try{
-        const invSnap=await getDocs(collection(db,"drivers",d.id,"invoices"));
-        invoiceCount=invSnap.size;
-        netTotal=invSnap.docs.reduce((sum,x)=>sum+(Number(x.data()?.net)||0),0);
-      }catch(e){
-        console.warn("Invoice totals unavailable for admin user",d.id,e);
+    let driverCollectionRead=false;
+    try{
+      const snap=await getDocs(collection(db,"drivers"));
+      driverCollectionRead=true;
+      for(const d of snap.docs){
+        const data=d.data()||{};
+        if(!data.driverId && !data.email && !data.name)continue;
+        let invoiceCount=0,netTotal=0;
+        try{
+          const invSnap=await getDocs(collection(db,"drivers",d.id,"invoices"));
+          invoiceCount=invSnap.size;
+          netTotal=invSnap.docs.reduce((sum,x)=>sum+(Number(x.data()?.net)||0),0);
+        }catch(e){
+          console.warn("Invoice totals unavailable for admin user",d.id,e);
+        }
+        rows.push({uid:d.id,data,invoiceCount,netTotal});
       }
-      rows.push({uid:d.id,data,invoiceCount,netTotal});
+    }catch(e){
+      console.warn("Admin drivers collection read failed:",e);
     }
+
+    // Keep Admin Panel usable when a driver profile exists only in the
+    // Driver-ID mapping (for example after an interrupted signup). Merge it
+    // in without replacing a complete drivers/{uid} profile.
+    try{
+      const mapSnap=await getDocs(collection(db,"driverLogin"));
+      const byUid=new Map(rows.map(x=>[String(x.uid),x]));
+      for(const d of mapSnap.docs){
+        const m=d.data()||{};
+        if(!m.uid)continue;
+        const uid=String(m.uid);
+        if(byUid.has(uid))continue;
+        rows.push({
+          uid,
+          data:{...m,driverId:m.driverId||d.id},
+          invoiceCount:0,
+          netTotal:0,
+          mappingOnly:true
+        });
+      }
+    }catch(e){
+      if(!driverCollectionRead)throw e;
+      console.warn("Admin driverLogin fallback unavailable:",e);
+    }
+
     rows.sort((a,b)=>String(a.data?.name||a.data?.driverId||"").localeCompare(String(b.data?.name||b.data?.driverId||"")));
     adminUsersCache=rows;
     renderAdminUsers(rows);
@@ -1789,7 +1818,7 @@ window.loadAdminUsers=async()=>{
     const code=String(e?.code||"");
     if(box){
       box.innerHTML=code==="permission-denied"
-        ? '<div class="admin-empty">Users could not be loaded because Firestore Admin read permission is denied. Check the Firestore rule for the drivers collection.</div>'
+        ? '<div class="admin-empty">Admin user records are blocked by Firestore Rules. Allow the Admin account to read drivers and driverLogin, then refresh.</div>'
         : '<div class="admin-empty">Unable to load users. Please refresh and try again.</div>';
     }
   }
@@ -1987,7 +2016,17 @@ window.logout=async()=>{
   savedTargetRecords=[];
   savedChargeRecords=[]; editingChargeDate=null; monthlyCycleRecords={}; monthlyCycleSyncKey=""; cycleCompletionRecords={};
   leaveRecords=[];
-  try{ await signOut(auth); }catch(e){}
+  try{
+    await signOut(auth);
+    currentUser=null;
+    driverData={};
+    signupInProgress=false;
+    try{sessionStorage.removeItem("pendingDriverProfile");}catch(e){}
+  }catch(e){
+    console.error("Logout error:",e);
+    document.getElementById("authError").textContent=authMsg(e);
+    return;
+  }
   showAuth();
 };
 
@@ -2067,18 +2106,19 @@ window.loginUser=async()=>{
       const driverKey=normalizeDriverId(identifier);
       const mapSnap=await getDoc(doc(db,"driverLogin",driverKey));
       if(!mapSnap.exists()){
-        document.getElementById("authError").textContent="Account not found. Please use your registered Email to login once, then your Driver ID will work again.";
+        document.getElementById("authError").textContent="Driver ID record not found. Please check the Driver ID or use the registered Email.";
         return;
       }
       const mapData=mapSnap.data()||{};
-      email=String(mapData.email||"").trim();
+      email=String(mapData.email||"").trim().toLowerCase();
       if(!email){
-        document.getElementById("authError").textContent="This Driver ID account setup is incomplete.";
+        document.getElementById("authError").textContent="This Driver ID account setup is incomplete. Please contact Admin.";
         return;
       }
     }
     await signInWithEmailAndPassword(auth,email,password);
   }catch(e){
+    console.error("Login error:",e);
     const code=e?.code||"";
     if(code==="auth/invalid-credential" || code==="auth/wrong-password"){
       document.getElementById("authError").textContent="Wrong password or ID / Email. Please check and try again.";
@@ -2103,8 +2143,9 @@ window.signupUser=async()=>{
     document.getElementById("authError").textContent="Password must be at least 6 characters.";return
   }
   const driverKey=normalizeDriverId(driverId);
-  // Store recovery data before Firebase Auth creates the session, because
-  // onAuthStateChanged can fire immediately after createUserWithEmailAndPassword.
+  // Firebase signs the user in immediately after createUserWithEmailAndPassword.
+  // Keep the auth-state handler paused until both Firestore records are written.
+  signupInProgress=true;
   try{sessionStorage.setItem("pendingDriverProfile",JSON.stringify({name,driverId,mobile,email,driverKey}));}catch(e){}
   let cred=null;
   let driverDocCreated=false;
@@ -2139,6 +2180,7 @@ window.signupUser=async()=>{
 
     // Keep the repair payload until the authenticated profile has been read.
     try{sessionStorage.setItem("pendingDriverProfile",JSON.stringify({uid:cred.user.uid,driverKey,name,driverId,mobile,email}));}catch(e){}
+    signupInProgress=false;
     document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
   }catch(e){
     console.error("Signup flow error:",e);
@@ -2147,6 +2189,8 @@ window.signupUser=async()=>{
     try{if(cred?.user && loginMapCreated && !driverDocCreated)await deleteDoc(doc(db,"driverLogin",driverKey));}catch(cleanupError){console.error("Signup mapping cleanup error:",cleanupError);}
     try{if(cred?.user && driverDocCreated)await deleteDoc(doc(db,"drivers",cred.user.uid));}catch(cleanupError){console.error("Signup profile cleanup error:",cleanupError);}
     try{if(cred?.user)await cred.user.delete();}catch(cleanupError){console.error("Signup Auth cleanup error:",cleanupError);}
+    signupInProgress=false;
+    try{sessionStorage.removeItem("pendingDriverProfile");}catch(cleanupError){}
     document.getElementById("authError").textContent=authMsg(e)+" Account setup was not completed.";
   }
 };
@@ -4239,6 +4283,11 @@ async function ensureDriverLoginMapping(user,data={}){
 
 onAuthStateChanged(auth,async user=>{
 try{
+// During signup, Firebase Auth changes state before Firestore setup finishes.
+// Wait here so the first auth-state pass cannot create an incomplete driver record.
+if(user && signupInProgress){
+  for(let i=0;i<100 && signupInProgress;i++) await new Promise(r=>setTimeout(r,50));
+}
 if(!user){
   currentUser=null;
   try{if(unsubscribeDriver){unsubscribeDriver();unsubscribeDriver=null;}}catch(e){}
