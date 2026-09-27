@@ -1755,7 +1755,7 @@ window.startMembershipPurchase=async(plan,price,days)=>{
   // by isSubscriptionActive().
   if(isSubscriptionActive()){
     updateMembershipUI();
-    showMembershipPaymentMessage("Your membership is already active.");
+    showMembershipPaymentMessage("You already have an active subscription. Please cancel your current plan before purchasing a new one.");
     return;
   }
   const priceId=PADDLE_PRICE_IDS[String(plan||"").toLowerCase()];
@@ -1781,13 +1781,13 @@ function showMembershipPaymentMessage(message){
   if(!el){
     el=document.createElement("div");
     el.id="membershipPaymentMessage";
-    el.style.cssText="position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:90%;text-align:center;";
+    el.style.cssText="position:fixed;top:auto;bottom:100px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#111827;color:#fff;padding:14px 18px;border-radius:12px;font-size:15px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28);width:max-content;max-width:90%;text-align:center;";
     document.body.appendChild(el);
   }
   el.textContent=message;
   el.style.display="block";
   clearTimeout(window.__membershipPaymentMessageTimer);
-  window.__membershipPaymentMessageTimer=setTimeout(()=>{el.style.display="none";},1800);
+  window.__membershipPaymentMessageTimer=setTimeout(()=>{el.style.display="none";},4000);
 }
 
 window.handlePaddleCheckoutCompleted=async function(data){
