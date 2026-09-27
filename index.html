@@ -1736,6 +1736,28 @@ window.purchaseSelectedMembership=function(){
 };
 window.startMembershipPurchase=async(plan,price,days)=>{
   if(isAdminUser())return;
+  // Refresh the signed-in user's subscription from Firestore before opening
+  // checkout, so a recently purchased plan is not missed by stale page data.
+  if(currentUser){
+    try{
+      const latest=await getDoc(doc(db,"drivers",currentUser.uid));
+      if(latest.exists()) driverData={...driverData,...(latest.data()||{})};
+      await refreshAdminClaim();
+    }catch(refreshError){
+      console.error("Membership check before checkout failed:",refreshError);
+      alert("Unable to verify your current subscription. Please try again.");
+      return;
+    }
+  }
+  if(isAdminUser())return;
+  // Stop checkout whenever the signed-in user already has an active membership.
+  // Do not depend on subscriptionPlan being present; status and expiry are checked
+  // by isSubscriptionActive().
+  if(isSubscriptionActive()){
+    updateMembershipUI();
+    showMembershipPaymentMessage("Your membership is already active.");
+    return;
+  }
   const priceId=PADDLE_PRICE_IDS[String(plan||"").toLowerCase()];
   if(!priceId){alert("Membership price ID not found.");return;}
   if(typeof Paddle === "undefined"){alert("Paddle checkout load nahi hua. Internet connection check karein.");return;}
