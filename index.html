@@ -1528,7 +1528,7 @@ const PADDLE_PRICE_IDS = {
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,deleteUser,reauthenticateWithCredential,EmailAuthProvider,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,reauthenticateWithCredential,EmailAuthProvider,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,getDocs,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import {getFunctions,httpsCallable} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-functions.js";
 
@@ -1703,24 +1703,41 @@ window.startMembershipPurchase=async(plan,price,days)=>{
   }
 };
 window.handlePaddleCheckoutCompleted=async function(data){
+  if(window.__paddleMembershipActivationHandled || window.__paddleMembershipActivationInProgress) return;
   const pending=window.__pendingPaddleMembership||{};
   const transactionId=data?.data?.transaction_id||data?.data?.id||data?.transaction_id||"";
   if(!transactionId || !currentUser) return;
+  window.__paddleMembershipActivationInProgress=true;
   try{
     const fn=httpsCallable(functions,"verifyAndActivateMembership");
     const result=await fn({transactionId,uid:currentUser.uid,plan:pending.plan||"",priceId:pending.priceId||""});
     if(result?.data?.ok){
-      alert("Payment successful. Membership activate ho gayi hai.");
+      window.__paddleMembershipActivationHandled=true;
+      window.__pendingPaddleMembership=null;
       await refreshDriverDataFromFirestore();
       updateSubscriptionUI();
-      window.__pendingPaddleMembership=null;
+      alert("Payment successful. Membership activate ho gayi hai.");
       if(typeof showPage==="function") showPage("dashboardPage");
     }else{
       alert("Payment complete ho gaya, lekin membership verification abhi pending hai. Thori dair baad refresh karein.");
     }
   }catch(e){
     console.error("Membership activation error:",e);
-    alert("Payment complete ho gaya, lekin membership activate karne ke liye server verification pending hai.");
+    try{
+      await refreshDriverDataFromFirestore();
+      updateSubscriptionUI();
+      if(isSubscriptionActive()){
+        window.__paddleMembershipActivationHandled=true;
+        window.__pendingPaddleMembership=null;
+        if(typeof showPage==="function") showPage("dashboardPage");
+        return;
+      }
+    }catch(refreshError){
+      console.error("Membership refresh after callback error:",refreshError);
+    }
+    alert("Payment complete ho gaya. Membership status thori dair mein update ho jayega.");
+  }finally{
+    window.__paddleMembershipActivationInProgress=false;
   }
 };
 
@@ -2003,10 +2020,7 @@ function authMsg(error){
     "auth/weak-password":"Password must be at least 6 characters.",
     "auth/network-request-failed":"Please check your internet connection.",
     "auth/too-many-requests":"Too many attempts. Please try again later.",
-    "auth/user-disabled":"This account is disabled. Please contact the administrator.",
-    "permission-denied":"Firebase permission denied. Please check the Firestore Rules for this account.",
-    "failed-precondition":"Firebase setup is incomplete. Please check the Firestore configuration.",
-    "unavailable":"Firebase is temporarily unavailable. Please try again."
+    "auth/user-disabled":"This account is disabled. Please contact the administrator."
   };
   return map[code]||"Login failed. Check your ID / Email and Password.";
 }
@@ -2070,29 +2084,13 @@ window.signupUser=async()=>{
       return;
     }
     const cred=await createUserWithEmailAndPassword(auth,email,password);
-    let driverDocCreated=false;
-    let driverLoginCreated=false;
-    try{
-      // Membership/payment/admin fields are protected by Firestore Rules.
-      // They are added later by Admin / verified Paddle backend functions.
-      await setDoc(doc(db,"drivers",cred.user.uid),{
-        name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
-      });
-      driverDocCreated=true;
-
-      await setDoc(doc(db,"driverLogin",driverKey),{
-        driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
-      });
-      driverLoginCreated=true;
-
-      document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
-    }catch(setupError){
-      // Prevent a half-created account if Firestore setup fails.
-      try{if(driverLoginCreated)await deleteDoc(doc(db,"driverLogin",driverKey));}catch(cleanupError){}
-      try{if(driverDocCreated)await deleteDoc(doc(db,"drivers",cred.user.uid));}catch(cleanupError){}
-      try{await deleteUser(cred.user);}catch(cleanupError){}
-      throw setupError;
-    }
+    await setDoc(doc(db,"drivers",cred.user.uid),{
+      name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,subscriptionStatus:"inactive",subscriptionActive:false,subscriptionMode:"",activationMode:"",subscriptionPlan:"",subscriptionStartAt:null,subscriptionExpiry:null,subscriptionLifetime:false,subscriptionTotalPaid:0,plansPurchased:[],createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
+    },{merge:true});
+    await setDoc(doc(db,"driverLogin",driverKey),{
+      driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
+    });
+    document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
   }catch(e){document.getElementById("authError").textContent=authMsg(e)}
 };
 window.openFactoryResetConfirm=()=>{
