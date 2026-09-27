@@ -1351,6 +1351,10 @@ const PADDLE_PRICE_IDS = {
       <div><b>Plans Purchased</b><span id="membershipPlansDetail">0</span></div>
     </div>
     <div class="membership-note">Payment Paddle Sandbox checkout se hoga. Successful test payment ke baad membership automatically verify aur activate hogi.</div>
+    <div id="membershipCancellationBox" style="display:none;margin-top:12px;padding:11px;border:1px solid #5b4a25;border-radius:12px;background:#1d1a12;color:#f5d77c;font-size:11px;line-height:1.45;">
+      <div id="membershipCancellationText"></div>
+      <button type="button" id="membershipCancelButton" onclick="cancelCurrentMembership()" style="margin-top:9px;border:0;border-radius:10px;padding:9px 13px;background:#9d2f2f;color:#fff;font-weight:800;cursor:pointer;">Cancel Membership</button>
+    </div>
   </div>
 </div>
 </section>
@@ -1634,7 +1638,55 @@ function updateMembershipUI(){
   document.getElementById("membershipExpiryDetail").textContent=(admin||String(plan).toLowerCase().includes("lifetime"))?"Never":formatSubDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
   document.getElementById("membershipPaidDetail").textContent=money(driverData?.subscriptionTotalPaid||0)+" AED";
   document.getElementById("membershipPlansDetail").textContent=String(Array.isArray(driverData?.plansPurchased)?driverData.plansPurchased.length:(driverData?.subscriptionPlan?1:0));
+  const cancelBox=document.getElementById("membershipCancellationBox");
+  const cancelText=document.getElementById("membershipCancellationText");
+  const cancelBtn=document.getElementById("membershipCancelButton");
+  const recurring=admin||String(plan).toLowerCase().includes("lifetime")?false:!!driverData?.paddleSubscriptionId;
+  const cancelScheduled=driverData?.subscriptionCancelRequested===true;
+  if(cancelBox&&cancelText&&cancelBtn){
+    if(admin||String(plan).toLowerCase().includes("lifetime")){cancelBox.style.display="none";}
+    else if(cancelScheduled){
+      cancelBox.style.display="block";
+      cancelText.textContent=driverData?.subscriptionCancelEffectiveAt
+        ? `Cancellation scheduled. Membership access will remain available until ${formatSubDate(driverData.subscriptionCancelEffectiveAt)}.`
+        : "Cancellation scheduled. Your current paid access will remain active until the billing period ends.";
+      cancelBtn.style.display="none";
+    }else if(recurring&&active){
+      cancelBox.style.display="block";
+      cancelText.textContent="Need to stop the next renewal? You can cancel your recurring membership below. Your current paid access will remain until the end of the billing period.";
+      cancelBtn.style.display="inline-block";
+      cancelBtn.disabled=false;
+      cancelBtn.textContent="Cancel Membership";
+    }else{cancelBox.style.display="none";}
+  }
 }
+window.cancelCurrentMembership=async function(){
+  if(!currentUser||isAdminUser())return;
+  const plan=String(driverData?.subscriptionPlan||"").toLowerCase();
+  if(plan.includes("lifetime")){alert("Lifetime membership does not need cancellation.");return;}
+  if(!driverData?.paddleSubscriptionId){alert("No active recurring Paddle membership was found.");return;}
+  if(driverData?.subscriptionCancelRequested===true){updateMembershipUI();return;}
+  const ok=confirm("Cancel your recurring membership? Your current paid access will remain active until the end of the current billing period, and the next renewal will be stopped.");
+  if(!ok)return;
+  const btn=document.getElementById("membershipCancelButton");
+  if(btn){btn.disabled=true;btn.textContent="Cancelling...";}
+  try{
+    const fn=httpsCallable(functions,"cancelMembership");
+    const result=await fn({});
+    if(result?.data?.ok){
+      await refreshDriverDataFromFirestore();
+      updateSubscriptionUI();
+      const when=result.data?.effectiveAt?formatSubDate(result.data.effectiveAt):"the end of your current billing period";
+      showMembershipPaymentMessage(`Cancellation scheduled. Your membership remains active until ${when}.`);
+    }else{
+      throw new Error("Cancellation could not be scheduled.");
+    }
+  }catch(e){
+    console.error("Membership cancellation error:",e);
+    if(btn){btn.disabled=false;btn.textContent="Cancel Membership";}
+    alert(e?.message||"Unable to cancel membership. Please try again.");
+  }
+};
 window.openProtectedPage=async function openProtectedPage(pageId){
   const protectedPages=["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","reportsPage"];
   if(!protectedPages.includes(pageId)){showPage(pageId);return;}
