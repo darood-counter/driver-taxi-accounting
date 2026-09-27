@@ -1547,6 +1547,32 @@ const auth=getAuth(appFirebase);
 const db=getFirestore(appFirebase);
 const functions=getFunctions(appFirebase);
 let currentUser=null,driverData={},invoices=[],editingId=null,editingInvoiceReturnPage="invoicePage",unsubscribeInvoices=null,unsubscribeDriver=null,unsubscribeTargets=null,editingTargetDate=null,savedTargetRecords=[];let invoiceSaveBusy=false;let savedChargeRecords=[],editingChargeDate=null;let monthlyCycleRecords={},monthlyCycleSyncKey="",cycleCompletionRecords={};
+
+// Refresh the signed-in driver's latest Firestore data after membership actions.
+async function refreshDriverDataFromFirestore(){
+  if(!currentUser) throw new Error("Please login first.");
+  const driverRef=doc(db,"drivers",currentUser.uid);
+  const driverSnap=await getDoc(driverRef);
+  if(!driverSnap.exists()) throw new Error("Driver profile was not found.");
+  const fresh=driverSnap.data()||{};
+  driverData={...driverData,...fresh};
+  updateAdminMenu();
+  updateSubscriptionUI();
+  savedTargetRecords=Array.isArray(fresh.targetRecords)?fresh.targetRecords.map(r=>({...r})):Object.values(fresh.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
+  savedChargeRecords=Object.values(fresh.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
+  monthlyCycleRecords={...(fresh.monthlyCycleRecords||{})};
+  cycleCompletionRecords={...(fresh.cycleCompletionRecords||{})};
+  leaveRecords=Array.isArray(fresh.leaveRecords)?fresh.leaveRecords.map(r=>({...r})):[];
+  renderSavedCharges();
+  renderSavedTargets();
+  try{renderLeaveHome();renderLeaveCalendar();}catch(e){console.error("Leave refresh error:",e);}
+  updateInvoiceRateCard();
+  updateDashboard();
+  if(document.getElementById("reportsPage")?.classList.contains("active"))renderReports();
+  if(document.getElementById("historyPage")?.classList.contains("active"))renderHistory();
+  return fresh;
+}
+
 let leaveRecords=[],leaveTypeSelected="",leaveTypeDescription="",leaveTypeIcon="",leaveSelectedDate="",leaveSelectedEndDate="",leaveHomeSelectedDate="",leaveCalendarMonth=new Date();
 
 const ids=["creditCard","app","cash","tips","tolls","shiftDiscount","shiftTrips","bookings","km","careemDiscount","paidCareem","halaJunior","halaPeak","peak","extraCharges"];
