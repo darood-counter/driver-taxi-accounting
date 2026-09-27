@@ -1702,6 +1702,20 @@ window.startMembershipPurchase=async(plan,price,days)=>{
     alert("Paddle checkout open nahi ho saka. Paddle Sandbox settings check karein.");
   }
 };
+function showMembershipPaymentMessage(message){
+  let el=document.getElementById("membershipPaymentMessage");
+  if(!el){
+    el=document.createElement("div");
+    el.id="membershipPaymentMessage";
+    el.style.cssText="position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#111827;color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:90%;text-align:center;";
+    document.body.appendChild(el);
+  }
+  el.textContent=message;
+  el.style.display="block";
+  clearTimeout(window.__membershipPaymentMessageTimer);
+  window.__membershipPaymentMessageTimer=setTimeout(()=>{el.style.display="none";},1800);
+}
+
 window.handlePaddleCheckoutCompleted=async function(data){
   if(window.__paddleMembershipActivationHandled || window.__paddleMembershipActivationInProgress) return;
   const pending=window.__pendingPaddleMembership||{};
@@ -1716,10 +1730,18 @@ window.handlePaddleCheckoutCompleted=async function(data){
       window.__pendingPaddleMembership=null;
       await refreshDriverDataFromFirestore();
       updateSubscriptionUI();
-      alert("Payment successful. Membership activate ho gayi hai.");
+      try{ if(window.Paddle?.Checkout?.close) window.Paddle.Checkout.close(); }catch(closeError){ console.warn("Paddle checkout close error:",closeError); }
       if(typeof showPage==="function") showPage("dashboardPage");
+      showMembershipPaymentMessage("Payment successful. Membership activated. Redirecting to dashboard...");
     }else{
-      alert("Payment complete ho gaya, lekin membership verification abhi pending hai. Thori dair baad refresh karein.");
+      window.__paddleMembershipActivationHandled=true;
+      window.__pendingPaddleMembership=null;
+      try{ if(window.Paddle?.Checkout?.close) window.Paddle.Checkout.close(); }catch(closeError){ console.warn("Paddle checkout close error:",closeError); }
+      if(typeof showPage==="function") showPage("dashboardPage");
+      showMembershipPaymentMessage("Payment received. Membership status is updating...");
+      setTimeout(async()=>{
+        try{ await refreshDriverDataFromFirestore(); updateSubscriptionUI(); }catch(refreshError){ console.error("Background membership refresh error:",refreshError); }
+      },2000);
     }
   }catch(e){
     console.error("Membership activation error:",e);
@@ -1735,7 +1757,14 @@ window.handlePaddleCheckoutCompleted=async function(data){
     }catch(refreshError){
       console.error("Membership refresh after callback error:",refreshError);
     }
-    alert("Payment complete ho gaya. Membership status thori dair mein update ho jayega.");
+    window.__paddleMembershipActivationHandled=true;
+    window.__pendingPaddleMembership=null;
+    try{ if(window.Paddle?.Checkout?.close) window.Paddle.Checkout.close(); }catch(closeError){ console.warn("Paddle checkout close error:",closeError); }
+    if(typeof showPage==="function") showPage("dashboardPage");
+    showMembershipPaymentMessage("Payment received. Membership status is updating...");
+    setTimeout(async()=>{
+      try{ await refreshDriverDataFromFirestore(); updateSubscriptionUI(); }catch(refreshError){ console.error("Background membership refresh error:",refreshError); }
+    },2000);
   }finally{
     window.__paddleMembershipActivationInProgress=false;
   }
