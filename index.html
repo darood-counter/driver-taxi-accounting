@@ -1336,10 +1336,6 @@ const PADDLE_PRICE_IDS = {
       <button class="membership-buy" onclick="event.stopPropagation();selectMembershipPlan('lifetime',49.99,0,this.closest('.membership-plan'));purchaseSelectedMembership()">Get Lifetime</button>
     </div>
   </div>
-  <div class="membership-purchase-bar" id="membershipPurchaseBar">
-    <div class="membership-purchase-info"><b id="selectedMembershipName">Monthly Membership</b><span id="selectedMembershipPrice">Prices shown in USD • Paddle Checkout</span></div>
-    <button type="button" class="membership-purchase-main" id="membershipPurchaseMain" onclick="purchaseSelectedMembership()">Purchase</button>
-  </div>
   <div class="membership-history">
     <h3>Membership Details</h3>
     <div class="membership-detail">
@@ -1781,7 +1777,7 @@ function showMembershipPaymentMessage(message){
   if(!el){
     el=document.createElement("div");
     el.id="membershipPaymentMessage";
-    el.style.cssText="position:fixed;top:auto;bottom:100px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#111827;color:#fff;padding:14px 18px;border-radius:12px;font-size:15px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28);width:max-content;max-width:90%;text-align:center;";
+    el.style.cssText="position:fixed;top:50%;bottom:auto;left:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#111827;color:#fff;padding:14px 18px;border-radius:12px;font-size:15px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28);width:max-content;max-width:90%;text-align:center;";
     document.body.appendChild(el);
   }
   el.textContent=message;
