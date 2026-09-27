@@ -1595,7 +1595,8 @@ function updateMembershipUI(){
   if(!statusEl)return;
   const adminCard=document.getElementById("adminMembershipCard"),plansWrap=document.getElementById("membershipPlansWrap");
   const admin=isAdminUser();
-  const access=isSubscriptionActive();
+  const active=isSubscriptionActive();
+  const access=active;
   document.querySelectorAll(".locked-quick").forEach(btn=>{
     btn.classList.toggle("has-access",admin||access);
     btn.setAttribute("aria-label",admin||access?"Open":"Membership required");
@@ -1612,7 +1613,6 @@ function updateMembershipUI(){
     if(plansWrap)plansWrap.style.display="grid";
     const status=String(driverData?.subscriptionStatus||"inactive").toLowerCase();
     const expiry=subDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
-    const active=isSubscriptionActive();
     if(status==="trial"&&active){
       const days=Math.max(0,Math.ceil((expiry-Date.now())/86400000));
       statusEl.textContent="7 Day Free Trial";
@@ -2165,12 +2165,19 @@ window.signupUser=async()=>{
       return;
     }
     const cred=await createUserWithEmailAndPassword(auth,email,password);
-    await setDoc(doc(db,"drivers",cred.user.uid),{
-      name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,subscriptionStatus:"inactive",subscriptionActive:false,subscriptionMode:"",activationMode:"",subscriptionPlan:"",subscriptionStartAt:null,subscriptionExpiry:null,subscriptionLifetime:false,subscriptionTotalPaid:0,plansPurchased:[],createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
-    },{merge:true});
-    await setDoc(doc(db,"driverLogin",driverKey),{
-      driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
-    });
+    try{
+      await setDoc(doc(db,"drivers",cred.user.uid),{
+        name,driverId,mobile,email,targetPercent:0,shiftTripsRate:0,bookingPrice:0,kmRate:0,createdAt:serverTimestamp(),accountCreatedAt:serverTimestamp()
+      },{merge:true});
+      await setDoc(doc(db,"driverLogin",driverKey),{
+        driverId,email,uid:cred.user.uid,createdAt:serverTimestamp()
+      });
+    }catch(firestoreError){
+      console.error("Signup Firestore setup error:",firestoreError);
+      try{await deleteDoc(doc(db,"drivers",cred.user.uid));}catch(cleanupError){console.warn("Driver document cleanup failed:",cleanupError);}
+      try{await deleteUser(cred.user);}catch(cleanupAuthError){console.warn("Firebase Auth cleanup failed:",cleanupAuthError);}
+      throw firestoreError;
+    }
     document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
   }catch(e){document.getElementById("authError").textContent=authMsg(e)}
 };
