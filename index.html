@@ -2053,7 +2053,7 @@ window.loadMembershipHistory=async function(){
   if(!currentUser)return;
   const uid=currentUser.uid;
   const read=async(name)=>{try{const s=await getDocs(collection(db,"drivers",uid,name));return s.docs.map(x=>({id:x.id,...(x.data()||{})}));}catch(e){console.warn("Membership history read",name,e);return[];}};
-  const [paddle,admin]=await Promise.all([read("paddleMembershipHistory"),read("adminMembershipHistory")]);
+  const [paddle,admin]=await Promise.all([read("paddleHistory"),read("adminHistory")]);
   window.__membershipHistoryCache={paddle,admin};
   return {paddle,admin};
 };
@@ -2074,7 +2074,7 @@ window.closeMembershipHistory=()=>document.getElementById('membershipHistoryModa
 window.loadAdminMembershipHistory=async uid=>{
   if(!isAdminUser())return;const box=document.getElementById('adminMembershipHistory_'+uid);if(!box)return;box.textContent='Loading...';
   const read=async(name)=>{try{const s=await getDocs(collection(db,'drivers',uid,name));return s.docs.map(x=>({id:x.id,...(x.data()||{})}));}catch(e){return[];}};
-  const [paddle,admin]=await Promise.all([read('paddleMembershipHistory'),read('adminMembershipHistory')]);
+  const [paddle,admin]=await Promise.all([read('paddleHistory'),read('adminHistory')]);
   const render=(title,arr)=>`<div style="margin-bottom:10px"><b>${title} (${arr.length})</b>${arr.length?arr.map(x=>`<div style="margin-top:6px;padding:7px;border-radius:8px;background:#fff"><b>${historyEscape(x.plan||x.subscriptionPlan||x.membershipPlan||'—')}</b> • ${historyEscape(membershipHistoryLabel(x))}<br><span style="color:#666">${historyEscape(membershipHistoryDate(x.occurredAt||x.createdAt||x.updatedAt))}${x.amount!=null?' • '+historyEscape(Number(x.amount).toFixed(2)+' AED'):''}${x.note?' • '+historyEscape(x.note):''}</span></div>`).join(''):'<div style="color:#888;margin-top:5px">No records.</div>'}</div>`;
   box.innerHTML=render('Paddle History',paddle)+render('Admin History',admin);
 };
