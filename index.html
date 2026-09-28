@@ -1612,13 +1612,6 @@ function ensureTrialForNewOrLegacyUser(){
   // Intentionally no automatic trial. New/legacy users remain locked until
   // an Admin activates membership or a verified Paddle purchase activates it.
 }
-function isPaddleMembershipActiveUntilExpiry(){
-  const paddle=driverData?.paddleAccess||{};
-  if(paddle.lifetime===true)return paddle.active===true;
-  if(paddle.active!==true)return false;
-  const expiry=subDate(paddle.expiry);
-  return !!expiry && expiry.getTime()>Date.now();
-}
 function isSubscriptionActive(){
   if(isAdminUser())return true;
   const d=driverData||{};
@@ -1641,16 +1634,6 @@ function updateMembershipUI(){
   const admin=isAdminUser();
   const active=isSubscriptionActive();
   const access=active;
-  const paddlePurchaseLocked=isPaddleMembershipActiveUntilExpiry();
-  document.querySelectorAll(".membership-plan[data-membership-plan]").forEach(card=>{
-    card.style.opacity=paddlePurchaseLocked?"0.62":"";
-    card.style.cursor=paddlePurchaseLocked?"not-allowed":"";
-    card.setAttribute("aria-disabled",paddlePurchaseLocked?"true":"false");
-  });
-  document.querySelectorAll(".membership-buy").forEach(btn=>{
-    btn.disabled=paddlePurchaseLocked;
-    btn.title=paddlePurchaseLocked?"You can purchase a new plan after the current Paddle membership expires.":"";
-  });
   document.querySelectorAll(".locked-quick").forEach(btn=>{
     btn.classList.toggle("has-access",admin||access);
     btn.setAttribute("aria-label",admin||access?"Open":"Membership required");
@@ -1775,10 +1758,6 @@ window.closeMembershipPage=function(){
 };
 let selectedMembership={plan:'monthly',price:0.99,days:30};
 window.selectMembershipPlan=function(plan,price,days,el){
-  if(isPaddleMembershipActiveUntilExpiry()){
-    showMembershipPaymentMessage("Your current Paddle membership is still active. A new plan can be purchased after its expiry date.");
-    return;
-  }
   selectedMembership={plan,price,days};
   document.querySelectorAll('.membership-plan[data-membership-plan]').forEach(x=>x.classList.remove('selected'));
   if(el) el.classList.add('selected');
@@ -1808,15 +1787,9 @@ window.startMembershipPurchase=async(plan,price,days)=>{
     }
   }
   if(isAdminUser())return;
-  // Paddle expiry is authoritative for whether a new plan may be purchased.
-  // Admin suspension must not allow a second purchase while the paid Paddle
-  // membership is still valid.
-  if(isPaddleMembershipActiveUntilExpiry()){
-    const expiry=subDate(driverData?.paddleAccess?.expiry);
-    updateMembershipUI();
-    showMembershipPaymentMessage(expiry?`Your current Paddle membership is active until ${formatSubDate(expiry)}. You can purchase a new plan after it expires.`:"Your current Paddle membership is still active. You can purchase a new plan after it expires.");
-    return;
-  }
+  // Stop checkout whenever the signed-in user already has an active membership.
+  // Do not depend on subscriptionPlan being present; status and expiry are checked
+  // by isSubscriptionActive().
   if(isSubscriptionActive()){
     updateMembershipUI();
     showMembershipPaymentMessage("You already have an active subscription. Please cancel your current plan before purchasing a new one.");
@@ -2080,7 +2053,7 @@ window.loadMembershipHistory=async function(){
   if(!currentUser)return;
   const uid=currentUser.uid;
   const read=async(name)=>{try{const s=await getDocs(collection(db,"drivers",uid,name));return s.docs.map(x=>({id:x.id,...(x.data()||{})}));}catch(e){console.warn("Membership history read",name,e);return[];}};
-  const [paddle,admin]=await Promise.all([read("paddleMembershipHistory"),read("adminMembershipHistory")]);
+  const [paddle,admin]=await Promise.all([read("paddleHistory"),read("adminHistory")]);
   window.__membershipHistoryCache={paddle,admin};
   return {paddle,admin};
 };
@@ -2101,7 +2074,7 @@ window.closeMembershipHistory=()=>document.getElementById('membershipHistoryModa
 window.loadAdminMembershipHistory=async uid=>{
   if(!isAdminUser())return;const box=document.getElementById('adminMembershipHistory_'+uid);if(!box)return;box.textContent='Loading...';
   const read=async(name)=>{try{const s=await getDocs(collection(db,'drivers',uid,name));return s.docs.map(x=>({id:x.id,...(x.data()||{})}));}catch(e){return[];}};
-  const [paddle,admin]=await Promise.all([read('paddleMembershipHistory'),read('adminMembershipHistory')]);
+  const [paddle,admin]=await Promise.all([read('paddleHistory'),read('adminHistory')]);
   const render=(title,arr)=>`<div style="margin-bottom:10px"><b>${title} (${arr.length})</b>${arr.length?arr.map(x=>`<div style="margin-top:6px;padding:7px;border-radius:8px;background:#fff"><b>${historyEscape(x.plan||x.subscriptionPlan||x.membershipPlan||'—')}</b> • ${historyEscape(membershipHistoryLabel(x))}<br><span style="color:#666">${historyEscape(membershipHistoryDate(x.occurredAt||x.createdAt||x.updatedAt))}${x.amount!=null?' • '+historyEscape(Number(x.amount).toFixed(2)+' AED'):''}${x.note?' • '+historyEscape(x.note):''}</span></div>`).join(''):'<div style="color:#888;margin-top:5px">No records.</div>'}</div>`;
   box.innerHTML=render('Paddle History',paddle)+render('Admin History',admin);
 };
@@ -2131,8 +2104,18 @@ window.closeAdminUser=()=>document.getElementById("adminUserModal")?.classList.r
 
 window.toggleMenu=()=>document.getElementById("drawer").classList.toggle("open");
 
-window.showPage=pageId=>{
+window.showPage=(pageId,fromHistory=false)=>{
 if(pageId==="adminPage"&&!isAdminUser()){alert("Admin access only.");return;}
+
+// Mobile Android/browser Back button history for this single-page app.
+// Every opened page gets its own browser-history entry so Back returns
+// through pages one-by-one instead of closing the whole website immediately.
+if(!fromHistory){
+  const activePage=document.querySelector(".page.active")?.id || "dashboardPage";
+  if(activePage!==pageId && window.__appHistoryReady){
+    history.pushState({appPage:pageId}, "", "#"+pageId);
+  }
+}
 if(["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","reportsPage"].includes(pageId)&&!isAdminUser()&&!isSubscriptionActive()){
   showPage("membershipPage");
   setTimeout(()=>document.getElementById("membershipPage")?.scrollIntoView({block:"start"}),0);
@@ -2176,6 +2159,27 @@ if(pageId==="invoicePage"){
   updatePreview();
 }
 };
+
+// Handle the phone/browser Back button. The first Back on Dashboard stays
+// on Dashboard; the second Back is allowed to leave the website.
+(function setupAppBackNavigation(){
+  if(window.__appBackNavigationInstalled)return;
+  window.__appBackNavigationInstalled=true;
+  const current=document.querySelector(".page.active")?.id || "dashboardPage";
+  try{
+    history.replaceState({appPage:current,appRoot:true}, "", "#"+current);
+    if(current==="dashboardPage"){
+      history.pushState({appPage:"dashboardPage",appRootSecond:true}, "", "#dashboardPage");
+    }
+  }catch(e){console.warn("History setup failed:",e);}
+  window.__appHistoryReady=true;
+  window.addEventListener("popstate",function(e){
+    const page=e.state?.appPage;
+    if(page){
+      window.showPage(page,true);
+    }
+  });
+})();
 
 window.logout=async()=>{
   try{ if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;} }catch(e){}
