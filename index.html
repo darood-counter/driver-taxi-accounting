@@ -1617,7 +1617,7 @@ const PADDLE_PRICE_IDS = {
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,sendPasswordResetEmail,createUserWithEmailAndPassword,reauthenticateWithCredential,EmailAuthProvider,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,getDocs,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,getDocs,onSnapshot,serverTimestamp,runTransaction,query,where} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import {getFunctions,httpsCallable} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-functions.js";
 
 const firebaseConfig={
@@ -2331,10 +2331,55 @@ window.hideForgotPassword=()=>{
 };
 window.sendForgotPasswordEmail=async()=>{
   const field=document.getElementById("forgotPasswordEmail"),err=document.getElementById("resetAuthError"),ok=document.getElementById("resetAuthSuccess");
-  let email=String(field?.value||"").trim();if(err)err.textContent="";if(ok)ok.textContent="";
+  const btn=document.querySelector('#forgotPasswordPage button.primary');
+  let email=String(field?.value||"").trim().toLowerCase();
+  if(err)err.textContent="";if(ok)ok.textContent="";
   if(!email){if(err)err.textContent="Enter your registered email address.";return;}
-  try{await sendPasswordResetEmail(auth,email);if(ok)ok.textContent="If the email is registered, a password reset link has been sent. Check your inbox.";}
-  catch(e){if(err)err.textContent=authMsg(e);}
+  if(!/^\S+@\S+\.\S+$/.test(email)){if(err)err.textContent="Please enter a valid email address.";return;}
+  if(btn)btn.disabled=true;
+  try{
+    // Verify the email belongs to a registered Driver account before asking
+    // Firebase Auth to send anything. This prevents reset requests for unknown emails.
+    const q=query(collection(db,"driverLogin"),where("email","==",email));
+    const registeredSnap=await getDocs(q);
+    if(registeredSnap.empty){
+      if(err)err.textContent="This email is not registered. No reset email was sent.";
+      return;
+    }
+
+    // Limit this account to 2 reset requests in any rolling 30-day period.
+    // The history is kept locally to avoid changing the existing Firestore rules/data model.
+    const limitKey="driverPasswordResetHistory:"+email;
+    const now=Date.now();
+    const windowMs=30*24*60*60*1000;
+    let history=[];
+    try{history=JSON.parse(localStorage.getItem(limitKey)||"[]");}catch(e){history=[];}
+    history=Array.isArray(history)?history.filter(t=>Number.isFinite(Number(t))&&now-Number(t)<windowMs):[];
+    if(history.length>=2){
+      const oldest=Math.min(...history);
+      const daysLeft=Math.max(1,Math.ceil((windowMs-(now-oldest))/86400000));
+      if(err)err.textContent=`Reset limit reached. You can request another reset after about ${daysLeft} day(s).`;
+      return;
+    }
+
+    await sendPasswordResetEmail(auth,email);
+    history.push(now);
+    try{localStorage.setItem(limitKey,JSON.stringify(history));}catch(e){}
+    if(ok)ok.textContent="Password reset link sent successfully. Check your registered email inbox.";
+  }catch(e){
+    const code=e?.code||"";
+    if(code==="auth/user-not-found") {
+      if(err)err.textContent="This email is not registered. No reset email was sent.";
+    }else if(code==="auth/invalid-email"){
+      if(err)err.textContent="Invalid email address.";
+    }else if(code==="auth/too-many-requests"){
+      if(err)err.textContent="Too many reset requests. Please try again later.";
+    }else{
+      if(err)err.textContent=authMsg(e);
+    }
+  }finally{
+    if(btn)btn.disabled=false;
+  }
 };
 window.loginUser=async()=>{
   const identifier=document.getElementById("loginIdentifier").value.trim();
