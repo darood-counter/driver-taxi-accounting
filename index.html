@@ -904,6 +904,21 @@ input:focus{border-color:#ed166a}
 .scanner-bottom-close{margin-top:8px}
 .scanner-bottom-close button{cursor:pointer}
 
+
+/* Requested refinements: overlay close on camera and centered target entry */
+.invoice-camera-wrap{position:relative}
+.scanner-camera-close-overlay{
+  position:absolute;top:10px;right:10px;z-index:10;
+  min-height:38px;padding:8px 13px;border:1px solid rgba(255,255,255,.75);
+  border-radius:12px;background:rgba(20,20,20,.82);color:#fff;
+  font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)
+}
+.aed-input-wrap input{text-align:center;padding:10px 42px 10px 42px}
+@media(max-width:600px){
+  #targetPage .aed-input-wrap input{text-align:center;padding:5px 30px;min-width:0}
+  .scanner-camera-close-overlay{top:8px;right:8px;min-height:36px;padding:7px 11px}
+}
+
 </style>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
@@ -1055,6 +1070,7 @@ const PADDLE_PRICE_IDS = {
     <div class="invoice-camera-wrap">
       <video id="invoiceCameraPreview" class="invoice-camera-preview" autoplay playsinline></video>
       <div class="invoice-guide" aria-hidden="true"><span>Invoice ko poora box ke andar rakhein</span></div>
+      <button type="button" class="scanner-camera-close-overlay" onclick="closeInvoiceScanner()">✕ Close</button>
     </div>
     <div class="scanner-camera-controls">
       <button type="button" id="invoiceFocusBtn" onclick="setInvoiceCameraFocus()">🔎 Focus</button>
@@ -1068,9 +1084,6 @@ const PADDLE_PRICE_IDS = {
       <button type="button" class="secondary" onclick="chooseInvoicePhoto()">🖼️ Gallery</button>
     </div>
     <div id="invoiceScanStatus" class="status"></div>
-    <div class="scanner-bottom-close">
-      <button type="button" onclick="closeInvoiceScanner()">Close Scanner</button>
-    </div>
   </div>
 </div>
 
