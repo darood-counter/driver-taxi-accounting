@@ -859,6 +859,10 @@ input:focus{border-color:#ed166a}
 @media(max-width:600px){.membership-purchase-bar{position:sticky;bottom:8px;z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.35)}}.membership-buy:disabled{opacity:.55}.membership-history{background:linear-gradient(145deg,#202020,#151515);color:#fff;border:1px solid #393939;border-radius:20px;padding:14px;margin-top:14px}.membership-history h3{margin:0 0 10px;font-size:15px}.membership-detail{display:grid;grid-template-columns:1fr 1fr;gap:8px}.membership-detail div{background:#292929;border:1px solid #353535;border-radius:11px;padding:9px}.membership-detail b{display:block;font-size:9px;color:#999;margin-bottom:3px}.membership-detail span{font-size:11px;font-weight:800;word-break:break-word}.membership-note{font-size:10px;color:#999;line-height:1.45;margin-top:10px}
 .membership-history-btn{margin-top:10px;width:100%;border:1px solid #4b4b4b;background:#292929;color:#f5d77c;border-radius:11px;padding:10px;font-weight:900;cursor:pointer}.membership-history-modal{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:10000;display:none;align-items:flex-end}.membership-history-modal.show{display:flex}.membership-history-box{width:100%;max-height:88vh;overflow:auto;background:#171717;color:#fff;border-radius:20px 20px 0 0;padding:16px}.membership-history-head{display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:-16px;background:#171717;padding:4px 0 12px;z-index:2}.membership-history-head h3{margin:0;font-size:17px}.membership-history-close{border:0;background:#303030;color:#fff;border-radius:10px;padding:8px 11px;font-weight:900}.membership-history-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}.membership-history-tabs button{border:1px solid #3b3b3b;background:#242424;color:#ddd;border-radius:10px;padding:8px 5px;font-size:10px;font-weight:900}.membership-history-tabs button.active{background:#a87519;color:#111}.membership-history-list{display:grid;gap:8px}.membership-history-item{background:#232323;border:1px solid #363636;border-radius:12px;padding:10px}.membership-history-item .mh-top{display:flex;justify-content:space-between;gap:8px}.membership-history-item b{font-size:12px}.membership-history-item small{display:block;color:#aaa;font-size:9px;margin-top:3px;line-height:1.4}.membership-history-item .mh-amount{font-weight:900;color:#f5d77c;font-size:11px}.membership-history-empty{padding:18px;text-align:center;color:#999;font-size:11px;background:#202020;border-radius:12px}@media(min-width:601px){.membership-history-modal{align-items:center}.membership-history-box{width:min(760px,94vw);max-height:84vh;border-radius:20px}}
 .admin-membership-card{display:none;background:linear-gradient(145deg,#2b2110,#111);border:1px solid #c99528;border-radius:22px;padding:20px;text-align:center;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.3)}.admin-membership-card .admin-vip-icon{font-size:42px;margin-bottom:6px}.admin-membership-card h3{margin:0 0 5px;font-size:21px}.admin-membership-card p{margin:0;color:#d8d0be;font-size:12px;line-height:1.5}.locked-quick{position:relative}.locked-quick:not(.has-access){opacity:.72}.locked-quick:not(.has-access)::after{content:'🔒';position:absolute;right:8px;top:7px;font-size:12px}@media(max-width:600px){.membership-plans{grid-template-columns:1fr}.membership-plan{padding:14px}.membership-plan .plan-period{min-height:0}.membership-page{padding:10px 10px 34px}.membership-logo{width:58px;height:58px;font-size:31px}}
+
+.forgot-password-link{display:block;width:100%;border:0;background:transparent;color:#ed166a;font-weight:800;padding:10px;cursor:pointer}
+.forgot-password-panel{margin-top:8px;padding:12px;background:#f8f9fc;border-radius:14px}
+@media(max-width:600px){.auth-screen{min-height:100dvh;align-items:flex-start;overflow-y:auto;padding:16px 12px}.auth-card{width:100%;margin:auto;transform:none}.auth-card input{min-height:44px}.charge-day-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.charge-range-grid{grid-template-columns:1fr;gap:7px}.charge-range{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.charge-cycle{padding:10px;margin:8px 0}.charge-field label{font-size:11px;margin:5px 0}.charge-field select,.charge-field input{min-height:38px;padding:7px;font-size:13px}.target-card{padding:10px 8px}.target-date-row{margin-bottom:5px}.target-table-wrap{overflow-x:auto}.target-table th,.target-table td{padding:6px 4px;font-size:11px}.target-table input{min-width:0;width:100%;padding:6px 3px;font-size:12px;min-height:34px}.target-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.target-actions button{margin-top:8px;padding:10px 5px;font-size:13px}}
 </style>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
@@ -908,6 +912,13 @@ const PADDLE_PRICE_IDS = {
         <button type="button" class="show-pass" onclick="togglePassword('loginPassword',this)">Show</button>
       </div>
       <button class="primary" onclick="loginUser()">Login</button>
+      <button type="button" class="forgot-password-link" onclick="showForgotPassword()">Forgot Password?</button>
+      <div id="forgotPasswordPanel" class="forgot-password-panel" style="display:none">
+        <label for="forgotPasswordEmail">Registered Email</label>
+        <input type="email" id="forgotPasswordEmail" placeholder="Enter your registered email" autocomplete="email">
+        <button type="button" class="primary" onclick="sendForgotPasswordEmail()">Send Password Reset Email</button>
+        <button type="button" class="secondary" onclick="hideForgotPassword()">Back to Login</button>
+      </div>
     </div>
 
     <div id="signupForm" style="display:none">
@@ -1105,13 +1116,13 @@ const PADDLE_PRICE_IDS = {
 <div class="history-hero report-ledger-hero">
   <div class="history-kicker">Driver Accounts</div>
   <h2>📒 Reports Ledger</h2>
-  <p>اپنی روزانہ، ماہانہ، سالانہ اور مکمل آمدن کو ایک صاف Ledger کی طرح دیکھیں۔</p>
+  <p>View your daily, monthly, yearly, and overall earnings in a clear ledger.</p>
 </div>
 <div class="report-ledger-menu">
-  <button type="button" id="reportTabDaily" class="report-ledger-tab" onclick="setReportMode('daily')"><span>📅</span><b>Daily</b><small>روزانہ</small></button>
-  <button type="button" id="reportTabMonthly" class="report-ledger-tab" onclick="setReportMode('monthly')"><span>🗓️</span><b>Monthly</b><small>ماہانہ</small></button>
-  <button type="button" id="reportTabYearly" class="report-ledger-tab" onclick="setReportMode('yearly')"><span>📊</span><b>Yearly</b><small>سالانہ</small></button>
-  <button type="button" id="reportTabOverall" class="report-ledger-tab" onclick="setReportMode('overall')"><span>📚</span><b>Overall</b><small>مکمل</small></button>
+  <button type="button" id="reportTabDaily" class="report-ledger-tab" onclick="setReportMode('daily')"><span>📅</span><b>Daily</b><small>Daily</small></button>
+  <button type="button" id="reportTabMonthly" class="report-ledger-tab" onclick="setReportMode('monthly')"><span>🗓️</span><b>Monthly</b><small>Monthly</small></button>
+  <button type="button" id="reportTabYearly" class="report-ledger-tab" onclick="setReportMode('yearly')"><span>📊</span><b>Yearly</b><small>Yearly</small></button>
+  <button type="button" id="reportTabOverall" class="report-ledger-tab" onclick="setReportMode('overall')"><span>📚</span><b>Overall</b><small>Overall</small></button>
 </div>
 <div id="reportWorkspace" class="report-workspace" hidden>
   <div class="report-workspace-head">
@@ -1543,7 +1554,7 @@ const PADDLE_PRICE_IDS = {
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,createUserWithEmailAndPassword,reauthenticateWithCredential,EmailAuthProvider,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,signInWithEmailAndPassword,sendPasswordResetEmail,createUserWithEmailAndPassword,reauthenticateWithCredential,EmailAuthProvider,updatePassword} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,collection,addDoc,updateDoc,deleteDoc,getDocs,onSnapshot,serverTimestamp,runTransaction} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import {getFunctions,httpsCallable} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-functions.js";
 
@@ -2236,6 +2247,20 @@ window.togglePassword=(id,btn)=>{
   const showing=input.type==="text";
   input.type=showing?"password":"text";
   btn.textContent=showing?"Show":"Hide";
+};
+window.showForgotPassword=()=>{
+  const p=document.getElementById("forgotPasswordPanel");if(p)p.style.display="block";
+  const id=document.getElementById("loginIdentifier")?.value?.trim()||"";
+  const email=document.getElementById("forgotPasswordEmail");if(email&&id.includes("@"))email.value=id;
+  document.getElementById("authError").textContent="";document.getElementById("authSuccess").textContent="";
+};
+window.hideForgotPassword=()=>{const p=document.getElementById("forgotPasswordPanel");if(p)p.style.display="none";};
+window.sendForgotPasswordEmail=async()=>{
+  const field=document.getElementById("forgotPasswordEmail"),err=document.getElementById("authError"),ok=document.getElementById("authSuccess");
+  let email=String(field?.value||"").trim();err.textContent="";ok.textContent="";
+  if(!email){err.textContent="Enter your registered email address.";return;}
+  try{await sendPasswordResetEmail(auth,email);ok.textContent="If the email is registered, a password reset link has been sent. Check your inbox.";}
+  catch(e){err.textContent=authMsg(e);}
 };
 window.loginUser=async()=>{
   const identifier=document.getElementById("loginIdentifier").value.trim();
@@ -3315,7 +3340,7 @@ function buildTargetRows(amounts=DEFAULT_TARGET_AMOUNTS){
       <td>
         <div class="aed-input-wrap">
           <input type="number" min="0" step="0.01" class="target-amount" data-index="${i}" value="${amount}" oninput="updateTargetRanges()">
-          <span class="aed-symbol">د.إ</span>
+          <span class="aed-symbol">AED</span>
         </div>
       </td>
       <td><span class="target-range" id="targetRange${i}">—</span></td>
@@ -3348,7 +3373,7 @@ function updateTargetRanges(){
     const pos=filled.findIndex(x=>x.index===i);
     const start=pos===0 ? 0.01 : n;
     const end=pos<filled.length-1 ? filled[pos+1].amount-0.01 : TARGET_MAX_AMOUNT;
-    el.innerHTML=`<span>${money2(start)}</span><span>–</span><span>${money2(end)}</span><span class="range-aed">د.إ</span>`;
+    el.innerHTML=`<span>${money2(start)}</span><span>–</span><span>${money2(end)}</span><span class="range-aed">AED</span>`;
   });
 }
 
@@ -3485,7 +3510,7 @@ function renderSavedTargets(){
       const pos=filled.findIndex(x=>x.index===i);
       const start=pos===0?0.01:amount;
       const end=pos<filled.length-1?filled[pos+1].amount-0.01:TARGET_MAX_AMOUNT;
-      return `<td><span class="saved-target-amount">${money2(amount)} د.إ</span><span class="saved-target-range">${money2(start)}–${money2(end)} د.إ</span></td>`;
+      return `<td><span class="saved-target-amount">${money2(amount)} AED</span><span class="saved-target-range">${money2(start)}–${money2(end)} AED</span></td>`;
     }).join("");
     const safeId=String(r.id||"").replace(/'/g,"\\'");
     const updateButton=String(r.id||"")===latestId
@@ -4082,7 +4107,7 @@ function renderCommissionForecast(total,dayStats,dailyAvg,dateKey){
   });
 
   const active=calculations[0];
-  valueEl.textContent=money(active.required)+" AED";
+  valueEl.textContent=money(active.required*remainingDays)+" AED";
 
   box.innerHTML=calculations.map((item,i)=>{
     const activeClass=i===0?" active":"";
@@ -4091,7 +4116,7 @@ function renderCommissionForecast(total,dayStats,dailyAvg,dateKey){
 
   const applyForecast=(index)=>{
     const item=calculations[index]||calculations[0];
-    valueEl.textContent=money(item.required)+" AED";
+    valueEl.textContent=money(item.required*remainingDays)+" AED";
     [...box.querySelectorAll('.commission-forecast-option')].forEach((el,i)=>el.classList.toggle('active',i===index));
     infoEl.innerHTML=`To achieve it, in the <strong>next ${remainingDays} days</strong> you will have to collect <span>at least ${money(item.required)} AED</span> per day.`;
   };
