@@ -2447,7 +2447,21 @@ window.signupUser=async()=>{
       try{await deleteUser(cred.user);}catch(cleanupAuthError){console.warn("Firebase Auth cleanup failed:",cleanupAuthError);}
       throw firestoreError;
     }
-    document.getElementById("authSuccess").textContent="Account created successfully. Opening dashboard...";
+    document.getElementById("authSuccess").textContent="Account created successfully. Please login.";
+
+    setTimeout(async()=>{
+      try{await signOut(auth);}catch(e){}
+      document.getElementById("signupName").value="";
+      document.getElementById("signupDriverId").value="";
+      document.getElementById("signupMobile").value="";
+      document.getElementById("signupEmail").value="";
+      document.getElementById("signupPassword").value="";
+      document.getElementById("authSuccess").textContent="";
+      document.getElementById("authError").textContent="";
+      showAuthMode("login");
+      document.getElementById("loginIdentifier").value="";
+      document.getElementById("loginPassword").value="";
+    },1200);
   }catch(e){document.getElementById("authError").textContent=authMsg(e)}
 };
 window.openFactoryResetConfirm=()=>{
