@@ -863,6 +863,47 @@ input:focus{border-color:#ed166a}
 .forgot-password-link{display:block;width:100%;border:0;background:transparent;color:#ed166a;font-weight:800;padding:10px;cursor:pointer}
 .forgot-password-panel{margin-top:8px;padding:12px;background:#f8f9fc;border-radius:14px}
 @media(max-width:600px){.auth-screen{min-height:100dvh;align-items:flex-start;overflow-y:auto;padding:16px 12px}.auth-card{width:100%;margin:auto;transform:none}.auth-card input{min-height:44px}.charge-day-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.charge-range-grid{grid-template-columns:1fr;gap:7px}.charge-range{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.charge-cycle{padding:10px;margin:8px 0}.charge-field label{font-size:11px;margin:5px 0}.charge-field select,.charge-field input{min-height:38px;padding:7px;font-size:13px}.target-card{padding:10px 8px}.target-date-row{margin-bottom:5px}.target-table-wrap{overflow-x:auto}.target-table th,.target-table td{padding:6px 4px;font-size:11px}.target-table input{min-width:0;width:100%;padding:6px 3px;font-size:12px;min-height:34px}.target-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.target-actions button{margin-top:8px;padding:10px 5px;font-size:13px}}
+
+
+/* Focused mobile layout fixes requested: auth stability, setup forms, scanner close */
+@media (max-width:600px){
+  #authScreen{
+    position:fixed;inset:0;width:100%;height:100%;min-height:0;
+    display:none;align-items:flex-start;justify-content:center;
+    overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    overscroll-behavior-y:contain;
+  }
+  #authScreen .auth-card{
+    flex:0 0 auto;width:100%;max-width:440px;max-height:none;
+    margin:0 auto 12px;overflow:visible;transform:none;
+  }
+  #authScreen #forgotPasswordPage{margin-top:12px}
+  #calculatorPage .form-card{padding:10px 9px;margin-bottom:12px}
+  #calculatorPage .charge-day-row{gap:6px}
+  #calculatorPage .charge-field label{font-size:10px;margin:3px 0}
+  #calculatorPage .charge-field input,#calculatorPage .charge-field select{
+    min-height:34px;padding:5px 6px;font-size:12px
+  }
+  #calculatorPage .charge-cycle{padding:7px;margin:5px 0}
+  #calculatorPage .charge-cycle h3{font-size:12px;margin:2px 0 5px}
+  #calculatorPage .charge-range-grid,#calculatorPage .charge-range{gap:5px}
+  #calculatorPage .form-card>label{display:block;font-size:11px;margin:5px 0 2px}
+  #calculatorPage .form-card>input{min-height:34px;padding:5px 7px;font-size:12px;margin-bottom:4px}
+  #calculatorPage .form-card>.primary{min-height:38px;margin-top:7px;padding:8px}
+  #targetPage .target-card{padding:8px 7px;margin-bottom:10px}
+  #targetPage .target-table-wrap{overflow-x:hidden}
+  #targetPage .target-table{width:100%;table-layout:fixed}
+  #targetPage .target-table th,#targetPage .target-table td{padding:3px 2px;font-size:10px}
+  #targetPage .target-table input{width:100%;min-width:0;min-height:31px;padding:4px 3px;font-size:11px}
+  #targetPage .target-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  #targetPage .target-actions button{min-height:36px;margin:0;padding:6px 3px;font-size:11px}
+  .scanner-bottom-close{position:sticky;bottom:0;padding:8px 0 2px;background:#fff;z-index:3}
+  .scanner-bottom-close button{display:block;width:100%;min-height:44px;border:0;border-radius:11px;background:#222;color:#fff;font-size:15px;font-weight:800}
+}
+.scanner-bottom-close{margin-top:8px}
+.scanner-bottom-close button{cursor:pointer}
+
 </style>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
@@ -913,12 +954,6 @@ const PADDLE_PRICE_IDS = {
       </div>
       <button class="primary" onclick="loginUser()">Login</button>
       <button type="button" class="forgot-password-link" onclick="showForgotPassword()">Forgot Password?</button>
-      <div id="forgotPasswordPanel" class="forgot-password-panel" style="display:none">
-        <label for="forgotPasswordEmail">Registered Email</label>
-        <input type="email" id="forgotPasswordEmail" placeholder="Enter your registered email" autocomplete="email">
-        <button type="button" class="primary" onclick="sendForgotPasswordEmail()">Send Password Reset Email</button>
-        <button type="button" class="secondary" onclick="hideForgotPassword()">Back to Login</button>
-      </div>
     </div>
 
     <div id="signupForm" style="display:none">
@@ -936,6 +971,17 @@ const PADDLE_PRICE_IDS = {
     <div class="auth-error" id="authError"></div>
     <div class="auth-success" id="authSuccess"></div>
     
+  </div>
+  <div class="auth-card" id="forgotPasswordPage" style="display:none">
+    <button type="button" class="forgot-password-link" style="text-align:left;width:auto;padding:0 0 12px" onclick="hideForgotPassword()">← Back to Login</button>
+    <div style="font-size:34px;text-align:center;margin:4px 0 10px">🔐</div>
+    <h1 style="text-align:center">Reset Password</h1>
+    <p style="text-align:center">Enter your registered email address. We will send you a secure password reset link.</p>
+    <label for="forgotPasswordEmail">Registered Email</label>
+    <input type="email" id="forgotPasswordEmail" placeholder="Enter your registered email" autocomplete="email">
+    <button type="button" class="primary" onclick="sendForgotPasswordEmail()">Send Reset Link</button>
+    <div class="auth-error" id="resetAuthError"></div>
+    <div class="auth-success" id="resetAuthSuccess"></div>
   </div>
 </div>
 <div class="app" id="appShell" style="display:none">
@@ -1022,6 +1068,9 @@ const PADDLE_PRICE_IDS = {
       <button type="button" class="secondary" onclick="chooseInvoicePhoto()">🖼️ Gallery</button>
     </div>
     <div id="invoiceScanStatus" class="status"></div>
+    <div class="scanner-bottom-close">
+      <button type="button" onclick="closeInvoiceScanner()">Close Scanner</button>
+    </div>
   </div>
 </div>
 
@@ -2249,18 +2298,26 @@ window.togglePassword=(id,btn)=>{
   btn.textContent=showing?"Show":"Hide";
 };
 window.showForgotPassword=()=>{
-  const p=document.getElementById("forgotPasswordPanel");if(p)p.style.display="block";
+  const login=document.querySelector("#authScreen .auth-card:not(#forgotPasswordPage)");
+  const reset=document.getElementById("forgotPasswordPage");
+  if(login)login.style.display="none";
+  if(reset)reset.style.display="block";
   const id=document.getElementById("loginIdentifier")?.value?.trim()||"";
   const email=document.getElementById("forgotPasswordEmail");if(email&&id.includes("@"))email.value=id;
-  document.getElementById("authError").textContent="";document.getElementById("authSuccess").textContent="";
+  const err=document.getElementById("resetAuthError"),ok=document.getElementById("resetAuthSuccess");
+  if(err)err.textContent="";if(ok)ok.textContent="";
 };
-window.hideForgotPassword=()=>{const p=document.getElementById("forgotPasswordPanel");if(p)p.style.display="none";};
+window.hideForgotPassword=()=>{
+  const login=document.querySelector("#authScreen .auth-card:not(#forgotPasswordPage)");
+  const reset=document.getElementById("forgotPasswordPage");
+  if(reset)reset.style.display="none";if(login)login.style.display="block";
+};
 window.sendForgotPasswordEmail=async()=>{
-  const field=document.getElementById("forgotPasswordEmail"),err=document.getElementById("authError"),ok=document.getElementById("authSuccess");
-  let email=String(field?.value||"").trim();err.textContent="";ok.textContent="";
-  if(!email){err.textContent="Enter your registered email address.";return;}
-  try{await sendPasswordResetEmail(auth,email);ok.textContent="If the email is registered, a password reset link has been sent. Check your inbox.";}
-  catch(e){err.textContent=authMsg(e);}
+  const field=document.getElementById("forgotPasswordEmail"),err=document.getElementById("resetAuthError"),ok=document.getElementById("resetAuthSuccess");
+  let email=String(field?.value||"").trim();if(err)err.textContent="";if(ok)ok.textContent="";
+  if(!email){if(err)err.textContent="Enter your registered email address.";return;}
+  try{await sendPasswordResetEmail(auth,email);if(ok)ok.textContent="If the email is registered, a password reset link has been sent. Check your inbox.";}
+  catch(e){if(err)err.textContent=authMsg(e);}
 };
 window.loginUser=async()=>{
   const identifier=document.getElementById("loginIdentifier").value.trim();
@@ -3206,7 +3263,36 @@ function printReports(){
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${(document.getElementById("reportTitle")?.textContent||"Report")}</title>${styles}<style>
     @media print{body{background:#fff!important}.page{display:block!important}.report-workspace{display:block!important;box-shadow:none!important;border:0!important;margin:0!important}.report-table-scroll{overflow:visible!important;max-height:none!important}.report-summary-table,.report-invoice-table{min-width:0!important;width:100%!important}.report-print,.report-mode-tabs,.report-control-row,button{display:none!important}}
     body{background:#fff!important;margin:0;padding:20px}.page{display:block!important}.report-workspace{box-shadow:none!important}
-  </style></head><body>${clone.innerHTML}</body></html>`);
+  
+/* Mobile stability and compact Target Setup layout */
+@media(max-width:600px){
+  .auth-screen{min-height:100dvh;height:100dvh;box-sizing:border-box;align-items:center;justify-content:center;overflow-y:auto;overscroll-behavior:contain;padding:12px;}
+  .auth-card{box-sizing:border-box;width:100%;max-width:440px;margin:auto;transform:none;max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;padding:18px 15px;border-radius:20px;}
+  .auth-card h1{font-size:23px;line-height:1.2}
+  .auth-card p{margin-bottom:14px}
+  #forgotPasswordPanel{box-sizing:border-box;border:1px solid #e4e7ef;background:#fff;border-radius:14px;padding:12px;box-shadow:0 5px 18px rgba(20,30,60,.07)}
+  #forgotPasswordPanel label{display:block;font-weight:800;margin-bottom:6px}
+  #forgotPasswordPanel input{width:100%;box-sizing:border-box;border:1px solid #d8dce5;border-radius:10px;padding:11px 12px;margin-bottom:9px}
+  #forgotPasswordPanel button{width:100%;margin-top:7px;min-height:42px}
+  #targetPage .target-card{padding:8px 7px;margin:0 auto 10px;}
+  #targetPage .target-date-row{margin:0 0 6px}
+  #targetPage .target-date-row input{min-height:34px;padding:5px 7px;font-size:12px}
+  #targetPage .target-table-wrap{overflow:hidden}
+  #targetPage .target-table th{padding:5px 2px;font-size:10px;line-height:1.1}
+  #targetPage .target-table th:first-child{width:17%}
+  #targetPage .target-table th:nth-child(2){width:39%}
+  #targetPage .target-table th:nth-child(3){width:44%}
+  #targetPage .target-table td{padding:2px 2px;font-size:10px;line-height:1.05}
+  #targetPage .target-percent-pill{min-width:0;padding:4px 2px;border-radius:6px;font-size:10px}
+  #targetPage .aed-input-wrap input{min-height:29px;height:29px;box-sizing:border-box;padding:4px 29px 4px 3px;font-size:11px;border-radius:7px}
+  #targetPage .aed-symbol{right:4px;font-size:8px}
+  #targetPage .target-range{font-size:9px;gap:1px;white-space:normal;line-height:1.05}
+  #targetPage .target-range .range-aed{font-size:8px}
+  #targetPage .target-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  #targetPage .target-actions button{min-height:36px;padding:7px 4px;font-size:11px;margin:0}
+  #targetPage .target-table-status,#targetPage .status{font-size:11px;margin-top:4px}
+}
+</style></head><body>${clone.innerHTML}</body></html>`);
   w.document.close();
   const doPrint=()=>{try{w.focus();w.print()}catch(e){console.error("Report print error:",e)}};
   if(w.document.readyState==="complete") setTimeout(doPrint,250); else w.onload=()=>setTimeout(doPrint,250);
