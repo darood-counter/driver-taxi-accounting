@@ -1937,10 +1937,18 @@ window.startMembershipPurchase=async(plan,price,days)=>{
     };
     if(email)checkout.customer={email};
     window.__pendingPaddleMembership={plan:String(plan||"").toLowerCase(),priceId,days:Number(days)||0};
-    Paddle.Checkout.open(checkout);
+    showMembershipPaymentMessage("Paddle checkout open ho raha hai…");
+    try {
+      Paddle.Checkout.open(checkout);
+    } catch(openError){
+      console.error("Paddle.Checkout.open error:",openError);
+      const detail = openError?.detail || openError?.message || openError?.code || String(openError);
+      showMembershipPaymentMessage("Paddle checkout error: " + detail);
+    }
   }catch(e){
-    console.error("Paddle checkout error:",e);
-    alert("Paddle checkout open nahi ho saka. Paddle Sandbox settings check karein.");
+    console.error("Paddle checkout setup error:",e);
+    const detail = e?.detail || e?.message || e?.code || String(e);
+    showMembershipPaymentMessage("Paddle checkout setup error: " + detail);
   }
 };
 function showMembershipPaymentMessage(message){
