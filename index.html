@@ -3221,8 +3221,27 @@ function reportInvoiceFieldTotals(rows){
     ['Careem Discount','careemDiscount'],['Paid in Careem','paidCareem'],['Hala juniors','halaJunior'],
     ['Hala peak','halaPeak'],['Peak','peak'],['Others','extraCharges']
   ];
+  const variableRateKeys={shiftTrips:'rtaCharges',bookings:'bookingCharges',km:'fuelCharges'};
   const out={};
-  fields.forEach(([label,key])=>out[key]={label,value:rows.reduce((sum,x)=>sum+(Number(x?.[key])||0),0)});
+  fields.forEach(([label,key])=>{
+    const value=rows.reduce((sum,x)=>sum+(Number(x?.[key])||0),0);
+    let avgRate=null,calculatedAmount=null;
+    const rateKey=variableRateKeys[key];
+    if(rateKey){
+      let qtyTotal=0,amountByRate=0;
+      rows.forEach(x=>{
+        const qty=Number(x?.[key])||0;
+        if(!qty)return;
+        const setup=getChargeSetupForDate(invoiceDateKey(x))||{};
+        const rate=Number(setup?.[rateKey])||0;
+        qtyTotal+=qty;
+        amountByRate+=qty*rate;
+      });
+      avgRate=qtyTotal>0?amountByRate/qtyTotal:0;
+      calculatedAmount=amountByRate;
+    }
+    out[key]={label,value,avgRate,calculatedAmount};
+  });
   out.total={label:'Total Amount',value:rows.reduce((sum,x)=>sum+(Number(x?.total)||0),0)};
   out.deductions={label:'Total Deductions',value:rows.reduce((sum,x)=>sum+(Number(x?.deductions)||0),0)};
   out.net={label:'Net Amount',value:rows.reduce((sum,x)=>sum+(Number(x?.net)||0),0)};
@@ -3231,7 +3250,15 @@ function reportInvoiceFieldTotals(rows){
 function reportFieldTotalsTable(rows,title){
   const t=reportInvoiceFieldTotals(rows||[]);
   const order=['creditCard','app','cash','tips','tolls','shiftDiscount','shiftTrips','bookings','km','careemDiscount','paidCareem','halaJunior','halaPeak','peak','extraCharges'];
-  return `<div class="report-table-title">${title}</div><div class="report-table-scroll"><table class="report-summary-table report-field-total-table"><thead><tr><th>Particular</th><th>Total AED</th></tr></thead><tbody>${order.map(k=>`<tr><td>${t[k].label}</td><td>${money(t[k].value)} AED</td></tr>`).join('')}<tr class="ledger-total"><td>Total Amount</td><td>${money(t.total.value)} AED</td></tr><tr class="ledger-total"><td>Total Deductions</td><td>${money(t.deductions.value)} AED</td></tr><tr class="ledger-grand-total"><td>Net Amount</td><td>${money(t.net.value)} AED</td></tr></tbody></table></div>`;
+  const variableRateKeys=new Set(['shiftTrips','bookings','km']);
+  const detail=k=>{
+    if(!variableRateKeys.has(k))return '';
+    const qty=money(t[k].value);
+    const avg=money(t[k].avgRate||0);
+    const amount=money(t[k].calculatedAmount||0);
+    return `<div class="report-rate-detail">× ${qty} @ ${avg} AED Avg. → ${amount} AED</div>`;
+  };
+  return `<div class="report-table-title">${title}</div><div class="report-table-scroll"><table class="report-summary-table report-field-total-table"><thead><tr><th>Particular</th><th>Total AED</th></tr></thead><tbody>${order.map(k=>`<tr><td>${t[k].label}${detail(k)}</td><td>${money(t[k].value)} AED</td></tr>`).join('')}<tr class="ledger-total"><td>Total Amount</td><td>${money(t.total.value)} AED</td></tr><tr class="ledger-total"><td>Total Deductions</td><td>${money(t.deductions.value)} AED</td></tr><tr class="ledger-grand-total"><td>Net Amount</td><td>${money(t.net.value)} AED</td></tr></tbody></table></div>`;
 }
 function reportMetricTable(c){
   return `<table class="report-mini-table"><tbody><tr><th>Working Days</th><td>${c.workDays}</td><th>Invoices</th><td>${c.invoices}</td></tr><tr><th>Net Amount</th><td>${money(c.netSale)} AED</td><th>Commission %</th><td>${money(c.target)}%</td></tr><tr><th>Salary</th><td>${money(c.salary)} AED</td><th>Daily Average</th><td>${money(c.avg)} AED</td></tr></tbody></table>`;
@@ -3299,7 +3326,7 @@ function renderYearlyReport(){
  const activeReports=reports.filter(r=>r.cycles.length), allRows=activeReports.flatMap(r=>r.cycles.flatMap(c=>c.rows||[])),t=reportInvoiceFieldTotals(allRows),cycles=activeReports.flatMap(r=>r.cycles);
  const table=`<div class="report-table-scroll"><table class="report-summary-table"><thead><tr><th>Month</th><th>Working Days</th><th>Total Amount</th><th>Deductions</th><th>Net Amount</th><th>Commission %</th><th>Salary</th></tr></thead><tbody>${reportYearMonthRows(reports)}<tr class="ledger-grand-total"><td>Total ${reportYear}</td><td>${activeReports.reduce((s,r)=>s+r.workDays,0)}</td><td>${money(t.total.value)} AED</td><td>${money(t.deductions.value)} AED</td><td>${money(t.net.value)} AED</td><td>${reportCommissionAverageText(cycles)}</td><td>${money(activeReports.reduce((s,r)=>s+r.salary,0))} AED</td></tr></tbody></table></div>`;
  const selected=reportSelectedMonth?reports.find(r=>r.month===reportSelectedMonth):null;
- details.innerHTML=table+(selected?reportMonthDetail(selected):'');
+ details.innerHTML=table+reportFieldTotalsTable(allRows,`${reportYear} · Full Invoice Totals`)+(selected?reportMonthDetail(selected):'');
 }
 function renderOverallReport(){
  const controls=document.getElementById('reportControls'),details=document.getElementById('reportDetails');controls.innerHTML='';
