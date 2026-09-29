@@ -1418,7 +1418,7 @@ const PADDLE_PRICE_IDS = {
       <div><b>Status</b><span id="membershipStatusDetail">—</span></div>
       <div><b>Start Date</b><span id="membershipStartDetail">—</span></div>
       <div><b>Expiry</b><span id="membershipExpiryDetail">—</span></div>
-      <div><b>Total Paid</b><span id="membershipPaidDetail">0.00 AED</span></div>
+      <div><b>Total Paid</b><span id="membershipPaidDetail">$0.00</span></div>
       <div><b>Plans Purchased</b><span id="membershipPlansDetail">0</span></div>
     </div>
     <div class="membership-note">Payment Paddle Sandbox checkout se hoga. Successful test payment ke baad membership automatically verify aur activate hogi.</div>
@@ -1750,7 +1750,7 @@ function updateMembershipUI(){
   document.getElementById("membershipStatusDetail").textContent=admin?"Admin":(driverData?.subscriptionStatus||"inactive");
   document.getElementById("membershipStartDetail").textContent=formatSubDate(driverData?.subscriptionStartAt||driverData?.trialStartAt||driverData?.createdAt);
   document.getElementById("membershipExpiryDetail").textContent=(admin||String(plan).toLowerCase().includes("lifetime"))?"Never":formatSubDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
-  document.getElementById("membershipPaidDetail").textContent=money(driverData?.subscriptionTotalPaid||0)+" AED";
+  document.getElementById("membershipPaidDetail").textContent="$"+money(driverData?.subscriptionTotalPaid||0);
   document.getElementById("membershipPlansDetail").textContent=String(Array.isArray(driverData?.plansPurchased)?driverData.plansPurchased.length:(driverData?.subscriptionPlan?1:0));
   const cancelBox=document.getElementById("membershipCancellationBox");
   const cancelText=document.getElementById("membershipCancellationText");
