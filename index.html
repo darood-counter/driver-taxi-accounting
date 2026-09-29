@@ -1833,6 +1833,47 @@ window.closeMembershipPage=function(){
     showPage('dashboardPage');
   }
 };
+
+/* ===== Pricing Page -> Membership Page plan selection =====
+   Pricing page can open:
+   index.html?subscriptionPlan=monthly
+   index.html?subscriptionPlan=yearly
+   index.html?subscriptionPlan=lifetime
+   The existing Membership/Paddle checkout flow remains unchanged.
+*/
+window.openMembershipFromPricing=function(){
+  const params=new URLSearchParams(window.location.search);
+  const requested=String(params.get('subscriptionPlan')||'').toLowerCase();
+  const plans={
+    monthly:{price:0.99,days:30},
+    yearly:{price:9.99,days:365},
+    lifetime:{price:49.99,days:0}
+  };
+  if(!plans[requested]) return false;
+
+  const cfg=plans[requested];
+  const el=document.querySelector('.membership-plan[data-membership-plan="'+requested+'"]');
+
+  if(typeof window.selectMembershipPlan==='function'){
+    window.selectMembershipPlan(requested,cfg.price,cfg.days,el);
+  }
+
+  if(typeof window.showPage==='function'){
+    window.showPage('membershipPage');
+    setTimeout(()=>{
+      document.getElementById('membershipPage')?.scrollIntoView({block:'start'});
+    },0);
+  }
+
+  try{
+    const cleanUrl=window.location.pathname+window.location.hash;
+    window.history.replaceState(window.history.state||{},'',cleanUrl);
+  }catch(e){
+    console.warn('Pricing membership URL cleanup failed:',e);
+  }
+  return true;
+};
+
 let selectedMembership={plan:'monthly',price:0.99,days:30};
 window.selectMembershipPlan=function(plan,price,days,el){
   selectedMembership={plan,price,days};
@@ -4605,6 +4646,15 @@ driverData=snap.exists()?snap.data():{};
 ensureTrialForNewOrLegacyUser();
 updateAdminMenu();
 updateSubscriptionUI();
+// If Pricing page sent the user here with ?subscriptionPlan=..., open
+// the existing Membership page and select that exact plan after login.
+if(!window.__pricingMembershipHandled){
+  const requestedPlan=new URLSearchParams(window.location.search).get('subscriptionPlan');
+  if(requestedPlan){
+    window.__pricingMembershipHandled=true;
+    setTimeout(()=>window.openMembershipFromPricing(),0);
+  }
+}
 document.getElementById("helloText").textContent="Hi, "+(driverData.name||"Driver")+" 👋";
 document.getElementById("profileName").textContent=driverData.name||"—";
 document.getElementById("profileDriverId").textContent=driverData.driverId||"—";
