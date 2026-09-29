@@ -938,6 +938,14 @@ const PADDLE_PRICE_IDS = {
       token:PADDLE_CLIENT_TOKEN,
       eventCallback:function(event){
         try{
+          console.log("Paddle event:",event);
+          if(event?.name==="checkout.error"){
+            console.error("Paddle checkout.error:",event);
+            showMembershipPaymentMessage?.("Paddle checkout error: "+(event?.detail||event?.code||"Unknown error"));
+          }
+          if(event?.name==="checkout.warning"){
+            console.warn("Paddle checkout.warning:",event);
+          }
           if(event?.name==="checkout.completed"){
             window.handlePaddleCheckoutCompleted(event);
           }
@@ -1922,7 +1930,11 @@ window.startMembershipPurchase=async(plan,price,days)=>{
   }
   try{
     const email=currentUser?.email||undefined;
-    const checkout={items:[{priceId,quantity:1}],customData:{firebase_uid:currentUser?.uid||"",membership_plan:String(plan||"").toLowerCase(),membership_price_id:priceId}};
+    const checkout={
+      items:[{priceId,quantity:1}],
+      settings:{displayMode:"overlay",theme:"light"},
+      customData:{firebase_uid:currentUser?.uid||"",membership_plan:String(plan||"").toLowerCase(),membership_price_id:priceId}
+    };
     if(email)checkout.customer={email};
     window.__pendingPaddleMembership={plan:String(plan||"").toLowerCase(),priceId,days:Number(days)||0};
     Paddle.Checkout.open(checkout);
