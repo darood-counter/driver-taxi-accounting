@@ -512,7 +512,7 @@ input:focus{border-color:#ed166a}
 @media(max-width:390px){.charge-day-row,.charge-range-grid{grid-template-columns:1fr}.charge-range{grid-template-columns:1fr 1fr}.charge-field select,.charge-field input[type="date"]{padding:12px;font-size:16px;min-height:47px}.saved-charge-values{gap:5px}.saved-charge-value{padding:9px 4px}.saved-charge-value strong{font-size:13px}.saved-charge-table th{padding:9px 5px;font-size:10px}.saved-charge-table td{padding:8px 4px;font-size:11px}.saved-charge-table .charge-range-cell{font-size:10px}.saved-charge-table .saved-charge-update{padding:7px 8px;font-size:11px}}
 
 /* Compact Invoice form + polished Saved Records table */
-.invoice-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+.invoice-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(8,auto);grid-auto-flow:column;gap:8px 10px}
 .invoice-field{display:flex;align-items:center;gap:7px;min-width:0;padding:2px 0}
 .invoice-field label{flex:0 0 44%;margin:0;font-size:12px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .invoice-field input{flex:1;min-width:0;width:56%;box-sizing:border-box;min-height:40px;padding:8px 7px;font-size:13px}
