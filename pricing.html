@@ -3,25 +3,154 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Driver's Accounting pricing plans for taxi drivers. Compare Monthly, Yearly and Lifetime membership plans.">
+<meta name="description" content="Driver's Accounting membership pricing and features for taxi drivers. Compare Monthly, Yearly and Lifetime plans.">
 <meta name="robots" content="index,follow">
 <title>Pricing | Driver's Accounting</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#111827}.wrap{max-width:1080px;margin:0 auto;padding:22px 16px 42px}header{background:#111827;color:#fff;border-radius:20px;padding:24px 20px;text-align:center;margin-bottom:18px}.logo{font-size:27px;font-weight:900;margin:0 0 6px}.subtitle{margin:0;color:#d1d5db;font-size:14px;line-height:1.5}.intro{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:20px;margin-bottom:18px;text-align:center}.intro h1{margin:0 0 8px;font-size:28px}.intro p{margin:0;color:#667085;line-height:1.55;font-size:14px}.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.plan{background:#fff;border:1px solid #e1e4ea;border-radius:20px;padding:20px;display:flex;flex-direction:column;min-height:430px;box-shadow:0 6px 18px rgba(15,23,42,.06)}.plan.featured{border:2px solid #c89527;box-shadow:0 10px 26px rgba(15,23,42,.10)}.badge{display:inline-block;align-self:flex-end;background:#f2d276;color:#33250b;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900;margin-bottom:5px}.plan h2{margin:0;font-size:20px}.price{font-size:34px;font-weight:950;margin:13px 0 2px}.period{font-size:12px;color:#667085;margin-bottom:14px}.plan ul{margin:0 0 18px;padding-left:19px;line-height:1.7;color:#374151;font-size:13px;flex:1}.cta{display:block;text-align:center;text-decoration:none;background:#111827;color:#fff;border-radius:12px;padding:12px 14px;font-weight:850;font-size:13px}.featured .cta{background:#a87519}.section{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:20px;margin-top:18px}.section h2{margin:0 0 9px;font-size:19px}.section p{margin:0;color:#596273;font-size:13px;line-height:1.6}.features{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}.feature{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px}.feature b{display:block;font-size:13px;margin-bottom:4px}.feature span{font-size:12px;color:#667085;line-height:1.45}.notice{margin-top:14px;padding:12px;border-radius:12px;background:#fffbeb;border:1px solid #f1d58a;color:#59420b;font-size:12px;line-height:1.5}footer{text-align:center;padding:22px 10px 4px;color:#667085;font-size:12px;line-height:1.8}footer a{color:#475467;text-decoration:none;margin:0 7px}footer a:hover{text-decoration:underline}@media(max-width:760px){.plans{grid-template-columns:1fr}.plan{min-height:auto}.features{grid-template-columns:1fr}.intro h1{font-size:24px}}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#111827}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 16px 42px}
+header{background:#111827;color:#fff;border-radius:20px;padding:25px 20px;text-align:center;margin-bottom:18px}
+.logo{font-size:27px;font-weight:900;margin:0 0 6px}.subtitle{margin:0;color:#d1d5db;font-size:14px;line-height:1.55}
+.intro{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:21px;margin-bottom:18px;text-align:center}.intro h1{margin:0 0 8px;font-size:28px}.intro p{margin:0;color:#667085;line-height:1.6;font-size:14px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.plan{background:#fff;border:1px solid #e1e4ea;border-radius:20px;padding:20px;display:flex;flex-direction:column;min-height:500px;box-shadow:0 6px 18px rgba(15,23,42,.06)}
+.plan.featured{border:2px solid #c89527;box-shadow:0 10px 26px rgba(15,23,42,.10)}
+.badge{display:inline-block;align-self:flex-end;background:#f2d276;color:#33250b;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900;margin-bottom:5px}
+.plan h2{margin:0;font-size:20px}.price{font-size:34px;font-weight:950;margin:13px 0 2px}.period{font-size:12px;color:#667085;margin-bottom:15px}
+.plan-desc{font-size:12px;line-height:1.5;color:#596273;margin:0 0 12px}
+.plan ul{margin:0 0 18px;padding-left:19px;line-height:1.7;color:#374151;font-size:13px;flex:1}.plan li{margin-bottom:2px}
+.cta{display:block;text-align:center;text-decoration:none;background:#111827;color:#fff;border-radius:12px;padding:12px 14px;font-weight:850;font-size:13px}.featured .cta{background:#a87519}
+.section{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:20px;margin-top:18px}.section h2{margin:0 0 9px;font-size:19px}.section p{margin:0;color:#596273;font-size:13px;line-height:1.6}
+.features{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:13px}.feature{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:13px}.feature b{display:block;font-size:13px;margin-bottom:4px}.feature span{font-size:12px;color:#667085;line-height:1.5}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:13px}.step{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:13px}.step strong{display:block;font-size:13px;margin-bottom:5px}.step span{font-size:12px;color:#667085;line-height:1.5}
+.compare{width:100%;border-collapse:collapse;margin-top:13px;font-size:12px}.compare th,.compare td{border:1px solid #e5e7eb;padding:10px 8px;text-align:left;vertical-align:top}.compare th{background:#f8fafc;font-weight:900}.compare td:not(:first-child),.compare th:not(:first-child){text-align:center}
+.notice{margin-top:14px;padding:12px;border-radius:12px;background:#fffbeb;border:1px solid #f1d58a;color:#59420b;font-size:12px;line-height:1.55}
+footer{text-align:center;padding:22px 10px 4px;color:#667085;font-size:12px;line-height:1.8}footer a{color:#475467;text-decoration:none;margin:0 7px}footer a:hover{text-decoration:underline}
+@media(max-width:760px){.plans{grid-template-columns:1fr}.plan{min-height:auto}.features,.steps{grid-template-columns:1fr}.intro h1{font-size:24px}.compare{font-size:11px}.compare th,.compare td{padding:8px 5px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-<header><div class="logo">Driver's Accounting</div><p class="subtitle">Taxi driver accounting, invoices, targets, charges, leaves and reports in one online dashboard.</p></header>
-<section class="intro"><h1>Membership Pricing</h1><p>Choose the membership that matches how you use Driver's Accounting. Prices below match the membership plans offered in the application.</p></section>
-<section class="plans" aria-label="Membership plans">
-<article class="plan"><h2>Monthly</h2><div class="price">$0.99</div><div class="period">Every month</div><ul><li>Invoice Entry</li><li>Leaves</li><li>Charge Setup</li><li>Target Setup</li><li>Access to protected accounting features</li></ul><a class="cta" href="index.html">Get Started</a></article>
-<article class="plan featured"><span class="badge">POPULAR</span><h2>Yearly</h2><div class="price">$9.99</div><div class="period">Every year</div><ul><li>All protected features</li><li>12 months access</li><li>Lower monthly cost compared with monthly billing</li><li>Membership details saved in your account</li></ul><a class="cta" href="index.html">Get Started</a></article>
-<article class="plan"><h2>Lifetime</h2><div class="price">$49.99</div><div class="period">One-time payment</div><ul><li>All protected features</li><li>No membership expiry</li><li>One-time membership</li><li>Membership details saved in your account</li></ul><a class="cta" href="index.html">Get Started</a></article>
+<header>
+  <div class="logo">Driver's Accounting</div>
+  <p class="subtitle">Taxi driver accounting, invoices, targets, charges, leaves and reports in one online dashboard.</p>
+</header>
+
+<section class="intro">
+  <h1>Membership Pricing</h1>
+  <p>Choose the membership plan that matches how you use Driver's Accounting. The plans and prices shown here match the membership options currently presented in the application.</p>
 </section>
-<section class="section"><h2>What Driver's Accounting provides</h2><p>Driver's Accounting is a cloud-based accounting application for taxi drivers. It helps users manage daily income and deductions, invoices, mileage, trips, bookings, targets, leaves, charge settings and accounting reports through an online dashboard.</p><div class="features"><div class="feature"><b>Invoice Management</b><span>Create, update, review and print saved invoice records.</span></div><div class="feature"><b>Accounting Reports</b><span>Review Daily, Monthly and Yearly accounting reports and totals.</span></div><div class="feature"><b>Charge Setup</b><span>Maintain date-based charge and rate settings used by accounting calculations.</span></div><div class="feature"><b>Target Setup</b><span>Manage date-based targets and target slabs for driver accounting.</span></div><div class="feature"><b>Leaves</b><span>Keep track of driver leave records inside the accounting system.</span></div><div class="feature"><b>Membership</b><span>Membership status, plan information and payment history are stored with the account.</span></div></div><div class="notice">Prices are shown in USD as configured for the application's membership plans. Paddle Checkout may display the applicable local currency, taxes or other checkout details based on the customer's location and the live Paddle catalog configuration.</div></section>
-<section class="section"><h2>How to subscribe</h2><p>Select a membership plan above and continue to the Driver's Accounting application. The membership purchase is completed through Paddle Checkout. Recurring plans renew according to their billing period unless cancelled according to the applicable cancellation terms.</p></section>
-<footer><div><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a><a href="refund.html">Refund &amp; Cancellation</a><a href="about.html">About Us</a><a href="contact.html">Contact Us</a></div><div>© 2026 Driver's Accounting. All rights reserved.</div></footer>
+
+<section class="plans" aria-label="Membership plans">
+  <article class="plan">
+    <h2>Monthly</h2>
+    <div class="price">$0.99</div>
+    <div class="period">Every month</div>
+    <p class="plan-desc">A recurring monthly membership for continued access to the application's protected accounting features.</p>
+    <ul>
+      <li>Invoice Entry</li>
+      <li>Invoice History</li>
+      <li>Daily, Monthly and Yearly Reports</li>
+      <li>Leaves</li>
+      <li>Charge Setup</li>
+      <li>Target Setup</li>
+      <li>Membership details saved in the account</li>
+    </ul>
+    <a class="cta" href="index.html?membership=monthly">Get Started</a>
+  </article>
+
+  <article class="plan featured">
+    <span class="badge">POPULAR</span>
+    <h2>Yearly</h2>
+    <div class="price">$9.99</div>
+    <div class="period">Every year</div>
+    <p class="plan-desc">A yearly membership with the same protected accounting feature access and a 12-month billing period.</p>
+    <ul>
+      <li>All protected accounting features</li>
+      <li>Invoice Entry and Invoice History</li>
+      <li>Daily, Monthly and Yearly Reports</li>
+      <li>Leaves</li>
+      <li>Charge Setup</li>
+      <li>Target Setup</li>
+      <li>12 months membership period</li>
+      <li>Membership details saved in the account</li>
+    </ul>
+    <a class="cta" href="index.html?membership=yearly">Get Started</a>
+  </article>
+
+  <article class="plan">
+    <h2>Lifetime</h2>
+    <div class="price">$49.99</div>
+    <div class="period">One-time payment</div>
+    <p class="plan-desc">A one-time membership option with no membership expiry shown in the application.</p>
+    <ul>
+      <li>All protected accounting features</li>
+      <li>Invoice Entry and Invoice History</li>
+      <li>Daily, Monthly and Yearly Reports</li>
+      <li>Leaves</li>
+      <li>Charge Setup</li>
+      <li>Target Setup</li>
+      <li>No membership expiry</li>
+      <li>Membership details saved in the account</li>
+    </ul>
+    <a class="cta" href="index.html?membership=lifetime">Get Started</a>
+  </article>
+</section>
+
+<section class="section">
+  <h2>What Driver's Accounting provides</h2>
+  <p>Driver's Accounting is a cloud-based accounting application for taxi drivers. The application brings invoice entry, invoice history, accounting reports, charge settings, targets and leave records together in one dashboard.</p>
+  <div class="features">
+    <div class="feature"><b>Invoice Management</b><span>Create, update, review and print saved invoice records. Invoice fields include income, deductions, Shift Trips, Bookings and Kilometers Hired.</span></div>
+    <div class="feature"><b>Invoice History</b><span>Find saved invoices using the invoice history area, including date and invoice-number search/filter controls.</span></div>
+    <div class="feature"><b>Daily / Monthly / Yearly Reports</b><span>Review accounting totals and invoice records by reporting period, including report details and invoice ledger information.</span></div>
+    <div class="feature"><b>Charge Setup</b><span>Maintain date-based charge settings used by invoice calculations, including RTA, Fuel and Booking rates.</span></div>
+    <div class="feature"><b>Target Setup</b><span>Manage date-based target ranges and AED target amounts used when preparing invoices.</span></div>
+    <div class="feature"><b>Leaves</b><span>Record driver leave selections and manage leave dates from the Leaves area.</span></div>
+    <div class="feature"><b>Membership</b><span>View the current membership plan, status, start date, expiry and total paid information in the account.</span></div>
+    <div class="feature"><b>Driver Profile</b><span>Maintain the driver's account/profile information and access the application's protected areas.</span></div>
+  </div>
+  <div class="notice"><strong>Pricing display:</strong> Prices on this page are shown in USD to match the membership prices configured in the application. Paddle Checkout can display applicable localized currency, taxes and other checkout details according to the live Paddle catalog and the customer's location.</div>
+</section>
+
+<section class="section">
+  <h2>Membership plan comparison</h2>
+  <table class="compare" aria-label="Membership plan comparison">
+    <thead><tr><th>Feature</th><th>Monthly</th><th>Yearly</th><th>Lifetime</th></tr></thead>
+    <tbody>
+      <tr><td>Price</td><td>$0.99 / month</td><td>$9.99 / year</td><td>$49.99 one-time</td></tr>
+      <tr><td>Invoice Entry</td><td>Included</td><td>Included</td><td>Included</td></tr>
+      <tr><td>Invoice History</td><td>Included</td><td>Included</td><td>Included</td></tr>
+      <tr><td>Reports</td><td>Included</td><td>Included</td><td>Included</td></tr>
+      <tr><td>Charge Setup</td><td>Included</td><td>Included</td><td>Included</td></tr>
+      <tr><td>Target Setup</td><td>Included</td><td>Included</td><td>Included</td></tr>
+      <tr><td>Leaves</td><td>Included</td><td>Included</td><td>Included</td></tr>
+      <tr><td>Membership period</td><td>Monthly</td><td>12 months</td><td>No expiry shown</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>How membership works</h2>
+  <div class="steps">
+    <div class="step"><strong>1. Choose a plan</strong><span>Select Monthly, Yearly or Lifetime according to the membership option you want.</span></div>
+    <div class="step"><strong>2. Continue to the application</strong><span>Use the Get Started button to return to Driver's Accounting and continue the membership purchase flow.</span></div>
+    <div class="step"><strong>3. Complete checkout</strong><span>The application's membership purchase flow uses Paddle Checkout for payment processing.</span></div>
+  </div>
+  <div class="notice">Recurring plans are billed according to their configured billing period. Any cancellation, refund or renewal terms are subject to the applicable Terms &amp; Conditions and Refund &amp; Cancellation policy.</div>
+</section>
+
+<footer>
+  <div>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms &amp; Conditions</a>
+    <a href="refund.html">Refund &amp; Cancellation</a>
+    <a href="about.html">About Us</a>
+    <a href="contact.html">Contact Us</a>
+  </div>
+  <div>© 2026 Driver's Accounting. All rights reserved.</div>
+</footer>
 </div>
 </body>
 </html>
