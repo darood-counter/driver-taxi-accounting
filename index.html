@@ -1690,7 +1690,11 @@ function isSubscriptionActive(){
   const d=driverData||{};
   const status=String(d.subscriptionStatus||"").trim().toLowerCase();
   const plan=String(d.subscriptionPlan||"").trim().toLowerCase();
-  if(status!=="active")return false;
+
+  // Paddle trialing subscriptions have access until their expiry.
+  // A scheduled cancellation must not lock the account early.
+  if(status!=="active" && status!=="trialing")return false;
+
   if(d.subscriptionLifetime===true || plan.includes("lifetime"))return true;
   const expiry=subDate(d.subscriptionExpiry||d.trialExpiry);
   return !!expiry && expiry.getTime()>Date.now();
