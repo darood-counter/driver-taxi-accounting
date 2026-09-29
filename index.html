@@ -922,7 +922,7 @@ input:focus{border-color:#ed166a}
 </style>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
-// Paddle Sandbox configuration
+// Paddle Live configuration
 const PADDLE_CLIENT_TOKEN = "live_a164264c2b373aaaa759de42d64";
 const PADDLE_PRICE_IDS = {
   monthly: "pri_01m3pv9dzk3dnezz3w5bvt4gpc",
@@ -932,7 +932,7 @@ const PADDLE_PRICE_IDS = {
 (function initPaddle(){
   try{
     if(typeof Paddle === "undefined") return;
-    Paddle.Environment.set("sandbox");
+    Paddle.Environment.set("production");
     if(!PADDLE_CLIENT_TOKEN || PADDLE_CLIENT_TOKEN.includes("PASTE_YOUR")) return;
     Paddle.Initialize({
       token:PADDLE_CLIENT_TOKEN,
