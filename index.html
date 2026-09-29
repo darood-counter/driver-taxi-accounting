@@ -3255,10 +3255,9 @@ function reportFieldTotalsTable(rows,title){
     if(!variableRateKeys.has(k))return '';
     const qty=money(t[k].value);
     const avg=money(t[k].avgRate||0);
-    const amount=money(t[k].calculatedAmount||0);
-    return `<div class="report-rate-detail">× ${qty} @ ${avg} AED Avg. → ${amount} AED</div>`;
+    return `<div class="report-rate-detail">× ${qty} @ ${avg} AED Avg.</div>`;
   };
-  return `<div class="report-table-title">${title}</div><div class="report-table-scroll"><table class="report-summary-table report-field-total-table"><thead><tr><th>Particular</th><th>Total AED</th></tr></thead><tbody>${order.map(k=>`<tr><td>${t[k].label}${detail(k)}</td><td>${money(t[k].value)} AED</td></tr>`).join('')}<tr class="ledger-total"><td>Total Amount</td><td>${money(t.total.value)} AED</td></tr><tr class="ledger-total"><td>Total Deductions</td><td>${money(t.deductions.value)} AED</td></tr><tr class="ledger-grand-total"><td>Net Amount</td><td>${money(t.net.value)} AED</td></tr></tbody></table></div>`;
+  return `<div class="report-table-title">${title}</div><div class="report-table-scroll"><table class="report-summary-table report-field-total-table"><thead><tr><th>Particular</th><th>Total AED</th></tr></thead><tbody>${order.map(k=>{const total=variableRateKeys.has(k)?(t[k].calculatedAmount||0):t[k].value;return `<tr><td>${t[k].label}${detail(k)}</td><td>${money(total)} AED</td></tr>`;}).join('')}<tr class="ledger-total"><td>Total Amount</td><td>${money(t.total.value)} AED</td></tr><tr class="ledger-total"><td>Total Deductions</td><td>${money(t.deductions.value)} AED</td></tr><tr class="ledger-grand-total"><td>Net Amount</td><td>${money(t.net.value)} AED</td></tr></tbody></table></div>`;
 }
 function reportMetricTable(c){
   return `<table class="report-mini-table"><tbody><tr><th>Working Days</th><td>${c.workDays}</td><th>Invoices</th><td>${c.invoices}</td></tr><tr><th>Net Amount</th><td>${money(c.netSale)} AED</td><th>Commission %</th><td>${money(c.target)}%</td></tr><tr><th>Salary</th><td>${money(c.salary)} AED</td><th>Daily Average</th><td>${money(c.avg)} AED</td></tr></tbody></table>`;
