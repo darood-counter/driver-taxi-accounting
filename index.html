@@ -2366,6 +2366,7 @@ window.sendForgotPasswordEmail=async()=>{
     history.push(now);
     try{localStorage.setItem(limitKey,JSON.stringify(history));}catch(e){}
     if(ok)ok.textContent="Password reset link sent successfully. Check your registered email inbox.";
+    if(field)field.value="";
   }catch(e){
     const code=e?.code||"";
     if(code==="auth/user-not-found") {
