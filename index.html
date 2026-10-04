@@ -960,6 +960,12 @@ const PADDLE_PRICE_IDS = {
   }catch(e){console.error("Paddle initialization error:",e);}
 })();
 </script>
+<link rel="manifest" href="/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 </head>
 <body>
 
@@ -3107,7 +3113,14 @@ window.printInvoice=id=>{
 <div class="totals"><div class="totalrow"><span>Total Amount</span><strong>${money2(total)} AED</strong></div><div class="totalrow"><span>Total Deductions</span><strong>${money2(deductions)} AED</strong></div><div class="totalrow net"><span>NET AMOUNT</span><strong>${money2(net)} AED</strong></div><span class="approved">✓ Invoice Saved</span></div>
 </div><div class="foot">This invoice contains the complete details saved for this invoice record.</div>
 <div class="actions"><button class="close" onclick="window.close()">Close</button><button class="print" onclick="window.focus();setTimeout(()=>window.print(),100)">🖨️ Print / Save as PDF</button></div></div>
-<!-- Legal / Support Links --><div style="text-align:center;padding:18px 12px;color:#667085;font-size:13px;"><a href="privacy.html" style="margin:0 7px;">Privacy Policy</a><a href="terms.html" style="margin:0 7px;">Terms &amp; Conditions</a><a href="refund.html" style="margin:0 7px;">Refund &amp; Cancellation</a><a href="about.html" style="margin:0 7px;">About Us</a><a href="contact.html" style="margin:0 7px;">Contact Us</a></div></body></html>`;
+<!-- Legal / Support Links --><div style="text-align:center;padding:18px 12px;color:#667085;font-size:13px;"><a href="privacy.html" style="margin:0 7px;">Privacy Policy</a><a href="terms.html" style="margin:0 7px;">Terms &amp; Conditions</a><a href="refund.html" style="margin:0 7px;">Refund &amp; Cancellation</a><a href="about.html" style="margin:0 7px;">About Us</a><a href="contact.html" style="margin:0 7px;">Contact Us</a></div><script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+  });
+}
+</script>
+</body></html>`;
 
   const w=window.open("","_blank","width=900,height=1000");
   if(!w){alert("Please allow pop-ups to print the invoice.");return;}
