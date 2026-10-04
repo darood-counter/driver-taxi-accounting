@@ -4706,6 +4706,12 @@ await refreshAdminClaim();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
+
+// Keep the loading screen visible until the initial Firebase data needed by
+// the app has arrived. Realtime listeners below continue syncing afterward.
+const initialInvoicesSnap=await getDocs(collection(db,"drivers",user.uid,"invoices"));
+invoices=initialInvoicesSnap.docs.map(d=>({id:d.id,...d.data()}));
+
 updateAdminMenu();
 updateSubscriptionUI();
 // If Pricing page sent the user here with ?subscriptionPlan=..., open
@@ -4747,6 +4753,8 @@ cycleCompletionRecords={...(fresh.cycleCompletionRecords||{})};
 },error=>console.error("Driver realtime listener error:",error));
 
 if(unsubscribeInvoices)unsubscribeInvoices();
+renderSavedInvoices();
+updateDashboard();
 unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
 invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();renderSavedInvoices();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();if(document.getElementById("reportsPage").classList.contains("active"))renderReports();
 },error=>{console.error("Invoice listener error:",error);document.getElementById("authError").textContent="Unable to load invoices: "+(error.message||"Firebase error");});
