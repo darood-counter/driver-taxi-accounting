@@ -3514,24 +3514,42 @@ function setChargeCycleUI(){
   if(type===2)updateCycle2Range2Options();
 }
 function updateCycle2Range2Options(){
-  const from1=Number(document.getElementById("chargeFrom2")?.value||0);
-  const to1=Number(document.getElementById("chargeTo2")?.value||0);
-  const from2El=document.getElementById("chargeFrom3");
-  const to2El=document.getElementById("chargeTo3");
-  if(!from2El||!to2El)return;
+  // Cycle 2: Range 2 must never contain a date already selected in Range 1.
+  // Range 1 uses chargeFrom2 -> chargeTo2; Range 2 uses chargeFrom3 -> chargeTo3.
+  const range1From=Number(document.getElementById("chargeFrom2")?.value||0);
+  const range1To=Number(document.getElementById("chargeTo2")?.value||0);
+  const range2FromEl=document.getElementById("chargeFrom3");
+  const range2ToEl=document.getElementById("chargeTo3");
+  if(!range2FromEl||!range2ToEl)return;
 
-  const selectedFrom2=from2El.value,selectedTo2=to2El.value;
-  const hasRange1=Number.isInteger(from1)&&Number.isInteger(to1)&&from1>=1&&to1<=31&&from1<=to1;
+  const selectedRange2From=range2FromEl.value;
+  const selectedRange2To=range2ToEl.value;
+  const hasRange1=Number.isInteger(range1From)&&Number.isInteger(range1To)
+    &&range1From>=1&&range1From<=31&&range1To>=1&&range1To<=31;
+
   const blocked=new Set();
-  if(hasRange1){for(let day=from1;day<=to1;day++)blocked.add(day);}
+  if(hasRange1){
+    const start=Math.min(range1From,range1To);
+    const end=Math.max(range1From,range1To);
+    for(let day=start;day<=end;day++)blocked.add(day);
+  }
+
   const available=CHARGE_DAYS.filter(day=>!blocked.has(day));
-  const options='<option value="" selected disabled>Select Day</option>'+available.map(d=>`<option value="${d}">${d}</option>`).join("");
-  from2El.innerHTML=options;
-  to2El.innerHTML=options;
-  if(selectedFrom2 && available.includes(Number(selectedFrom2)))from2El.value=selectedFrom2;
-  else from2El.value="";
-  if(selectedTo2 && available.includes(Number(selectedTo2)))to2El.value=selectedTo2;
-  else to2El.value="";
+  const options='<option value="" selected disabled>Select Day</option>'
+    +available.map(d=>`<option value="${d}">${d}</option>`).join("");
+
+  range2FromEl.innerHTML=options;
+  range2ToEl.innerHTML=options;
+
+  if(selectedRange2From && available.includes(Number(selectedRange2From)))
+    range2FromEl.value=selectedRange2From;
+  else
+    range2FromEl.value="";
+
+  if(selectedRange2To && available.includes(Number(selectedRange2To)))
+    range2ToEl.value=selectedRange2To;
+  else
+    range2ToEl.value="";
 }
 function initChargeSelectors(){
   ["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=chargeDayOptions("")});
@@ -4706,12 +4724,6 @@ await refreshAdminClaim();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
-
-// Keep the loading screen visible until the initial Firebase data needed by
-// the app has arrived. Realtime listeners below continue syncing afterward.
-const initialInvoicesSnap=await getDocs(collection(db,"drivers",user.uid,"invoices"));
-invoices=initialInvoicesSnap.docs.map(d=>({id:d.id,...d.data()}));
-
 updateAdminMenu();
 updateSubscriptionUI();
 // If Pricing page sent the user here with ?subscriptionPlan=..., open
@@ -4753,8 +4765,6 @@ cycleCompletionRecords={...(fresh.cycleCompletionRecords||{})};
 },error=>console.error("Driver realtime listener error:",error));
 
 if(unsubscribeInvoices)unsubscribeInvoices();
-renderSavedInvoices();
-updateDashboard();
 unsubscribeInvoices=onSnapshot(collection(db,"drivers",user.uid,"invoices"),snap=>{
 invoices=snap.docs.map(d=>({id:d.id,...d.data()}));updateDashboard();renderSavedInvoices();if(document.getElementById("historyPage").classList.contains("active"))renderHistory();if(document.getElementById("reportsPage").classList.contains("active"))renderReports();
 },error=>{console.error("Invoice listener error:",error);document.getElementById("authError").textContent="Unable to load invoices: "+(error.message||"Firebase error");});
