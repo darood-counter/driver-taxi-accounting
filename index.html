@@ -83,7 +83,7 @@ main{padding:0 22px}
 .menu h2{margin:0 0 16px;font-size:27px}.menu button{width:100%;text-align:left;border:0;background:transparent;padding:16px 8px;font-size:18px;border-radius:12px;cursor:pointer}
 .menu button:hover{background:#f1f2f5}
 .page{display:none}.page.active{display:block}
-.app-loading-overlay{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:rgba(245,245,245,.96)}
+.app.app-loading-active .topbar{display:none!important}.app.app-loading-active .drawer{display:none!important}.app-loading-overlay{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:rgba(245,245,245,.96)}
 .app-loading-spinner{width:34px;height:34px;border:3px solid #d9dde5;border-top-color:#111827;border-radius:50%;animation:appLoadingSpin .8s linear infinite}
 .app-loading-text{font-size:14px;font-weight:700;color:#111827}
 @keyframes appLoadingSpin{to{transform:rotate(360deg)}}
@@ -2330,12 +2330,16 @@ window.logout=async()=>{
 function setAppLoading(loading){
   const overlay=document.getElementById("appLoadingOverlay");
   const drawer=document.getElementById("drawer");
+  const appShell=document.getElementById("appShell");
+  if(appShell)appShell.classList.toggle("app-loading-active",!!loading);
   if(overlay)overlay.style.display=loading?"flex":"none";
   if(drawer){drawer.classList.toggle("app-loading-hidden",loading);if(loading)drawer.classList.remove("open");}
 }
 function showAuth(){
   const drawer=document.getElementById("drawer");
-  if(drawer) drawer.classList.remove("open");
+  const topbar=document.getElementById("mainTopbar");
+  if(drawer){ drawer.classList.remove("open"); drawer.style.display="none"; }
+  if(topbar) topbar.style.display="none";
   setAppLoading(false);
   document.getElementById("authScreen").style.display="flex";
   document.getElementById("appShell").style.display="none";
@@ -2345,6 +2349,8 @@ function showAuth(){
 function hideAuth(){
   document.getElementById("authScreen").style.display="none";
   document.getElementById("appShell").style.display="block";
+  const topbar=document.getElementById("mainTopbar");
+  if(topbar) topbar.style.display="";
   setAppLoading(true);
 }
 window.showAuthMode=mode=>{
@@ -5609,4 +5615,3 @@ window.addEventListener("beforeunload",()=>{closeInvoiceOCRWorker();closeInvoice
 
 </body>
 </html>
-3
