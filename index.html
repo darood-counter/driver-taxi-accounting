@@ -78,11 +78,15 @@ main{padding:0 22px}
 .commission-forecast-info-text strong{font-weight:850}
 .commission-forecast-info-text span{color:#e61768;font-weight:500}
 @media(max-width:600px){.commission-forecast{margin-top:15px}.commission-forecast-card-main{border-radius:24px;padding:22px 18px 20px}.commission-forecast-heading{font-size:20px;margin-bottom:22px}.commission-forecast-copy{font-size:18px;line-height:1.4}.commission-forecast-value{font-size:37px;margin:23px 0 9px}.commission-forecast-estimated{font-size:17px;margin-bottom:21px}.commission-forecast-switch{padding:5px;margin-bottom:22px}.commission-forecast-option{font-size:17px;padding:14px 5px}.commission-forecast-info-row{gap:14px}.commission-forecast-info-icon{width:48px;height:48px;flex-basis:48px;font-size:27px}.commission-forecast-info-text{font-size:16px;line-height:1.45}}
-.drawer{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:20}.drawer.open{display:block}
+.drawer.app-loading-hidden{display:none!important}.drawer{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:20}.drawer.open{display:block}
 .menu{width:82%;max-width:360px;height:100%;background:#fff;padding:30px 22px;border-radius:0 28px 28px 0}
 .menu h2{margin:0 0 16px;font-size:27px}.menu button{width:100%;text-align:left;border:0;background:transparent;padding:16px 8px;font-size:18px;border-radius:12px;cursor:pointer}
 .menu button:hover{background:#f1f2f5}
 .page{display:none}.page.active{display:block}
+.app-loading-overlay{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:rgba(245,245,245,.96)}
+.app-loading-spinner{width:34px;height:34px;border:3px solid #d9dde5;border-top-color:#111827;border-radius:50%;animation:appLoadingSpin .8s linear infinite}
+.app-loading-text{font-size:14px;font-weight:700;color:#111827}
+@keyframes appLoadingSpin{to{transform:rotate(360deg)}}
 .back{border:0;background:#fff;border-radius:14px;padding:12px 16px;font-weight:700;margin-bottom:18px;cursor:pointer}
 .form-card{background:#fff;border-radius:24px;padding:20px;margin-bottom:20px}
 .form-card h2{margin:0 0 18px;font-size:24px}
@@ -1008,6 +1012,10 @@ const PADDLE_PRICE_IDS = {
   </div>
 </div>
 <div class="app" id="appShell" style="display:none">
+<div id="appLoadingOverlay" class="app-loading-overlay" aria-live="polite" aria-busy="true">
+  <div class="app-loading-spinner" aria-hidden="true"></div>
+  <div class="app-loading-text">Loading...</div>
+</div>
 <header class="topbar" id="mainTopbar">
 <button class="icon-btn topbar-left" id="topbarLeftBtn" onclick="toggleMenu()">☰</button>
 <div class="brand" id="topbarBrand">Driver's</div>
@@ -1077,7 +1085,7 @@ const PADDLE_PRICE_IDS = {
     <p class="scanner-help">Take a clear photo of the taxi invoice. The system will read matching values and fill the invoice fields. Please check them before saving.</p>
     <div class="invoice-camera-wrap">
       <video id="invoiceCameraPreview" class="invoice-camera-preview" autoplay playsinline></video>
-      <div class="invoice-guide" aria-hidden="true"><span>Invoice ko poora box ke andar rakhein</span></div>
+      <div class="invoice-guide" aria-hidden="true"><span>Keep the full invoice inside the box</span></div>
       <button type="button" class="scanner-camera-close-overlay" onclick="closeInvoiceScanner()">✕ Close</button>
     </div>
     <div class="scanner-camera-controls">
@@ -1101,7 +1109,7 @@ const PADDLE_PRICE_IDS = {
       <div class="crop-title">✂️ Crop Receipt</div>
       <button type="button" class="scanner-close" onclick="closeInvoiceCropper()">✕</button>
     </div>
-    <div class="small" style="margin-bottom:8px">Receipt ko box mein seedha fit karein. RTA logo se receipt ke last total tak poori receipt box mein rakhein.</div>
+    <div class="small" style="margin-bottom:8px">Fit the receipt straight inside the box. Keep the full receipt inside the box from the RTA logo to the final total.</div>
     <div class="crop-image-wrap">
       <img id="invoiceCropImage" alt="Receipt crop">
     </div>
@@ -1399,7 +1407,7 @@ const PADDLE_PRICE_IDS = {
   <div class="admin-membership-card" id="adminMembershipCard">
     <div class="admin-vip-icon">👑</div>
     <h3>Administrator Access</h3>
-    <p>Admin account ke liye membership charge nahi hoga. All features permanently available hain.</p>
+    <p>Administrator accounts do not require membership payment. All features are permanently available.</p>
   </div>
   <div class="membership-plans" id="membershipPlansWrap">
     <div class="membership-plan selected" data-membership-plan="monthly" data-membership-price="0.99" data-membership-days="30" onclick="selectMembershipPlan('monthly',0.99,30,this)">
@@ -1429,7 +1437,7 @@ const PADDLE_PRICE_IDS = {
       <div><b>Total Paid</b><span id="membershipPaidDetail">$0.00</span></div>
       <div><b>Plans Purchased</b><span id="membershipPlansDetail">0</span></div>
     </div>
-    <div class="membership-note">Payment Paddle Sandbox checkout se hoga. Successful test payment ke baad membership automatically verify aur activate hogi.</div>
+    <div class="membership-note">Payment will be processed through Paddle. After successful payment, membership will be automatically verified and activated.</div>
     <div id="membershipCancellationBox" style="display:none;margin-top:12px;padding:11px;border:1px solid #5b4a25;border-radius:12px;background:#1d1a12;color:#f5d77c;font-size:11px;line-height:1.45;">
       <div id="membershipCancellationText"></div>
       <button type="button" id="membershipCancelButton" onclick="cancelCurrentMembership()" style="margin-top:9px;border:0;border-radius:10px;padding:9px 13px;background:#9d2f2f;color:#fff;font-weight:800;cursor:pointer;">Cancel Membership</button>
@@ -1689,22 +1697,16 @@ function updateAdminMenu(){const b=document.getElementById("adminMenuButton");if
 function adminSafeJson(v){try{return JSON.stringify(v,null,2)}catch(e){return String(v)}}
 function subDate(v){try{const d=v?.toDate?v.toDate():new Date(v);return Number.isNaN(d.getTime())?null:d}catch(e){return null}}
 function formatSubDate(v){const d=subDate(v);return d?d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}):"—"}
-function ensureTrialForNewOrLegacyUser(){
-  // Intentionally no automatic trial. New/legacy users remain locked until
-  // an Admin activates membership or a verified Paddle purchase activates it.
-}
 function isSubscriptionActive(){
   if(isAdminUser())return true;
   const d=driverData||{};
   const status=String(d.subscriptionStatus||"").trim().toLowerCase();
   const plan=String(d.subscriptionPlan||"").trim().toLowerCase();
 
-  // Paddle trialing subscriptions have access until their expiry.
-  // A scheduled cancellation must not lock the account early.
-  if(status!=="active" && status!=="trialing")return false;
-
+  if(status!=="active")return false;
   if(d.subscriptionLifetime===true || plan.includes("lifetime"))return true;
-  const expiry=subDate(d.subscriptionExpiry||d.trialExpiry);
+
+  const expiry=subDate(d.subscriptionExpiry);
   return !!expiry && expiry.getTime()>Date.now();
 }
 function membershipAccessState(){
@@ -1734,14 +1736,8 @@ function updateMembershipUI(){
     if(adminCard)adminCard.style.display="none";
     if(plansWrap)plansWrap.style.display="grid";
     const status=String(driverData?.subscriptionStatus||"inactive").toLowerCase();
-    const expiry=subDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
-    if(status==="trial"&&active){
-      const days=Math.max(0,Math.ceil((expiry-Date.now())/86400000));
-      statusEl.textContent="7 Day Free Trial";
-      pill.textContent="FREE TRIAL";
-      pill.className="membership-pill active";
-      count.textContent=`${days} day(s) remaining • Expires ${formatSubDate(expiry)}`;
-    }else if(active){
+    const expiry=subDate(driverData?.subscriptionExpiry);
+    if(active){
       statusEl.textContent="Membership Active";
       pill.textContent="ACTIVE";
       pill.className="membership-pill active";
@@ -1756,8 +1752,8 @@ function updateMembershipUI(){
   const plan=driverData?.subscriptionPlan||"No active membership";
   document.getElementById("membershipPlanDetail").textContent=admin?"Administrator":plan;
   document.getElementById("membershipStatusDetail").textContent=admin?"Admin":(driverData?.subscriptionStatus||"inactive");
-  document.getElementById("membershipStartDetail").textContent=formatSubDate(driverData?.subscriptionStartAt||driverData?.trialStartAt||driverData?.createdAt);
-  document.getElementById("membershipExpiryDetail").textContent=(admin||String(plan).toLowerCase().includes("lifetime"))?"Never":formatSubDate(driverData?.subscriptionExpiry||driverData?.trialExpiry);
+  document.getElementById("membershipStartDetail").textContent=formatSubDate(driverData?.subscriptionStartAt||driverData?.createdAt);
+  document.getElementById("membershipExpiryDetail").textContent=(admin||String(plan).toLowerCase().includes("lifetime"))?"Never":formatSubDate(driverData?.subscriptionExpiry);
   document.getElementById("membershipPaidDetail").textContent="$"+money(driverData?.subscriptionTotalPaid||0);
   document.getElementById("membershipPlansDetail").textContent=String(Array.isArray(driverData?.plansPurchased)?driverData.plansPurchased.length:(driverData?.subscriptionPlan?1:0));
   const cancelBox=document.getElementById("membershipCancellationBox");
@@ -1891,7 +1887,7 @@ window.selectMembershipPlan=function(plan,price,days,el){
   const name=document.getElementById('selectedMembershipName');
   const priceEl=document.getElementById('selectedMembershipPrice');
   if(name) name.textContent=labels[plan]||'Membership';
-  if(priceEl) priceEl.textContent=(plan==='lifetime'?'One-time payment':'Recurring membership')+' • Paddle Sandbox Checkout';
+  if(priceEl) priceEl.textContent=(plan==='lifetime'?'One-time payment':'Recurring membership')+' • Paddle Checkout';
 };
 window.purchaseSelectedMembership=function(){
   if(isAdminUser()) return;
@@ -1923,9 +1919,9 @@ window.startMembershipPurchase=async(plan,price,days)=>{
   }
   const priceId=PADDLE_PRICE_IDS[String(plan||"").toLowerCase()];
   if(!priceId){alert("Membership price ID not found.");return;}
-  if(typeof Paddle === "undefined"){alert("Paddle checkout load nahi hua. Internet connection check karein.");return;}
+  if(typeof Paddle === "undefined"){alert("Paddle checkout could not be loaded. Please check your internet connection.");return;}
   if(!PADDLE_CLIENT_TOKEN || PADDLE_CLIENT_TOKEN.includes("PASTE_YOUR")){
-    alert("Paddle Client-side Token abhi HTML mein add nahi hua. Sandbox ka test_ token add karein.");
+    alert("Paddle Client-side Token is not configured. Please add the live client-side token.");
     return;
   }
   try{
@@ -1937,7 +1933,7 @@ window.startMembershipPurchase=async(plan,price,days)=>{
     };
     if(email)checkout.customer={email};
     window.__pendingPaddleMembership={plan:String(plan||"").toLowerCase(),priceId,days:Number(days)||0};
-    showMembershipPaymentMessage("Paddle checkout open ho raha hai…");
+    showMembershipPaymentMessage("Opening Paddle checkout…");
     try {
       Paddle.Checkout.open(checkout);
     } catch(openError){
@@ -2331,9 +2327,16 @@ window.logout=async()=>{
 };
 
 
+function setAppLoading(loading){
+  const overlay=document.getElementById("appLoadingOverlay");
+  const drawer=document.getElementById("drawer");
+  if(overlay)overlay.style.display=loading?"flex":"none";
+  if(drawer){drawer.classList.toggle("app-loading-hidden",loading);if(loading)drawer.classList.remove("open");}
+}
 function showAuth(){
   const drawer=document.getElementById("drawer");
   if(drawer) drawer.classList.remove("open");
+  setAppLoading(false);
   document.getElementById("authScreen").style.display="flex";
   document.getElementById("appShell").style.display="none";
   document.getElementById("authError").textContent="";
@@ -2342,6 +2345,7 @@ function showAuth(){
 function hideAuth(){
   document.getElementById("authScreen").style.display="none";
   document.getElementById("appShell").style.display="block";
+  setAppLoading(true);
 }
 window.showAuthMode=mode=>{
   const login=mode==="login";
@@ -2831,18 +2835,18 @@ function updateInvoiceRateCard(){
 function validateInvoiceSetups(date){
   const charge=getChargeSetupForDate(date);
   if(!charge){
-    return "Invoice save karne se pehle Charge Setup mein RTA, Fuel aur Booking rates update karein.";
+    return "Please update the RTA, Fuel, and Booking rates in Charge Setup before saving the invoice.";
   }
   const rta=Number(charge.rtaCharges);
   const fuel=Number(charge.fuelCharges);
   const booking=Number(charge.bookingCharges);
   if(!(rta>0)||!(fuel>0)||!(booking>0)){
-    return "Invoice save karne se pehle Charge Setup mein RTA, Fuel aur Booking ki valid rates (zero se zyada) update karein.";
+    return "Please update valid RTA, Fuel, and Booking rates in Charge Setup before saving the invoice.";
   }
 
   const target=getTargetSetupForDate(date);
   if(!hasValidTargetSetup(target)){
-    return "Invoice save karne se pehle Target Setup mein AED Amount update karein.";
+    return "Please update the AED Amount in Target Setup before saving the invoice.";
   }
   return "";
 }
@@ -2885,7 +2889,7 @@ if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.originalText=saveBtn.textConte
 // must contain a value greater than zero.
 const invoiceDataTotal=ids.reduce((sum,id)=>sum+(Number(data[id])||0),0);
 if(invoiceDataTotal<=0){
-  const msg="Please pehle data fields mein data enter karein.";
+  const msg="Please enter data in at least one field before saving.";
   showRateSetupPopup(msg,"Data Required");
   document.getElementById("invoiceStatus").textContent=msg;
   invoiceSaveBusy=false;
@@ -3414,15 +3418,15 @@ window.setReportMonth=setReportMonth;
 window.renderReports=renderReports;
 window.printReports=printReports;
 function printReports(){
-  if(!reportMode){alert("Pehle Daily, Monthly ya Yearly report select karein.");return;}
+  if(!reportMode){alert("Please select a Daily, Monthly, or Yearly report first.");return;}
   renderReports();
   const source=document.getElementById("reportsPage");
-  if(!source){alert("Report print ke liye nahi mil rahi.");return;}
+  if(!source){alert("The report is not available for printing.");return;}
   const clone=source.cloneNode(true);
   clone.querySelectorAll(".report-print,.report-mode-tabs,.report-control-row,button").forEach(el=>el.remove());
   const styles=[...document.querySelectorAll("style")].map(x=>x.outerHTML).join("\n");
   const w=window.open("","_blank","width=1000,height=900");
-  if(!w){alert("Print ke liye browser mein pop-up allow karein.");return;}
+  if(!w){alert("Please allow pop-ups in your browser to print.");return;}
   w.document.open();
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${(document.getElementById("reportTitle")?.textContent||"Report")}</title>${styles}<style>
     @media print{body{background:#fff!important}.page{display:block!important}.report-workspace{display:block!important;box-shadow:none!important;border:0!important;margin:0!important}.report-table-scroll{overflow:visible!important;max-height:none!important}.report-summary-table,.report-invoice-table{min-width:0!important;width:100%!important}.report-print,.report-mode-tabs,.report-control-row,button{display:none!important}}
@@ -3493,10 +3497,40 @@ function renderHistory(){
 const CHARGE_DAYS=Array.from({length:31},(_,i)=>i+1);
 function chargeDayOptions(selected=""){const placeholder=`<option value="" ${selected===""||selected==null?"selected":""} disabled>Select Day</option>`;return placeholder+CHARGE_DAYS.map(day=>`<option value="${day}" ${String(day)===String(selected)?"selected":""}>${day}</option>`).join("")}
 function chargeStatus(message,type=""){const el=document.getElementById("chargeSetupStatus");if(!el)return;el.className="status"+(type?" "+type:"");el.textContent=message}
-function setChargeCycleUI(){const type=Number(document.getElementById("chargeCycleType")?.value||1);const cycle1=document.getElementById("cycle1Box"),second=document.getElementById("chargeCycle2");if(cycle1){cycle1.style.display=type===1?"block":"none";cycle1.hidden=type!==1}if(second){second.style.display=type===2?"block":"none";second.hidden=type!==2}}
-function initChargeSelectors(){["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=chargeDayOptions("")})}
+function setChargeCycleUI(){
+  const type=Number(document.getElementById("chargeCycleType")?.value||1);
+  const cycle1=document.getElementById("cycle1Box"),second=document.getElementById("chargeCycle2");
+  if(cycle1){cycle1.style.display=type===1?"block":"none";cycle1.hidden=type!==1}
+  if(second){second.style.display=type===2?"block":"none";second.hidden=type!==2}
+  if(type===2)updateCycle2Range2Options();
+}
+function updateCycle2Range2Options(){
+  const from1=Number(document.getElementById("chargeFrom2")?.value||0);
+  const to1=Number(document.getElementById("chargeTo2")?.value||0);
+  const from2El=document.getElementById("chargeFrom3");
+  const to2El=document.getElementById("chargeTo3");
+  if(!from2El||!to2El)return;
+
+  const selectedFrom2=from2El.value,selectedTo2=to2El.value;
+  const hasRange1=Number.isInteger(from1)&&Number.isInteger(to1)&&from1>=1&&to1<=31&&from1<=to1;
+  const blocked=new Set();
+  if(hasRange1){for(let day=from1;day<=to1;day++)blocked.add(day);}
+  const available=CHARGE_DAYS.filter(day=>!blocked.has(day));
+  const options='<option value="" selected disabled>Select Day</option>'+available.map(d=>`<option value="${d}">${d}</option>`).join("");
+  from2El.innerHTML=options;
+  to2El.innerHTML=options;
+  if(selectedFrom2 && available.includes(Number(selectedFrom2)))from2El.value=selectedFrom2;
+  else from2El.value="";
+  if(selectedTo2 && available.includes(Number(selectedTo2)))to2El.value=selectedTo2;
+  else to2El.value="";
+}
+function initChargeSelectors(){
+  ["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=chargeDayOptions("")});
+  document.getElementById("chargeFrom2")?.addEventListener("change",updateCycle2Range2Options);
+  document.getElementById("chargeTo2")?.addEventListener("change",updateCycle2Range2Options);
+}
 function resetChargeSetup(date=""){editingChargeDate=null;document.getElementById("chargeDate").value=date||new Date().toISOString().slice(0,10);document.getElementById("chargeCycleType").value="1";["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>document.getElementById(id).value="");document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus("")}
-window.loadChargeRecord=id=>{const r=savedChargeRecords.find(x=>String(x.id)===String(id));if(!r)return;editingChargeDate=r.id;document.getElementById("chargeDate").value=r.date||"";document.getElementById("chargeCycleType").value=String(r.cycleType||1);const c=r.ranges||[];document.getElementById("chargeFrom1").value=String(r.cycleType===1?(c[0]?.from||""):"");document.getElementById("chargeTo1").value=String(r.cycleType===1?(c[0]?.to||""):"");document.getElementById("chargeFrom2").value=String(r.cycleType===2?(c[0]?.from||""):"");document.getElementById("chargeTo2").value=String(r.cycleType===2?(c[0]?.to||""):"");document.getElementById("chargeFrom3").value=String(r.cycleType===2?(c[1]?.from||""):"");document.getElementById("chargeTo3").value=String(r.cycleType===2?(c[1]?.to||""):"");document.getElementById("fuelCharges").value=r.fuelCharges??"";document.getElementById("rtaCharges").value=r.rtaCharges??"";document.getElementById("bookingCharges").value=r.bookingCharges??"";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Record loaded. Changes karke Update Record dabayein.","success")}
+window.loadChargeRecord=id=>{const r=savedChargeRecords.find(x=>String(x.id)===String(id));if(!r)return;editingChargeDate=r.id;document.getElementById("chargeDate").value=r.date||"";document.getElementById("chargeCycleType").value=String(r.cycleType||1);const c=r.ranges||[];document.getElementById("chargeFrom1").value=String(r.cycleType===1?(c[0]?.from||""):"");document.getElementById("chargeTo1").value=String(r.cycleType===1?(c[0]?.to||""):"");document.getElementById("chargeFrom2").value=String(r.cycleType===2?(c[0]?.from||""):"");document.getElementById("chargeTo2").value=String(r.cycleType===2?(c[0]?.to||""):"");document.getElementById("chargeFrom3").value=String(r.cycleType===2?(c[1]?.from||""):"");document.getElementById("chargeTo3").value=String(r.cycleType===2?(c[1]?.to||""):"");document.getElementById("fuelCharges").value=r.fuelCharges??"";document.getElementById("rtaCharges").value=r.rtaCharges??"";document.getElementById("bookingCharges").value=r.bookingCharges??"";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Record loaded. Make your changes and click Update Record.","success")}
 window.saveChargeSetup=async()=>{
 if(!requireActiveSubscription())return;if(!currentUser){chargeStatus("Please login first.","error");return}const date=document.getElementById("chargeDate").value,cycleType=Number(document.getElementById("chargeCycleType").value);const fuelRaw=document.getElementById("fuelCharges").value.trim(),rtaRaw=document.getElementById("rtaCharges").value.trim(),bookingRaw=document.getElementById("bookingCharges").value.trim();if(!date){chargeStatus("Please select a complete date.","error");return}const f1=Number(document.getElementById("chargeFrom1").value),t1=Number(document.getElementById("chargeTo1").value),f2=Number(document.getElementById("chargeFrom2").value),t2=Number(document.getElementById("chargeTo2").value),f3=Number(document.getElementById("chargeFrom3").value),t3=Number(document.getElementById("chargeTo3").value);const valid=v=>Number.isInteger(v)&&v>=1&&v<=31;const rangesValid=cycleType===1?(valid(f1)&&valid(t1)):(valid(f2)&&valid(t2)&&valid(f3)&&valid(t3));if(!rangesValid){chargeStatus("Kindly please select all Day numbers for the selected range(s).","error");return}if(fuelRaw===""||rtaRaw===""||bookingRaw===""){chargeStatus("Kindly please enter all Fuel, RTA and Booking Charge numbers before saving/updating.","error");return}const fuelCharges=Number(fuelRaw),rtaCharges=Number(rtaRaw),bookingCharges=Number(bookingRaw);if(![fuelCharges,rtaCharges,bookingCharges].every(v=>Number.isFinite(v)&&v>=0)){chargeStatus("Charges must be valid AED amounts (0 or more).","error");return}const ranges=cycleType===1?[{from:f1,to:t1}]:[{from:f2,to:t2},{from:f3,to:t3}];const now=new Date().toISOString();const record={date,cycleType,ranges,fuelCharges,rtaCharges,bookingCharges,updatedAt:now};try{const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{},oldSetups={...(existing.chargeSetupsByDate||{})};let recordId=editingChargeDate;if(recordId){if(!oldSetups[recordId]){recordId=null}else{oldSetups[recordId]={...record,id:recordId}}}if(!recordId){recordId=`charge_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;oldSetups[recordId]={...record,id:recordId}}await setDoc(ref,{chargeSetupsByDate:oldSetups},{merge:true});driverData={...driverData,chargeSetupsByDate:oldSetups};const saved={...record,id:recordId};const i=savedChargeRecords.findIndex(x=>String(x.id)===String(recordId));if(i>=0)savedChargeRecords[i]=saved;else savedChargeRecords.push(saved);editingChargeDate=null;const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus(i>=0?"Charge setup updated successfully.":"New charge record saved successfully.","success");renderSavedCharges();resetChargeSetup(date);
 // Refresh the Dashboard immediately after a Charge Setup change so the
@@ -3522,7 +3556,7 @@ function renderSavedCharges(){
   const box=document.getElementById("savedChargeList");
   if(!box)return;
   if(!savedChargeRecords.length){
-    box.innerHTML='<div class="charge-empty">Abhi koi charge record save nahi hua.</div>';
+    box.innerHTML='<div class="charge-empty">No charge records saved yet.</div>';
     return;
   }
 
@@ -3667,7 +3701,7 @@ window.loadTargetDate=async(id)=>{
     const btn=document.getElementById("saveTargetTableBtn");
     if(btn)btn.textContent="Update Record";
     buildTargetRows(Array.isArray(data.amounts)?data.amounts:DEFAULT_TARGET_AMOUNTS);
-    setTargetStatus("Record loaded. AED Amounts update karke Update Record dabayein.","success");
+    setTargetStatus("Record loaded. Update the AED Amounts and click Update Record.","success");
     showTargetToast("Record loaded for update","success");
     document.getElementById("targetPage")?.scrollIntoView({behavior:"smooth",block:"start"});
   }catch(e){
@@ -3686,7 +3720,7 @@ if(!requireActiveSubscription())return;
     setTargetStatus("Please enter valid AED Amounts.","error");return;
   }
   if(!amounts.some(v=>v>0)){
-    setTargetStatus("Kam az kam ek AED Amount enter karein.","error");return;
+    setTargetStatus("Please enter at least one AED Amount.","error");return;
   }
 
   const record={
@@ -3723,7 +3757,7 @@ if(!requireActiveSubscription())return;
     document.getElementById("saveTargetTableBtn").textContent="Save Record";
     buildTargetRows();
     document.getElementById("targetDate").value=new Date().toISOString().slice(0,10);
-    setTargetStatus("Target record saved successfully. New record ke liye form ready hai.","success");
+    setTargetStatus("Target record saved successfully. The form is ready for a new record.","success");
     showTargetToast("Record saved successfully ✓","success");
     renderSavedTargets();
   }catch(e){
@@ -3736,7 +3770,7 @@ function renderSavedTargets(){
   const box=document.getElementById("savedTargetList");
   if(!box)return;
   if(!savedTargetRecords.length){
-    box.innerHTML='<div class="target-empty">Abhi koi record save nahi hua.</div>';
+    box.innerHTML='<div class="target-empty">No records saved yet.</div>';
     return;
   }
 
@@ -4663,7 +4697,6 @@ await refreshAdminClaim();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
-ensureTrialForNewOrLegacyUser();
 updateAdminMenu();
 updateSubscriptionUI();
 // If Pricing page sent the user here with ?subscriptionPlan=..., open
@@ -4689,8 +4722,7 @@ unsubscribeDriver=onSnapshot(ref,driverSnap=>{
   if(!driverSnap.exists())return;
   const fresh=driverSnap.data()||{};
   driverData={...driverData,...fresh};
-  ensureTrialForNewOrLegacyUser();
-  updateAdminMenu();
+    updateAdminMenu();
   updateSubscriptionUI();
   savedTargetRecords=Array.isArray(fresh.targetRecords)?fresh.targetRecords.map(r=>({...r})):Object.values(fresh.targetRangesByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
   savedChargeRecords=Object.values(fresh.chargeSetupsByDate||{}).map(r=>({...r,id:r.id||("legacy_"+r.date)}));
@@ -4760,6 +4792,7 @@ buildTargetRows();
 renderSavedTargets();
 clearInvoice();
 updateInvoiceRateCard();
+setAppLoading(false);
 }catch(error){
 console.error("Firebase startup error:",error);
 currentUser=null;
@@ -4843,13 +4876,13 @@ async function openInvoiceScanner(){
       }catch(e){console.warn("Continuous focus unavailable",e);}
       const caps=invoiceCameraTrack?.getCapabilities?.()||{};
       if(torchBtn && !caps.torch)torchBtn.textContent="💡 Light N/A";
-      status.textContent="Camera ready — invoice ko poora frame mein seedha rakhein. Camera khud scan karega.";
+      status.textContent="Camera ready — keep the invoice straight and fully inside the frame. The camera will scan automatically.";
       startInvoiceAutoScan();
     }else status.textContent="Camera preview is not supported. You can choose a photo instead.";
   }catch(e){
     stopInvoiceAutoScan();
     console.warn("Camera error",e);
-    status.textContent="Live scan camera nahi khul saka. Neeche Full Camera se mobile ki photo le sakte hain.";
+    status.textContent="Live scan camera could not be opened. You can use Full Camera below to take a photo.";
   }
 }
 
@@ -4863,17 +4896,17 @@ async function setInvoiceCameraFocus(){
     if(caps.focusMode?.includes("continuous")){
       await track.applyConstraints({advanced:[{focusMode:"continuous"}]});
       if(btn){btn.classList.add("active");setTimeout(()=>btn.classList.remove("active"),900);}
-      s.textContent="Auto focus enabled. Receipt ko camera ke samne seedha rakhein.";
+      s.textContent="Auto focus enabled. Keep the receipt straight in front of the camera.";
     }else if(caps.focusMode?.includes("single-shot")){
       await track.applyConstraints({advanced:[{focusMode:"single-shot"}]});
       if(btn){btn.classList.add("active");setTimeout(()=>btn.classList.remove("active"),900);}
       s.textContent="Camera focus refreshed.";
     }else{
-      s.textContent="Is phone/browser par manual focus control available nahi hai. Camera ko receipt se thora door/paas karein.";
+      s.textContent="Manual focus control is not available on this phone/browser. Move the camera slightly closer to or farther from the receipt.";
     }
   }catch(e){
     console.warn("Focus error",e);
-    s.textContent="Focus control available nahi hai. Camera ko receipt se thora door/paas karein.";
+    s.textContent="Focus control is not available. Move the camera slightly closer to or farther from the receipt.";
   }
 }
 
@@ -4883,7 +4916,7 @@ async function toggleInvoiceCameraTorch(){
   if(!track){s.textContent="Camera is not active. Use Choose Photo instead.";return;}
   try{
     const caps=track.getCapabilities?.()||{};
-    if(!caps.torch){s.textContent="Browser direct light control nahi deta. Is phone ke camera mein direct light control available nahi hai.";if(btn)btn.textContent="💡 Flash via Camera";return;}
+    if(!caps.torch){s.textContent="The browser does not provide direct light control. Direct light control is not available on this phone camera.";if(btn)btn.textContent="💡 Flash via Camera";return;}
     invoiceTorchOn=!invoiceTorchOn;
     await track.applyConstraints({advanced:[{torch:invoiceTorchOn}]});
     if(btn){btn.textContent=invoiceTorchOn?"💡 Light On":"💡 Light Off";btn.classList.toggle("active",invoiceTorchOn);}
@@ -4892,7 +4925,7 @@ async function toggleInvoiceCameraTorch(){
     console.warn("Torch error",e);
     invoiceTorchOn=false;
     if(btn)btn.textContent="💡 Light Off";
-    s.textContent="Browser direct light control available nahi hai.";
+    s.textContent="Direct light control is not available in this browser.";
   }
 }
 
@@ -4988,7 +5021,7 @@ function startInvoiceAutoScan(){
 
     const result=invoiceAutoFrameScore(video,canvas,ctx);
     if(!result.ready){
-      status.textContent="Camera ready hone ka intezar...";
+      status.textContent="Waiting for the camera to become ready...";
       return;
     }
 
@@ -5002,14 +5035,14 @@ function startInvoiceAutoScan(){
       if(!invoiceAutoStableSince)invoiceAutoStableSince=now;
       const held=(now-invoiceAutoStableSince)/1000;
       if(held<1.0){
-        status.textContent=`Invoice detect ho gaya — phone stable rakhein ${(1-held).toFixed(1)}s`;
+        status.textContent=`Invoice detected — keep the phone steady for ${(1-held).toFixed(1)}s`;
         return;
       }
 
       invoiceAutoScanBusy=true;
       stopInvoiceAutoScan();
       try{
-        status.textContent="Invoice capture ho raha hai...";
+        status.textContent="Capturing invoice...";
         const fullCanvas=document.createElement("canvas");
         fullCanvas.width=video.videoWidth;
         fullCanvas.height=video.videoHeight;
@@ -5029,12 +5062,12 @@ function startInvoiceAutoScan(){
       }catch(e){
         console.warn("Automatic invoice scan failed",e);
         invoiceAutoScanBusy=false;
-        status.textContent="Scan dobara try karein. Invoice poora box mein rakhein.";
+        status.textContent="Please try the scan again. Keep the full invoice inside the box.";
         setTimeout(()=>startInvoiceAutoScan(),500);
       }
     }else{
       invoiceAutoStableSince=0;
-      status.textContent="Invoice ko poora white box ke andar rakhein — scan khud hoga.";
+      status.textContent="Keep the full invoice inside the white box — scanning will start automatically.";
     }
   };
 
@@ -5063,18 +5096,18 @@ function openInvoiceNativeCamera(){
   const input=document.getElementById("invoiceCameraInput");
   const status=document.getElementById("invoiceScanStatus");
   if(!input){
-    if(status)status.textContent="Phone camera input available nahi hai.";
+    if(status)status.textContent="Phone camera input is not available.";
     return;
   }
   invoiceDirectCapture=true;
-  if(status)status.textContent="Phone camera khul raha hai — invoice ki poori photo lein.";
+  if(status)status.textContent="Opening the phone camera — take a full photo of the invoice.";
   try{
     input.setAttribute("capture","environment");
     input.click();
   }catch(e){
     invoiceDirectCapture=false;
     console.warn("Native camera open error",e);
-    if(status)status.textContent="Phone camera open nahi ho saka. Full Camera dobara try karein.";
+    if(status)status.textContent="The phone camera could not be opened. Please try Full Camera again.";
   }
 }
 
@@ -5108,13 +5141,13 @@ async function openInvoiceCropper(file){
     img.onload=()=>{
       try{
         invoiceCropper=new Cropper(img,{viewMode:1,dragMode:"move",autoCropArea:.985,aspectRatio:null,background:false,responsive:true,restore:true,zoomable:true,toggleDragModeOnDblclick:false,guides:false,center:false,highlight:false});
-        status.textContent="Receipt ko crop box ke andar adjust karein.";
+        status.textContent="Adjust the receipt inside the crop box.";
       }catch(e){status.textContent="Crop tool error. You can use Full Photo.";}
     };
     img.src=invoiceCropObjectUrl;
   }catch(e){
     console.warn("Cropper load error",e);
-    status.textContent="Crop tool load nahi hua. Full Photo use kar sakte hain.";
+    status.textContent="The crop tool could not be loaded. You can use Full Photo.";
   }
 }
 
@@ -5222,13 +5255,13 @@ document.getElementById("invoiceCameraInput")?.addEventListener("change",async e
 
   const status=document.getElementById("invoiceScanStatus");
   try{
-    if(status)status.textContent="Photo mil gayi — invoice prepare ho rahi hai...";
+    if(status)status.textContent="Photo received — preparing the invoice...";
     const cleanBlob=await autoPrepareRTAReceiptBlob(f);
     closeInvoiceScanner();
     await processInvoiceScan(cleanBlob);
   }catch(err){
     console.warn("Native camera photo processing error",err);
-    if(status)status.textContent="Photo process nahi hui. Dobara photo lein.";
+    if(status)status.textContent="The photo could not be processed. Please take another photo.";
   }
 });
 
