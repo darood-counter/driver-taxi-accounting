@@ -3582,18 +3582,10 @@ function chargePreviewDate(day, offsetHint=0){
   const d=new Date(base+"T00:00:00");
   if(Number.isNaN(d.getTime()))return "";
 
-  /*
-    A day selector represents the day-of-month. For Cycle 2, a range that
-    crosses from a higher day to a lower day moves the lower endpoint into
-    the following month. This is display-only; stored values remain unchanged.
-  */
-  const baseDay=d.getDate();
-  let monthShift=Number(offsetHint)||0;
-
-  if(monthShift===0 && n<baseDay){
-    monthShift=1;
-  }
-
+  // The selected Charge Date supplies the YEAR and BASE MONTH only.
+  // The selected day itself is never allowed to change the month.
+  // A following month is requested explicitly by the range logic.
+  const monthShift=Number(offsetHint)||0;
   const result=new Date(d.getFullYear(),d.getMonth()+monthShift,n);
   return result.toLocaleDateString("en-GB",{
     day:"2-digit",month:"short",year:"numeric"
