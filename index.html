@@ -3601,7 +3601,8 @@ function updateOneChargePreview(selectId,previewId,offsetHint=0){
 function updateChargeDatePreviews(){
   const cycle=Number(document.getElementById("chargeCycleType")?.value||1);
 
-  // Cycle 1: if End Day is before Start Day, End belongs to the next month.
+  // Cycle 1: Start is in the selected Charge Date month.
+  // If End Day is numerically before Start Day, End is in the next month.
   const from1=Number(document.getElementById("chargeFrom1")?.value||0);
   const to1=Number(document.getElementById("chargeTo1")?.value||0);
   const cycle1CrossMonth=from1>0 && to1>0 && to1<from1;
@@ -3610,13 +3611,30 @@ function updateChargeDatePreviews(){
 
   const from2=Number(document.getElementById("chargeFrom2")?.value||0);
   const to2=Number(document.getElementById("chargeTo2")?.value||0);
+  const from3=Number(document.getElementById("chargeFrom3")?.value||0);
+  const to3=Number(document.getElementById("chargeTo3")?.value||0);
 
   if(cycle===2){
-    const crossMonth=from2>0 && to2>0 && from2>to2;
+    // Range 1 starts in the selected month; its end moves forward only
+    // when the end day is before its start day.
+    const range1CrossMonth=from2>0 && to2>0 && to2<from2;
+    const range1EndMonthOffset=range1CrossMonth?1:0;
+
     updateOneChargePreview("chargeFrom2","chargeFrom2Preview",0);
-    updateOneChargePreview("chargeTo2","chargeTo2Preview",crossMonth?1:0);
-    updateOneChargePreview("chargeFrom3","chargeFrom3Preview",crossMonth?1:0);
-    updateOneChargePreview("chargeTo3","chargeTo3Preview",crossMonth?1:0);
+    updateOneChargePreview("chargeTo2","chargeTo2Preview",range1EndMonthOffset);
+
+    // Range 2 begins after Range 1 ends. If Range 1 wrapped across month,
+    // or Range 2's start day is on/before Range 1's end day, show it in
+    // the following month. Its end advances one more month only if it wraps.
+    let range2StartMonthOffset=0;
+    if(from3>0 && to2>0){
+      if(range1CrossMonth || from3<=to2) range2StartMonthOffset=1;
+    }
+    const range2CrossMonth=from3>0 && to3>0 && to3<from3;
+    const range2EndMonthOffset=range2StartMonthOffset+(range2CrossMonth?1:0);
+
+    updateOneChargePreview("chargeFrom3","chargeFrom3Preview",range2StartMonthOffset);
+    updateOneChargePreview("chargeTo3","chargeTo3Preview",range2EndMonthOffset);
   }else{
     updateOneChargePreview("chargeFrom2","chargeFrom2Preview",0);
     updateOneChargePreview("chargeTo2","chargeTo2Preview",0);
