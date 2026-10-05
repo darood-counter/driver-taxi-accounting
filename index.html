@@ -3608,12 +3608,16 @@ function updateOneChargePreview(selectId,previewId,offsetHint=0){
 
 function updateChargeDatePreviews(){
   const cycle=Number(document.getElementById("chargeCycleType")?.value||1);
-  const base=document.getElementById("chargeDate")?.value;
+
+  // Cycle 1: if End Day is before Start Day, End belongs to the next month.
+  const from1=Number(document.getElementById("chargeFrom1")?.value||0);
+  const to1=Number(document.getElementById("chargeTo1")?.value||0);
+  const cycle1CrossMonth=from1>0 && to1>0 && to1<from1;
+  updateOneChargePreview("chargeFrom1","chargeFrom1Preview",0);
+  updateOneChargePreview("chargeTo1","chargeTo1Preview",cycle1CrossMonth?1:0);
+
   const from2=Number(document.getElementById("chargeFrom2")?.value||0);
   const to2=Number(document.getElementById("chargeTo2")?.value||0);
-
-  updateOneChargePreview("chargeFrom1","chargeFrom1Preview",0);
-  updateOneChargePreview("chargeTo1","chargeTo1Preview",0);
 
   if(cycle===2){
     const crossMonth=from2>0 && to2>0 && from2>to2;
