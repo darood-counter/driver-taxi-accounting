@@ -924,6 +924,17 @@ input:focus{border-color:#ed166a}
   .scanner-camera-close-overlay{top:8px;right:8px;min-height:36px;padding:7px 11px}
 }
 
+
+<style>
+.charge-date-preview{
+  display:inline-block;
+  margin:4px 6px 0 0;
+  font-size:12px;
+  color:#666;
+  font-weight:600;
+  direction:ltr;
+}
+</style>
 </style>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
@@ -1236,8 +1247,8 @@ const PADDLE_PRICE_IDS = {
 <div class="charge-range-box">
 <div class="range-title">Range</div>
 <div class="charge-range">
-<div class="charge-field"><label>From Day</label><select id="chargeFrom1"></select></div>
-<div class="charge-field"><label>To Day</label><select id="chargeTo1"></select></div>
+<div class="charge-field"><label>From Day</label><select id="chargeFrom1"></select><span class="charge-date-preview" id="chargeFrom1Preview"></span></div>
+<div class="charge-field"><label>To Day</label><select id="chargeTo1"></select><span class="charge-date-preview" id="chargeTo1Preview"></span></div>
 </div>
 </div>
 </div>
@@ -1249,15 +1260,15 @@ const PADDLE_PRICE_IDS = {
 <div class="charge-range-box">
 <div class="range-title">Range 1</div>
 <div class="charge-range">
-<div class="charge-field"><label>From Day</label><select id="chargeFrom2"></select></div>
-<div class="charge-field"><label>To Day</label><select id="chargeTo2"></select></div>
+<div class="charge-field"><label>From Day</label><select id="chargeFrom2"></select><span class="charge-date-preview" id="chargeFrom2Preview"></span></div>
+<div class="charge-field"><label>To Day</label><select id="chargeTo2"></select><span class="charge-date-preview" id="chargeTo2Preview"></span></div>
 </div>
 </div>
 <div class="charge-range-box">
 <div class="range-title">Range 2</div>
 <div class="charge-range">
-<div class="charge-field"><label>From Day</label><select id="chargeFrom3"></select></div>
-<div class="charge-field"><label>To Day</label><select id="chargeTo3"></select></div>
+<div class="charge-field"><label>From Day</label><select id="chargeFrom3"></select><span class="charge-date-preview" id="chargeFrom3Preview"></span></div>
+<div class="charge-field"><label>To Day</label><select id="chargeTo3"></select><span class="charge-date-preview" id="chargeTo3Preview"></span></div>
 </div>
 </div>
 </div>
@@ -3516,47 +3527,120 @@ function setChargeCycleUI(){
   if(type===2)updateCycle2Range2Options();
 }
 function updateCycle2Range2Options(){
-  // Cycle 2: Range 2 must never contain a date already selected in Range 1.
-  // Range 1 uses chargeFrom2 -> chargeTo2; Range 2 uses chargeFrom3 -> chargeTo3.
-  const range1From=Number(document.getElementById("chargeFrom2")?.value||0);
-  const range1To=Number(document.getElementById("chargeTo2")?.value||0);
-  const range2FromEl=document.getElementById("chargeFrom3");
-  const range2ToEl=document.getElementById("chargeTo3");
-  if(!range2FromEl||!range2ToEl)return;
+  const from2El=document.getElementById("chargeFrom2");
+  const to2El=document.getElementById("chargeTo2");
+  const from3El=document.getElementById("chargeFrom3");
+  const to3El=document.getElementById("chargeTo3");
+  if(!from3El||!to3El)return;
 
-  const selectedRange2From=range2FromEl.value;
-  const selectedRange2To=range2ToEl.value;
+  const range1From=Number(from2El?.value||0);
+  const range1To=Number(to2El?.value||0);
+
   const hasRange1=Number.isInteger(range1From)&&Number.isInteger(range1To)
     &&range1From>=1&&range1From<=31&&range1To>=1&&range1To<=31;
 
+  /*
+    Keep the original stored format (day numbers), but interpret Cycle 2
+    chronologically. This fixes cross-month ranges such as:
+      Range 1 = 17 -> 1
+      Range 2 = 2  -> 16
+    without changing any Firebase/downstream data structure.
+  */
   const blocked=new Set();
+
   if(hasRange1){
-    const start=Math.min(range1From,range1To);
-    const end=Math.max(range1From,range1To);
-    for(let day=start;day<=end;day++)blocked.add(day);
+    if(range1From<=range1To){
+      for(let day=range1From;day<=range1To;day++)blocked.add(day);
+    }else{
+      for(let day=range1From;day<=31;day++)blocked.add(day);
+      for(let day=1;day<=range1To;day++)blocked.add(day);
+    }
   }
 
+  const current=Number(to3El.value||0);
   const available=CHARGE_DAYS.filter(day=>!blocked.has(day));
-  const options='<option value="" selected disabled>Select Day</option>'
-    +available.map(d=>`<option value="${d}">${d}</option>`).join("");
 
-  range2FromEl.innerHTML=options;
-  range2ToEl.innerHTML=options;
+  to3El.innerHTML=available.map(day=>
+    `<option value="${day}">${day}</option>`
+  ).join("");
 
-  if(selectedRange2From && available.includes(Number(selectedRange2From)))
-    range2FromEl.value=selectedRange2From;
-  else
-    range2FromEl.value="";
+  if(available.includes(current)){
+    to3El.value=String(current);
+  }else if(available.length){
+    to3El.value=String(available[0]);
+  }else{
+    to3El.value="";
+  }
 
-  if(selectedRange2To && available.includes(Number(selectedRange2To)))
-    range2ToEl.value=selectedRange2To;
-  else
-    range2ToEl.value="";
+  updateChargeDatePreviews();
 }
+function chargePreviewDate(day, offsetHint=0){
+  const base=document.getElementById("chargeDate")?.value;
+  const n=Number(day);
+  if(!base||!Number.isInteger(n)||n<1||n>31)return "";
+
+  const d=new Date(base+"T00:00:00");
+  if(Number.isNaN(d.getTime()))return "";
+
+  /*
+    A day selector represents the day-of-month. For Cycle 2, a range that
+    crosses from a higher day to a lower day moves the lower endpoint into
+    the following month. This is display-only; stored values remain unchanged.
+  */
+  const baseDay=d.getDate();
+  let monthShift=Number(offsetHint)||0;
+
+  if(monthShift===0 && n<baseDay){
+    monthShift=1;
+  }
+
+  const result=new Date(d.getFullYear(),d.getMonth()+monthShift,n);
+  return result.toLocaleDateString("en-GB",{
+    day:"2-digit",month:"short",year:"numeric"
+  });
+}
+
+function updateOneChargePreview(selectId,previewId,offsetHint=0){
+  const value=document.getElementById(selectId)?.value||"";
+  const el=document.getElementById(previewId);
+  if(el)el.textContent=value ? `(${chargePreviewDate(value,offsetHint)})` : "";
+}
+
+function updateChargeDatePreviews(){
+  const cycle=Number(document.getElementById("chargeCycleType")?.value||1);
+  const base=document.getElementById("chargeDate")?.value;
+  const from2=Number(document.getElementById("chargeFrom2")?.value||0);
+  const to2=Number(document.getElementById("chargeTo2")?.value||0);
+
+  updateOneChargePreview("chargeFrom1","chargeFrom1Preview",0);
+  updateOneChargePreview("chargeTo1","chargeTo1Preview",0);
+
+  if(cycle===2){
+    const crossMonth=from2>0 && to2>0 && from2>to2;
+    updateOneChargePreview("chargeFrom2","chargeFrom2Preview",0);
+    updateOneChargePreview("chargeTo2","chargeTo2Preview",crossMonth?1:0);
+    updateOneChargePreview("chargeFrom3","chargeFrom3Preview",crossMonth?1:0);
+    updateOneChargePreview("chargeTo3","chargeTo3Preview",crossMonth?1:0);
+  }else{
+    updateOneChargePreview("chargeFrom2","chargeFrom2Preview",0);
+    updateOneChargePreview("chargeTo2","chargeTo2Preview",0);
+    updateOneChargePreview("chargeFrom3","chargeFrom3Preview",0);
+    updateOneChargePreview("chargeTo3","chargeTo3Preview",0);
+  }
+}
+
 function initChargeSelectors(){
   ["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=chargeDayOptions("")});
   document.getElementById("chargeFrom2")?.addEventListener("change",updateCycle2Range2Options);
   document.getElementById("chargeTo2")?.addEventListener("change",updateCycle2Range2Options);
+
+  ["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>{
+    document.getElementById(id)?.addEventListener("change",updateChargeDatePreviews);
+  });
+  document.getElementById("chargeDate")?.addEventListener("change",updateChargeDatePreviews);
+  document.getElementById("chargeCycleType")?.addEventListener("change",updateChargeDatePreviews);
+
+  updateChargeDatePreviews();
 }
 function resetChargeSetup(date=""){editingChargeDate=null;document.getElementById("chargeDate").value=date||new Date().toISOString().slice(0,10);document.getElementById("chargeCycleType").value="1";["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>document.getElementById(id).value="");document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus("")}
 window.loadChargeRecord=id=>{const r=savedChargeRecords.find(x=>String(x.id)===String(id));if(!r)return;editingChargeDate=r.id;document.getElementById("chargeDate").value=r.date||"";document.getElementById("chargeCycleType").value=String(r.cycleType||1);const c=r.ranges||[];document.getElementById("chargeFrom1").value=String(r.cycleType===1?(c[0]?.from||""):"");document.getElementById("chargeTo1").value=String(r.cycleType===1?(c[0]?.to||""):"");document.getElementById("chargeFrom2").value=String(r.cycleType===2?(c[0]?.from||""):"");document.getElementById("chargeTo2").value=String(r.cycleType===2?(c[0]?.to||""):"");document.getElementById("chargeFrom3").value=String(r.cycleType===2?(c[1]?.from||""):"");document.getElementById("chargeTo3").value=String(r.cycleType===2?(c[1]?.to||""):"");document.getElementById("fuelCharges").value=r.fuelCharges??"";document.getElementById("rtaCharges").value=r.rtaCharges??"";document.getElementById("bookingCharges").value=r.bookingCharges??"";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Record loaded. Make your changes and click Update Record.","success")}
