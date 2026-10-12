@@ -935,6 +935,21 @@ input:focus{border-color:#ed166a}
   direction:ltr;
 }
 </style>
+
+/* Driver training tutorial */
+#driverHelpButton{position:fixed;right:max(16px,calc((100vw - 520px)/2 + 16px));bottom:22px;z-index:1200;border:0;border-radius:50%;width:54px;height:54px;background:#11143b;color:#fff;box-shadow:0 5px 18px #0003;font-size:25px;cursor:pointer;display:none}
+#driverTutorialModal{position:fixed;inset:0;z-index:5000;background:rgba(9,13,30,.78);display:none;align-items:center;justify-content:center;padding:14px}
+#driverTutorialModal .dt-card{width:min(100%,520px);max-height:94vh;overflow:auto;background:#fff;border-radius:18px;padding:16px;box-shadow:0 15px 55px #0005}
+#driverTutorialModal .dt-title{font-size:20px;font-weight:800;text-align:center;margin:0 0 12px;color:#11143b}
+#driverTutorialModal .dt-languages{display:flex;gap:8px;margin-bottom:10px}
+#driverTutorialModal .dt-languages button{flex:1;border:1px solid #d6d9e4;border-radius:10px;padding:10px;background:#f5f6fa;font-weight:700;cursor:pointer}
+#driverTutorialModal .dt-languages button.active{background:#11143b;color:white;border-color:#11143b}
+#driverTutorialFrame{width:100%;aspect-ratio:16/9;background:#111;border:0;border-radius:10px;display:block}
+#driverTutorialModal .dt-actions{display:flex;gap:8px;margin-top:12px}
+#driverTutorialModal .dt-actions button{flex:1;border:0;border-radius:10px;padding:12px;font-weight:800;cursor:pointer}
+#driverTutorialClose{background:#eceef4;color:#222}
+#driverTutorialReplay{background:#11143b;color:#fff}
+@media(max-width:420px){#driverTutorialModal .dt-card{padding:12px}#driverHelpButton{right:14px;bottom:16px}}
 </style>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
@@ -1021,6 +1036,22 @@ const PADDLE_PRICE_IDS = {
     <button type="button" class="primary" onclick="sendForgotPasswordEmail()">Send Reset Link</button>
     <div class="auth-error" id="resetAuthError"></div>
     <div class="auth-success" id="resetAuthSuccess"></div>
+  </div>
+</div>
+<button id="driverHelpButton" type="button" aria-label="Help / Driver tutorial" title="Help / Driver tutorial" onclick="window.openDriverTutorial(true)">❔</button>
+<div id="driverTutorialModal" role="dialog" aria-modal="true" aria-labelledby="driverTutorialTitle">
+  <div class="dt-card">
+    <h2 class="dt-title" id="driverTutorialTitle">Driver Tutorial / ٹریننگ</h2>
+    <div class="dt-languages">
+      <button type="button" id="driverTutorialUrdu" class="active" onclick="window.selectDriverTutorialLanguage('ur')">اردو ویڈیو</button>
+      <button type="button" id="driverTutorialEnglish" onclick="window.selectDriverTutorialLanguage('en')">English Video</button>
+    </div>
+    <iframe id="driverTutorialFrame" title="Driver training video" src="about:blank" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    <div style="font-size:12px;color:#667085;margin-top:8px;text-align:center" id="driverTutorialStatusText">ویڈیو مکمل دیکھنے پر اس کا اسٹیٹس محفوظ ہو جائے گا۔</div>
+    <div class="dt-actions">
+      <button type="button" id="driverTutorialClose" onclick="window.closeDriverTutorial()">Close / بند کریں</button>
+      <button type="button" id="driverTutorialReplay" onclick="window.replayDriverTutorial()">Restart Video</button>
+    </div>
   </div>
 </div>
 <div class="app app-loading-active" id="appShell" style="display:none">
@@ -4808,10 +4839,78 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   if(followDate)requestAnimationFrame(()=>scrollDashboardChartToDate(followDate,{smooth:true}));
 }
 
+// Per-account tutorial status is stored in Firestore, never localStorage.
+const DRIVER_TUTORIAL_VIDEOS={ur:"xFGi__79snw",en:"EVV4h_WpcUo"};
+let driverTutorialPlayer=null,driverTutorialLanguage="ur",driverTutorialActive=false,driverTutorialUserUid=null,driverTutorialCompleted=false;
+window.onYouTubeIframeAPIReady=function(){ /* iframe API is initialized when the modal is opened */ };
+function loadYouTubeApi(){
+  if(window.YT&&window.YT.Player)return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const existing=document.querySelector('script[data-driver-youtube-api="1"]');
+    if(existing){const started=Date.now();const poll=setInterval(()=>{if(window.YT&&window.YT.Player){clearInterval(poll);resolve()}else if(Date.now()-started>12000){clearInterval(poll);reject(new Error("YouTube player could not load"))}},200);return;}
+    const script=document.createElement("script");script.src="https://www.youtube.com/iframe_api";script.async=true;script.dataset.driverYoutubeApi="1";
+    const started=Date.now();const poll=setInterval(()=>{if(window.YT&&window.YT.Player){clearInterval(poll);resolve()}else if(Date.now()-started>15000){clearInterval(poll);reject(new Error("YouTube player could not load"))}},200);
+    script.onerror=()=>{clearInterval(poll);reject(new Error("YouTube API failed to load"))};document.head.appendChild(script);
+  });
+}
+function setDriverTutorialLanguageButtons(){
+  document.getElementById("driverTutorialUrdu")?.classList.toggle("active",driverTutorialLanguage==="ur");
+  document.getElementById("driverTutorialEnglish")?.classList.toggle("active",driverTutorialLanguage==="en");
+}
+function destroyDriverTutorialPlayer(){try{driverTutorialPlayer?.destroy()}catch(e){}driverTutorialPlayer=null;}
+window.selectDriverTutorialLanguage=async function(language){
+  driverTutorialLanguage=language==="en"?"en":"ur";setDriverTutorialLanguageButtons();
+  const frame=document.getElementById("driverTutorialFrame");if(!frame)return;
+  destroyDriverTutorialPlayer();
+  const videoId=DRIVER_TUTORIAL_VIDEOS[driverTutorialLanguage];
+  frame.src=`https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0&playsinline=1&autoplay=1`;
+  try{
+    await loadYouTubeApi();
+    destroyDriverTutorialPlayer();
+    driverTutorialPlayer=new YT.Player("driverTutorialFrame",{videoId,playerVars:{rel:0,playsinline:1,autoplay:1},events:{onStateChange:async event=>{
+      if(event.data===YT.PlayerState.ENDED){await markDriverTutorialCompleted();}
+    }}});
+  }catch(error){console.warn("Tutorial player initialization:",error);}
+};
+window.openDriverTutorial=async function(manual=false){
+  if(!currentUser){return;}
+  driverTutorialActive=true;
+  const modal=document.getElementById("driverTutorialModal");if(modal)modal.style.display="flex";
+  const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent=driverTutorialCompleted?"آپ یہ ٹریننگ دوبارہ دیکھ رہے ہیں۔":"ویڈیو مکمل دیکھنے پر اس کا اسٹیٹس ڈیٹابیس میں محفوظ ہو جائے گا۔";
+  await window.selectDriverTutorialLanguage(driverTutorialLanguage||"ur");
+};
+window.closeDriverTutorial=function(){
+  driverTutorialActive=false;const modal=document.getElementById("driverTutorialModal");if(modal)modal.style.display="none";
+  destroyDriverTutorialPlayer();const frame=document.getElementById("driverTutorialFrame");if(frame)frame.src="about:blank";
+};
+window.replayDriverTutorial=function(){window.selectDriverTutorialLanguage(driverTutorialLanguage);};
+async function markDriverTutorialCompleted(){
+  if(!currentUser||!driverTutorialUserUid||currentUser.uid!==driverTutorialUserUid||driverTutorialCompleted)return;
+  try{
+    await setDoc(doc(db,"drivers",currentUser.uid),{tutorialStatus:"completed",tutorialCompletedAt:serverTimestamp(),tutorialCompletedVideo:driverTutorialLanguage},{merge:true});
+    driverTutorialCompleted=true;
+    const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent="Completed ✓ — آپ کی ٹریننگ مکمل محفوظ ہو گئی ہے۔";
+  }catch(error){console.error("Could not save tutorial completion:",error);const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent="اسٹیٹس محفوظ نہیں ہو سکا۔ انٹرنیٹ چیک کرکے ویڈیو دوبارہ مکمل کریں۔";}
+}
+async function initializeDriverTutorial(user,data){
+  driverTutorialUserUid=user.uid;
+  const help=document.getElementById("driverHelpButton");if(help)help.style.display="block";
+  driverTutorialCompleted=String(data?.tutorialStatus||"").toLowerCase()==="completed";
+  if(!driverTutorialCompleted){
+    // Fresh read avoids showing the onboarding video if completion was saved on another device.
+    try{const latest=await getDoc(doc(db,"drivers",user.uid));const latestData=latest.exists()?latest.data():{};driverTutorialCompleted=String(latestData.tutorialStatus||"").toLowerCase()==="completed";}
+    catch(error){console.error("Could not check tutorial status:",error);}
+  }
+  if(!driverTutorialCompleted){setTimeout(()=>{if(currentUser&&currentUser.uid===user.uid&&!driverTutorialCompleted)window.openDriverTutorial(false)},500);}
+}
+
 onAuthStateChanged(auth,async user=>{
 try{
 if(!user){
   currentUser=null;
+  driverTutorialUserUid=null;driverTutorialCompleted=false;
+  const tutorialHelp=document.getElementById("driverHelpButton");if(tutorialHelp)tutorialHelp.style.display="none";
+  try{window.closeDriverTutorial();}catch(e){}
   try{if(unsubscribeDriver){unsubscribeDriver();unsubscribeDriver=null;}}catch(e){}
   try{if(unsubscribeInvoices){unsubscribeInvoices();unsubscribeInvoices=null;}}catch(e){}
   try{if(unsubscribeTargets){unsubscribeTargets();unsubscribeTargets=null;}}catch(e){}
@@ -4824,6 +4923,7 @@ await refreshAdminClaim();
 const ref=doc(db,"drivers",user.uid);
 const snap=await getDoc(ref);
 driverData=snap.exists()?snap.data():{};
+await initializeDriverTutorial(user,driverData);
 updateAdminMenu();
 updateSubscriptionUI();
 // If Pricing page sent the user here with ?subscriptionPlan=..., open
