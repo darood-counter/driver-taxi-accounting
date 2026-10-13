@@ -939,7 +939,11 @@ input:focus{border-color:#ed166a}
 
 <style>
 /* Driver training tutorial */
-#driverHelpButton{position:fixed;right:max(16px,calc((100vw - 520px)/2 + 16px));bottom:22px;z-index:1200;border:0;border-radius:50%;width:54px;height:54px;background:#11143b;color:#fff;box-shadow:0 5px 18px #0003;font-size:25px;cursor:pointer;display:none}
+#driverHelpButton{display:none;align-items:center;justify-content:center;width:36px;height:36px;min-width:36px;padding:0;border:1px solid #e2c16d;border-radius:11px;background:linear-gradient(145deg,#fffdf5,#f6e8bd);color:#17452f;box-shadow:0 2px 7px #0002;cursor:pointer;line-height:1}
+#driverHelpButton svg{width:21px;height:21px;display:block}
+.topbar-right-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.topbar-right-actions .bell{padding:0}
+#mainTopbar.profile-mode .topbar-right-actions{display:none}
 #driverTutorialModal{position:fixed;inset:0;z-index:5000;background:rgba(9,13,30,.78);display:none;align-items:center;justify-content:center;padding:14px}
 #driverTutorialModal .dt-card{width:min(100%,520px);max-height:94vh;overflow:auto;background:#fff;border-radius:18px;padding:16px;box-shadow:0 15px 55px #0005}
 #driverTutorialModal .dt-title{font-size:20px;font-weight:800;text-align:center;margin:0 0 12px;color:#11143b}
@@ -957,7 +961,7 @@ input:focus{border-color:#ed166a}
 #driverTutorialModal .dt-actions button{flex:1;border:0;border-radius:10px;padding:12px;font-weight:800;cursor:pointer}
 #driverTutorialClose{background:#eceef4;color:#222}
 #driverTutorialReplay{background:#11143b;color:#fff}
-@media(max-width:420px){#driverTutorialModal .dt-card{padding:12px}#driverHelpButton{right:14px;bottom:16px}}
+@media(max-width:420px){#driverTutorialModal .dt-card{padding:12px}#driverHelpButton{width:33px;height:33px;min-width:33px}}
 </style>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
@@ -1046,7 +1050,7 @@ const PADDLE_PRICE_IDS = {
     <div class="auth-success" id="resetAuthSuccess"></div>
   </div>
 </div>
-<button id="driverHelpButton" type="button" aria-label="Help / Driver tutorial" title="Help / Driver tutorial" onclick="window.openDriverTutorial(true)">❔</button>
+
 <div id="driverTutorialModal" role="dialog" aria-modal="true" aria-labelledby="driverTutorialTitle">
   <div class="dt-card">
     <h2 class="dt-title" id="driverTutorialTitle">Driver Tutorial / ٹریننگ</h2>
@@ -1079,7 +1083,10 @@ const PADDLE_PRICE_IDS = {
 <header class="topbar" id="mainTopbar">
 <button class="icon-btn topbar-left" id="topbarLeftBtn" onclick="toggleMenu()">☰</button>
 <div class="brand" id="topbarBrand">Driver's</div>
-<button class="icon-btn bell" id="topbarBell" onclick="showPage('membershipPage')">💎</button>
+<div class="topbar-right-actions">
+<button id="driverHelpButton" type="button" aria-label="Open driver guide" title="Driver Guide" onclick="window.openDriverTutorial(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21z"/><path d="M4 5.5v15.2M8 7h8M8 11h6"/><path d="M4 19a2.5 2.5 0 0 1 2.5-2.5H20"/></svg></button>
+<button class="icon-btn bell" id="topbarBell" onclick="showPage('membershipPage')" aria-label="Membership">💎</button>
+</div>
 </header>
 
 <main>
@@ -4938,7 +4945,7 @@ async function markDriverTutorialCompleted(){
 }
 async function initializeDriverTutorial(user,data){
   driverTutorialUserUid=user.uid;
-  const help=document.getElementById("driverHelpButton");if(help)help.style.display="block";
+  const help=document.getElementById("driverHelpButton");if(help)help.style.display="flex";
   driverTutorialCompleted=String(data?.tutorialStatus||"").toLowerCase()==="completed";
   if(!driverTutorialCompleted){
     try{const latest=await getDoc(doc(db,"drivers",user.uid));const latestData=latest.exists()?latest.data():{};driverTutorialCompleted=String(latestData.tutorialStatus||"").toLowerCase()==="completed";}
