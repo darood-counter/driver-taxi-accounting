@@ -3237,8 +3237,13 @@ function historyEscape(value){
 }
 
 window.clearHistoryFilters=()=>{
-  const from=document.getElementById("historyFromDate"),to=document.getElementById("historyToDate"),search=document.getElementById("historySearch");
-  if(from)from.value=""; if(to)to.value=""; if(search)search.value="";
+  const from=document.getElementById("historyFromDate");
+  const to=document.getElementById("historyToDate");
+  const search=document.getElementById("historySearch");
+  if(from)from.value="";
+  if(to)to.value="";
+  if(search)search.value="";
+  // Reset means clear search filters only; it must never delete saved invoices.
   renderHistory();
 };
 
@@ -3246,26 +3251,30 @@ function getHistoryFilteredInvoices(){
   const from=document.getElementById("historyFromDate")?.value||"";
   const to=document.getElementById("historyToDate")?.value||"";
   const q=(document.getElementById("historySearch")?.value||"").trim().toLowerCase();
-  let rows=[...invoices];
-  if(from)rows=rows.filter(x=>String(x.date||"")>=from);
-  if(to)rows=rows.filter(x=>String(x.date||"")<=to);
+  let rows=Array.isArray(invoices)?[...invoices]:[];
+
+  // Always compare canonical local YYYY-MM-DD dates. Comparing raw values can
+  // silently hide records when a saved date is a Firestore Timestamp or legacy format.
+  if(from)rows=rows.filter(x=>{const d=invoiceDateKey(x);return d&&d>=from;});
+  if(to)rows=rows.filter(x=>{const d=invoiceDateKey(x);return d&&d<=to;});
+
   if(q){
-    const normalizedQuery=q.replace(/[\\s-]/g,"");
+    const normalize=value=>String(value??"").toLowerCase().replace(/[\s-]/g,"");
+    const normalizedQuery=normalize(q);
     rows=rows.filter(x=>{
       const invoiceNo=String(x.invoiceNumber||"").toLowerCase();
-      const date=String(x.date||"").slice(0,10);
+      const date=invoiceDateKey(x)||String(x.date||"").slice(0,10);
       let displayDate="";
-      const m=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(date);
+      const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
       if(m)displayDate=`${m[3]}/${m[2]}/${m[1]}`;
       const id=String(x.id??"").toLowerCase();
-      const hay=[invoiceNo,date,displayDate,id].join(" ").toLowerCase();
-      const normalizedInvoiceNo=invoiceNo.replace(/[\\s-]/g,"");
-      return hay.includes(q) ||
-        (normalizedQuery && normalizedInvoiceNo.includes(normalizedQuery));
+      const searchable=[invoiceNo,date,displayDate,id];
+      return searchable.some(value=>String(value).toLowerCase().includes(q)) ||
+        searchable.some(value=>normalize(value).includes(normalizedQuery));
     });
   }
   return rows.sort((a,b)=>{
-    const dc=String(b.date||"").localeCompare(String(a.date||""));
+    const dc=invoiceDateKey(b).localeCompare(invoiceDateKey(a));
     if(dc!==0)return dc;
     return recordUpdatedTime(b)-recordUpdatedTime(a);
   });
