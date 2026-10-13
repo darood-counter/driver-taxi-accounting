@@ -939,8 +939,15 @@ input:focus{border-color:#ed166a}
 
 <style>
 /* Driver training tutorial */
-#driverHelpButton{display:none;align-items:center;justify-content:center;width:36px;height:36px;min-width:36px;padding:0;border:1px solid #e2c16d;border-radius:11px;background:linear-gradient(145deg,#fffdf5,#f6e8bd);color:#17452f;box-shadow:0 2px 7px #0002;cursor:pointer;line-height:1}
-#driverHelpButton svg{width:21px;height:21px;display:block}
+#driverHelpButton{display:none;align-items:center;justify-content:center;width:38px;height:38px;min-width:38px;padding:0;border:1px solid rgba(220,184,91,.8);border-radius:12px;background:linear-gradient(145deg,#173f32,#0b281f);color:#f4d58a;box-shadow:0 3px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.12);cursor:pointer;line-height:1;position:relative;transition:transform .16s ease,box-shadow .16s ease}
+#driverHelpButton:before{content:"";position:absolute;inset:3px;border:1px solid rgba(244,213,138,.24);border-radius:9px;pointer-events:none}
+#driverHelpButton:active{transform:scale(.95)}
+#driverHelpButton svg{width:23px;height:23px;display:block;position:relative;z-index:1}
+.dt-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc}
+.dt-status-label{font-size:12px;font-weight:800;color:#344054;letter-spacing:.2px}
+.dt-status-pill{font-size:11px;line-height:1;padding:7px 11px;border-radius:999px;letter-spacing:.25px}
+.dt-status-pill.pending{background:#fff0c2;color:#805b00;border:1px solid #f3d36b}
+.dt-status-pill.complete{background:#d9f8e5;color:#126438;border:1px solid #9fe2b9}
 .topbar-right-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .topbar-right-actions .bell{padding:0}
 #mainTopbar.profile-mode .topbar-right-actions{display:none}
@@ -1068,7 +1075,8 @@ const PADDLE_PRICE_IDS = {
         <button type="button" id="driverTutorialFullscreen" aria-label="Full screen" onclick="window.toggleDriverTutorialFullscreen()">⛶</button>
       </div>
     </div>
-    <div style="font-size:12px;color:#667085;margin-top:8px;text-align:center" id="driverTutorialStatusText">ویڈیو مکمل دیکھنے پر اس کا اسٹیٹس محفوظ ہو جائے گا۔</div>
+    <div class="dt-status-row"><span class="dt-status-label">Training Status</span><strong id="driverTutorialStatusValue" class="dt-status-pill pending">Pending</strong></div>
+    
     <div class="dt-actions">
       <button type="button" id="driverTutorialClose" onclick="window.closeDriverTutorial()">Close / بند کریں</button>
       <button type="button" id="driverTutorialReplay" onclick="window.replayDriverTutorial()">Restart Video</button>
@@ -1084,7 +1092,7 @@ const PADDLE_PRICE_IDS = {
 <button class="icon-btn topbar-left" id="topbarLeftBtn" onclick="toggleMenu()">☰</button>
 <div class="brand" id="topbarBrand">Driver's</div>
 <div class="topbar-right-actions">
-<button id="driverHelpButton" type="button" aria-label="Open driver guide" title="Driver Guide" onclick="window.openDriverTutorial(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21z"/><path d="M4 5.5v15.2M8 7h8M8 11h6"/><path d="M4 19a2.5 2.5 0 0 1 2.5-2.5H20"/></svg></button>
+<button id="driverHelpButton" type="button" aria-label="Open driver training" title="Driver Training" onclick="window.openDriverTutorial(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><path d="M9 3.5V2.8h6v.7M8.5 8h7M8.5 11h3.2"/><path d="m10 15 2-1.2 2 1.2v-3h-4z"/><circle cx="17.2" cy="17.2" r="3.2" fill="#173f32" stroke="currentColor"/><path d="m15.8 17.2 1 1 1.8-2"/></svg></button>
 <button class="icon-btn bell" id="topbarBell" onclick="showPage('membershipPage')" aria-label="Membership">💎</button>
 </div>
 </header>
@@ -4925,7 +4933,8 @@ window.openDriverTutorial=async function(manual=false){
   if(!currentUser)return;
   driverTutorialActive=true;
   const modal=document.getElementById("driverTutorialModal");if(modal)modal.style.display="flex";
-  const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent=driverTutorialCompleted?"آپ یہ ٹریننگ دوبارہ دیکھ رہے ہیں۔":"ویڈیو مکمل دیکھنے پر اس کا اسٹیٹس ڈیٹابیس میں محفوظ ہو جائے گا۔";
+  const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent="ویڈیو مکمل دیکھنے پر اسٹیٹس خودکار طور پر اپ ڈیٹ ہو جائے گا۔";
+  const statusValue=document.getElementById("driverTutorialStatusValue");if(statusValue){statusValue.textContent=driverTutorialCompleted?"Complete":"Pending";statusValue.className="dt-status-pill "+(driverTutorialCompleted?"complete":"pending");}
   await window.selectDriverTutorialLanguage(driverTutorialLanguage||"ur");
 };
 window.closeDriverTutorial=function(){
@@ -4940,16 +4949,19 @@ async function markDriverTutorialCompleted(){
     await setDoc(doc(db,"drivers",currentUser.uid),{tutorialStatus:"completed",tutorialCompletedAt:serverTimestamp(),tutorialCompletedVideo:driverTutorialLanguage},{merge:true});
     driverTutorialCompleted=true;
     if(driverData)driverData.tutorialStatus="completed";
-    const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent="Completed ✓ — آپ کی ٹریننگ مکمل محفوظ ہو گئی ہے۔";
+    const statusValue=document.getElementById("driverTutorialStatusValue");if(statusValue){statusValue.textContent="Complete";statusValue.className="dt-status-pill complete";}
+    const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent="ٹریننگ مکمل ہو گئی ہے اور اسٹیٹس محفوظ ہو گیا ہے۔";
   }catch(error){console.error("Could not save tutorial completion:",error);const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent="اسٹیٹس محفوظ نہیں ہو سکا۔ انٹرنیٹ چیک کرکے ویڈیو دوبارہ مکمل کریں۔";}
 }
 async function initializeDriverTutorial(user,data){
   driverTutorialUserUid=user.uid;
   const help=document.getElementById("driverHelpButton");if(help)help.style.display="flex";
   driverTutorialCompleted=String(data?.tutorialStatus||"").toLowerCase()==="completed";
+  const statusValue=document.getElementById("driverTutorialStatusValue");if(statusValue){statusValue.textContent=driverTutorialCompleted?"Complete":"Pending";statusValue.className="dt-status-pill "+(driverTutorialCompleted?"complete":"pending");}
   if(!driverTutorialCompleted){
     try{const latest=await getDoc(doc(db,"drivers",user.uid));const latestData=latest.exists()?latest.data():{};driverTutorialCompleted=String(latestData.tutorialStatus||"").toLowerCase()==="completed";}
     catch(error){console.error("Could not check tutorial status:",error);}
+    const refreshedStatus=document.getElementById("driverTutorialStatusValue");if(refreshedStatus){refreshedStatus.textContent=driverTutorialCompleted?"Complete":"Pending";refreshedStatus.className="dt-status-pill "+(driverTutorialCompleted?"complete":"pending");}
   }
   if(!driverTutorialCompleted){setTimeout(()=>{if(currentUser&&currentUser.uid===user.uid&&!driverTutorialCompleted)window.openDriverTutorial(false)},500);}
 }
