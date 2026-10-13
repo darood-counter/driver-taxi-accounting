@@ -1251,8 +1251,8 @@ const PADDLE_PRICE_IDS = {
 <div class="history-filter-card">
   <div class="history-filter-title">🔎 Find invoices</div>
   <div class="history-filter-grid">
-    <div><label for="historyFromDate">From Date</label><input type="date" id="historyFromDate" onchange="renderHistory()"></div>
-    <div><label for="historyToDate">To Date</label><input type="date" id="historyToDate" onchange="renderHistory()"></div>
+    <div><label for="historyFromDate">From Date</label><input type="date" id="historyFromDate" oninput="renderHistory()" onchange="renderHistory()"></div>
+    <div><label for="historyToDate">To Date</label><input type="date" id="historyToDate" oninput="renderHistory()" onchange="renderHistory()"></div>
   </div>
   <div class="history-search-row">
     <input type="search" id="historySearch" placeholder="Search invoice no. or date..." oninput="renderHistory()">
@@ -3243,34 +3243,37 @@ window.clearHistoryFilters=()=>{
   if(from)from.value="";
   if(to)to.value="";
   if(search)search.value="";
-  // Reset means clear search filters only; it must never delete saved invoices.
+  // Reset is a filter reset only: preserve every invoice and show all loaded rows.
   renderHistory();
 };
 
 function getHistoryFilteredInvoices(){
   const from=document.getElementById("historyFromDate")?.value||"";
   const to=document.getElementById("historyToDate")?.value||"";
-  const q=(document.getElementById("historySearch")?.value||"").trim().toLowerCase();
+  const q=(document.getElementById("historySearch")?.value||"").trim();
   let rows=Array.isArray(invoices)?[...invoices]:[];
 
-  // Always compare canonical local YYYY-MM-DD dates. Comparing raw values can
-  // silently hide records when a saved date is a Firestore Timestamp or legacy format.
-  if(from)rows=rows.filter(x=>{const d=invoiceDateKey(x);return d&&d>=from;});
-  if(to)rows=rows.filter(x=>{const d=invoiceDateKey(x);return d&&d<=to;});
+  // Always compare date-only values in YYYY-MM-DD format; never compare
+  // locale-formatted strings such as DD/MM/YYYY directly.
+  if(from) rows=rows.filter(x=>{const d=invoiceDateKey(x);return d!==""&&d>=from;});
+  if(to) rows=rows.filter(x=>{const d=invoiceDateKey(x);return d!==""&&d<=to;});
 
   if(q){
-    const normalize=value=>String(value??"").toLowerCase().replace(/[\s-]/g,"");
-    const normalizedQuery=normalize(q);
+    const normalize=value=>String(value??"").toLowerCase().replace(/[^a-z0-9]/g,"");
+    const nq=normalize(q);
+    const qDateParts=q.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+    const normalizedDate=qDateParts
+      ? `${qDateParts[3]}-${String(qDateParts[2]).padStart(2,"0")}-${String(qDateParts[1]).padStart(2,"0")}`
+      : q;
     rows=rows.filter(x=>{
-      const invoiceNo=String(x.invoiceNumber||"").toLowerCase();
-      const date=invoiceDateKey(x)||String(x.date||"").slice(0,10);
-      let displayDate="";
-      const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-      if(m)displayDate=`${m[3]}/${m[2]}/${m[1]}`;
-      const id=String(x.id??"").toLowerCase();
-      const searchable=[invoiceNo,date,displayDate,id];
-      return searchable.some(value=>String(value).toLowerCase().includes(q)) ||
-        searchable.some(value=>normalize(value).includes(normalizedQuery));
+      const date=invoiceDateKey(x);
+      const invoiceNo=x.invoiceNumber??x.invoiceNo??x.invoice_no??x.invoiceID??x.invoiceId??x.number??"";
+      const serial=x.invoiceSerial??x.serialNumber??x.serial??"";
+      const values=[invoiceNo,serial,date,date?date.split("-").reverse().join("/"):"",x.date,x.invoiceDate,x.invoice_date,x.createdDate,x.id];
+      return values.some(value=>{
+        const raw=String(value??"").trim().toLowerCase();
+        return raw.includes(q.toLowerCase()) || normalize(value).includes(nq) || (normalizedDate!==q && date===normalizedDate);
+      });
     });
   }
   return rows.sort((a,b)=>{
@@ -4285,13 +4288,26 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 function invoiceDateKey(invoice){
-  const raw=invoice?.date;
-  if(!raw)return "";
+  // Accept the current ISO date, legacy DD/MM/YYYY or DD-MM-YYYY strings,
+  // Firestore Timestamp values, and older alternate date field names.
+  const raw=invoice?.date ?? invoice?.invoiceDate ?? invoice?.invoice_date ?? invoice?.createdDate;
+  if(raw===undefined||raw===null||raw==="")return "";
   if(typeof raw==="string"){
-    const m=raw.match(/^(\d{4}-\d{2}-\d{2})/);
-    if(m)return m[1];
+    const value=raw.trim();
+    const iso=value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(iso)return `${iso[1]}-${String(iso[2]).padStart(2,"0")}-${String(iso[3]).padStart(2,"0")}`;
+    const dmy=value.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+    if(dmy){
+      const day=Number(dmy[1]),month=Number(dmy[2]),year=Number(dmy[3]);
+      const check=new Date(year,month-1,day);
+      if(check.getFullYear()===year&&check.getMonth()===month-1&&check.getDate()===day)
+        return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    }
+    const parsed=new Date(value);
+    return Number.isNaN(parsed.getTime())?"":dateKeyLocal(parsed);
   }
   if(raw&&typeof raw.toDate==="function"){try{return dateKeyLocal(raw.toDate());}catch(e){}}
+  if(typeof raw==="number"){try{return dateKeyLocal(new Date(raw));}catch(e){return "";}}
   try{return dateKeyLocal(raw);}catch(e){return "";}
 }
 
