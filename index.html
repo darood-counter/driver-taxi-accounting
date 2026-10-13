@@ -3052,7 +3052,7 @@ finally{
 };
 
 function clearInvoice(){
-document.getElementById("invDate").value=new Date().toISOString().slice(0,10);
+document.getElementById("invDate").value=dateKeyLocal(new Date());
 ids.forEach(id=>document.getElementById(id).value="");
 updateInvoiceRateCard();
 updatePreview();
@@ -3250,9 +3250,18 @@ function getHistoryFilteredInvoices(){
   if(from)rows=rows.filter(x=>String(x.date||"")>=from);
   if(to)rows=rows.filter(x=>String(x.date||"")<=to);
   if(q){
+    const normalizedQuery=q.replace(/[\\s-]/g,"");
     rows=rows.filter(x=>{
-      const hay=[x.invoiceNumber,x.date,x.id].map(v=>String(v??"").toLowerCase()).join(" ");
-      return hay.includes(q);
+      const invoiceNo=String(x.invoiceNumber||"").toLowerCase();
+      const date=String(x.date||"").slice(0,10);
+      let displayDate="";
+      const m=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(date);
+      if(m)displayDate=`${m[3]}/${m[2]}/${m[1]}`;
+      const id=String(x.id??"").toLowerCase();
+      const hay=[invoiceNo,date,displayDate,id].join(" ").toLowerCase();
+      const normalizedInvoiceNo=invoiceNo.replace(/[\\s-]/g,"");
+      return hay.includes(q) ||
+        (normalizedQuery && normalizedInvoiceNo.includes(normalizedQuery));
     });
   }
   return rows.sort((a,b)=>{
@@ -3718,7 +3727,7 @@ function initChargeSelectors(){
 
   updateChargeDatePreviews();
 }
-function resetChargeSetup(date=""){editingChargeDate=null;document.getElementById("chargeDate").value=date||new Date().toISOString().slice(0,10);document.getElementById("chargeCycleType").value="1";["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>document.getElementById(id).value="");document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus("")}
+function resetChargeSetup(date=""){editingChargeDate=null;document.getElementById("chargeDate").value=date||dateKeyLocal(new Date());document.getElementById("chargeCycleType").value="1";["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>document.getElementById(id).value="");document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus("")}
 window.loadChargeRecord=id=>{const r=savedChargeRecords.find(x=>String(x.id)===String(id));if(!r)return;editingChargeDate=r.id;document.getElementById("chargeDate").value=r.date||"";document.getElementById("chargeCycleType").value=String(r.cycleType||1);const c=r.ranges||[];document.getElementById("chargeFrom1").value=String(r.cycleType===1?(c[0]?.from||""):"");document.getElementById("chargeTo1").value=String(r.cycleType===1?(c[0]?.to||""):"");document.getElementById("chargeFrom2").value=String(r.cycleType===2?(c[0]?.from||""):"");document.getElementById("chargeTo2").value=String(r.cycleType===2?(c[0]?.to||""):"");document.getElementById("chargeFrom3").value=String(r.cycleType===2?(c[1]?.from||""):"");document.getElementById("chargeTo3").value=String(r.cycleType===2?(c[1]?.to||""):"");document.getElementById("fuelCharges").value=r.fuelCharges??"";document.getElementById("rtaCharges").value=r.rtaCharges??"";document.getElementById("bookingCharges").value=r.bookingCharges??"";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Record loaded. Make your changes and click Update Record.","success")}
 window.saveChargeSetup=async()=>{
 if(!requireActiveSubscription())return;if(!currentUser){chargeStatus("Please login first.","error");return}const date=document.getElementById("chargeDate").value,cycleType=Number(document.getElementById("chargeCycleType").value);const fuelRaw=document.getElementById("fuelCharges").value.trim(),rtaRaw=document.getElementById("rtaCharges").value.trim(),bookingRaw=document.getElementById("bookingCharges").value.trim();if(!date){chargeStatus("Please select a complete date.","error");return}const f1=Number(document.getElementById("chargeFrom1").value),t1=Number(document.getElementById("chargeTo1").value),f2=Number(document.getElementById("chargeFrom2").value),t2=Number(document.getElementById("chargeTo2").value),f3=Number(document.getElementById("chargeFrom3").value),t3=Number(document.getElementById("chargeTo3").value);const valid=v=>Number.isInteger(v)&&v>=1&&v<=31;const rangesValid=cycleType===1?(valid(f1)&&valid(t1)):(valid(f2)&&valid(t2)&&valid(f3)&&valid(t3));if(!rangesValid){chargeStatus("Kindly please select all Day numbers for the selected range(s).","error");return}if(fuelRaw===""||rtaRaw===""||bookingRaw===""){chargeStatus("Kindly please enter all Fuel, RTA and Booking Charge numbers before saving/updating.","error");return}const fuelCharges=Number(fuelRaw),rtaCharges=Number(rtaRaw),bookingCharges=Number(bookingRaw);if(![fuelCharges,rtaCharges,bookingCharges].every(v=>Number.isFinite(v)&&v>=0)){chargeStatus("Charges must be valid AED amounts (0 or more).","error");return}const ranges=cycleType===1?[{from:f1,to:t1}]:[{from:f2,to:t2},{from:f3,to:t3}];const now=new Date().toISOString();const record={date,cycleType,ranges,fuelCharges,rtaCharges,bookingCharges,updatedAt:now};try{const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{},oldSetups={...(existing.chargeSetupsByDate||{})};let recordId=editingChargeDate;if(recordId){if(!oldSetups[recordId]){recordId=null}else{oldSetups[recordId]={...record,id:recordId}}}if(!recordId){recordId=`charge_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;oldSetups[recordId]={...record,id:recordId}}await setDoc(ref,{chargeSetupsByDate:oldSetups},{merge:true});driverData={...driverData,chargeSetupsByDate:oldSetups};const saved={...record,id:recordId};const i=savedChargeRecords.findIndex(x=>String(x.id)===String(recordId));if(i>=0)savedChargeRecords[i]=saved;else savedChargeRecords.push(saved);editingChargeDate=null;const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus(i>=0?"Charge setup updated successfully.":"New charge record saved successfully.","success");renderSavedCharges();resetChargeSetup(date);
@@ -3791,14 +3800,14 @@ function renderSavedCharges(){
     </table>
   </div>`;
 }
-initChargeSelectors();document.getElementById("chargeCycleType")?.addEventListener("change",setChargeCycleUI);resetChargeSetup(new Date().toISOString().slice(0,10));setChargeCycleUI();
+initChargeSelectors();document.getElementById("chargeCycleType")?.addEventListener("change",setChargeCycleUI);resetChargeSetup(dateKeyLocal(new Date()));setChargeCycleUI();
 
 const TARGET_PERCENTAGES=[5,10,15,20,25,30,35,37.5,40,42.5,45];
 const DEFAULT_TARGET_AMOUNTS=TARGET_PERCENTAGES.map(()=>"");
 const TARGET_MAX_AMOUNT=3000;
 
 function targetDateValue(){
-  return document.getElementById("targetDate")?.value || new Date().toISOString().slice(0,10);
+  return document.getElementById("targetDate")?.value || dateKeyLocal(new Date());
 }
 
 function money2(v){return (Number(v)||0).toFixed(2)}
@@ -3869,7 +3878,7 @@ function setTargetStatus(message,type=""){
 window.resetTargetTable=()=>{
   editingTargetDate=null;
   const d=document.getElementById("targetDate");
-  if(d)d.value=new Date().toISOString().slice(0,10);
+  if(d)d.value=dateKeyLocal(new Date());
   const btn=document.getElementById("saveTargetTableBtn");
   if(btn)btn.textContent="Save / Update";
   setTargetStatus("");
@@ -3945,7 +3954,7 @@ if(!requireActiveSubscription())return;
     editingTargetDate=null;
     document.getElementById("saveTargetTableBtn").textContent="Save Record";
     buildTargetRows();
-    document.getElementById("targetDate").value=new Date().toISOString().slice(0,10);
+    document.getElementById("targetDate").value=dateKeyLocal(new Date());
     setTargetStatus("Target record saved successfully. The form is ready for a new record.","success");
     showTargetToast("Record saved successfully ✓","success");
     renderSavedTargets();
@@ -4235,6 +4244,36 @@ function dateKeyLocal(date){
   // which made cycle/chart dates appear one day early.
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
+
+// Keep blank/new-entry date fields in sync with the device's local calendar.
+// In Dubai, UTC-based toISOString() can still report yesterday just after 12 AM.
+let lastObservedLocalDate=dateKeyLocal(new Date());
+function refreshLocalDefaultDates(){
+  const today=dateKeyLocal(new Date());
+  if(!today)return;
+  if(today!==lastObservedLocalDate){
+    const previous=lastObservedLocalDate;
+    const invoiceDate=document.getElementById("invDate");
+    if(invoiceDate && !editingId && invoiceDate.value===previous){
+      invoiceDate.value=today;
+      updateInvoiceRateCard();
+      updatePreview();
+    }
+    const chargeDate=document.getElementById("chargeDate");
+    if(chargeDate && !editingChargeDate && chargeDate.value===previous){
+      chargeDate.value=today;
+      updateChargeDatePreviews();
+    }
+    const targetDate=document.getElementById("targetDate");
+    if(targetDate && targetDate.value===previous) targetDate.value=today;
+    lastObservedLocalDate=today;
+  }
+}
+setInterval(refreshLocalDefaultDates,30000);
+window.addEventListener("focus",refreshLocalDefaultDates);
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden)refreshLocalDefaultDates();
+});
 
 function invoiceDateKey(invoice){
   const raw=invoice?.date;
