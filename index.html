@@ -4451,43 +4451,59 @@ function clearDashboardDateSelection(){
   updateDashboard();
 }
 
+function dubaiDateKey(date=new Date()){
+  const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dubai",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(date);
+  const part=name=>parts.find(p=>p.type===name)?.value||"";
+  return part("year")+"-"+part("month")+"-"+part("day");
+}
+
 function getDashboardDayStats(cycle){
   if(!cycle)return {totalDays:0,workDays:0,leaveDays:0,remainingDays:0,elapsedDays:0};
   const startKey=dateKeyLocal(cycle.activeRangeStart||cycle.start);
   const endKey=dateKeyLocal(cycle.activeRangeEnd||cycle.end);
   if(!startKey||!endKey||startKey>endKey)return {totalDays:0,workDays:0,leaveDays:0,remainingDays:0,elapsedDays:0};
 
-  // Days Work is based on calendar days elapsed in the active range, not on
-  // whether an invoice exists. A leave day is removed from Days Work as well.
-  // My Summary work-day counters are based on the active Cycle/Range,
-  // not the individual day selected on the dashboard chart.
-  const asOfKey=dateKeyLocal(new Date());
-  const elapsedEndKey=asOfKey<startKey?null:(asOfKey>endKey?endKey:asOfKey);
+  // The cycle keeps its configured calendar dates; the current day is always Dubai time.
+  const todayKey=dubaiDateKey(new Date());
   const totalDays=leaveDaysBetween(startKey,endKey);
-  if(!elapsedEndKey)return {totalDays,workDays:0,leaveDays:0,remainingDays:totalDays,elapsedDays:0};
-
-  const elapsedDays=leaveDaysBetween(startKey,elapsedEndKey);
-  const leaveDates=new Set();
+  const elapsedEndKey=todayKey<startKey?null:(todayKey>endKey?endKey:todayKey);
+  const elapsedDays=elapsedEndKey?leaveDaysBetween(startKey,elapsedEndKey):0;
+  const elapsedLeaveDates=new Set();
+  const futureLeaveDates=new Set();
   (Array.isArray(leaveRecords)?leaveRecords:[]).forEach(record=>{
     leaveRecordDates(record).forEach(k=>{
-      if(k&&k>=startKey&&k<=elapsedEndKey)leaveDates.add(k);
+      if(!k||k<startKey||k>endKey)return;
+      if(k<=todayKey)elapsedLeaveDates.add(k);
+      else futureLeaveDates.add(k);
     });
   });
 
-  const elapsedLeaveDays=leaveDates.size;
-  const allLeaveDates=new Set();
-  (Array.isArray(leaveRecords)?leaveRecords:[]).forEach(record=>{
-    leaveRecordDates(record).forEach(k=>{
-      if(k&&k>=startKey&&k<=endKey)allLeaveDates.add(k);
-    });
-  });
-  // Leave only reduces the counters on/after the actual leave date.
-  // A future leave must not reduce Days Remaining before that date arrives.
-  const leaveDays=elapsedLeaveDays;
+  // Work Days count elapsed calendar days minus unique leave dates already reached.
+  const leaveDays=[...elapsedLeaveDates].filter(k=>k<=todayKey&&k>=startKey&&k<=endKey).length;
   const workDays=Math.max(0,elapsedDays-leaveDays);
-  const remainingDays=Math.max(0,totalDays-elapsedDays);
+  // Remaining Days exclude today and subtract only unique leave dates after today.
+  const futureCalendarDays=todayKey<startKey?totalDays:(todayKey>=endKey?0:leaveDaysBetween(todayKey,endKey)-1);
+  const remainingDays=Math.max(0,futureCalendarDays-futureLeaveDates.size);
   return {totalDays,workDays,leaveDays,remainingDays,elapsedDays};
 }
+
+// Refresh the dashboard automatically when the date changes in Dubai, even if the app stays open.
+let remainingDaysLastDubaiDate=dubaiDateKey(new Date());
+setInterval(()=>{
+  const currentDubaiDate=dubaiDateKey(new Date());
+  if(currentDubaiDate!==remainingDaysLastDubaiDate){
+    remainingDaysLastDubaiDate=currentDubaiDate;
+    updateDashboard();
+  }
+},30000);
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState!=="visible")return;
+  const currentDubaiDate=dubaiDateKey(new Date());
+  if(currentDubaiDate!==remainingDaysLastDubaiDate){
+    remainingDaysLastDubaiDate=currentDubaiDate;
+    updateDashboard();
+  }
+});
 
 async function saveCycleCompletionIfNeeded(cycle,dayStats){
   if(!currentUser||!cycle||!dayStats||dayStats.remainingDays!==0)return;
