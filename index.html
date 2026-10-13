@@ -1251,8 +1251,8 @@ const PADDLE_PRICE_IDS = {
 <div class="history-filter-card">
   <div class="history-filter-title">🔎 Find invoices</div>
   <div class="history-filter-grid">
-    <div><label for="historyFromDate">From Date</label><input type="date" id="historyFromDate" oninput="renderHistory()" onchange="renderHistory()"></div>
-    <div><label for="historyToDate">To Date</label><input type="date" id="historyToDate" oninput="renderHistory()" onchange="renderHistory()"></div>
+    <div><label for="historyFromDate">From Date</label><input type="date" id="historyFromDate" onchange="renderHistory()"></div>
+    <div><label for="historyToDate">To Date</label><input type="date" id="historyToDate" onchange="renderHistory()"></div>
   </div>
   <div class="history-search-row">
     <input type="search" id="historySearch" placeholder="Search invoice no. or date..." oninput="renderHistory()">
@@ -3052,7 +3052,7 @@ finally{
 };
 
 function clearInvoice(){
-document.getElementById("invDate").value=dateKeyLocal(new Date());
+document.getElementById("invDate").value=new Date().toISOString().slice(0,10);
 ids.forEach(id=>document.getElementById(id).value="");
 updateInvoiceRateCard();
 updatePreview();
@@ -3237,42 +3237,32 @@ function historyEscape(value){
 }
 
 window.clearHistoryFilters=()=>{
-  const from=document.getElementById("historyFromDate");
-  const to=document.getElementById("historyToDate");
-  const search=document.getElementById("historySearch");
-  if(from)from.value="";
-  if(to)to.value="";
-  if(search)search.value="";
-  // Reset is a filter reset only: preserve every invoice and show all loaded rows.
+  const from=document.getElementById("historyFromDate"),to=document.getElementById("historyToDate"),search=document.getElementById("historySearch");
+  if(from)from.value=""; if(to)to.value=""; if(search)search.value="";
   renderHistory();
 };
 
 function getHistoryFilteredInvoices(){
   const from=document.getElementById("historyFromDate")?.value||"";
   const to=document.getElementById("historyToDate")?.value||"";
-  const q=(document.getElementById("historySearch")?.value||"").trim();
-  let rows=Array.isArray(invoices)?[...invoices]:[];
+  const q=(document.getElementById("historySearch")?.value||"").trim().toLowerCase();
+  const normalizeSearch=value=>String(value??"").normalize("NFKC").toLowerCase().replace(/[^a-z0-9]/g,"");
+  let rows=(Array.isArray(invoices)?invoices:[]).filter(x=>x&&!x.error);
 
-  // Always compare date-only values in YYYY-MM-DD format; never compare
-  // locale-formatted strings such as DD/MM/YYYY directly.
-  if(from) rows=rows.filter(x=>{const d=invoiceDateKey(x);return d!==""&&d>=from;});
-  if(to) rows=rows.filter(x=>{const d=invoiceDateKey(x);return d!==""&&d<=to;});
+  // Use the same date-key helper used by reports so saved strings and Firestore
+  // Timestamp dates are compared in the same YYYY-MM-DD format.
+  if(from)rows=rows.filter(x=>{const key=invoiceDateKey(x);return key!==""&&key>=from;});
+  if(to)rows=rows.filter(x=>{const key=invoiceDateKey(x);return key!==""&&key<=to;});
 
   if(q){
-    const normalize=value=>String(value??"").toLowerCase().replace(/[^a-z0-9]/g,"");
-    const nq=normalize(q);
-    const qDateParts=q.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
-    const normalizedDate=qDateParts
-      ? `${qDateParts[3]}-${String(qDateParts[2]).padStart(2,"0")}-${String(qDateParts[1]).padStart(2,"0")}`
-      : q;
+    // Invoice-number search is an exact match: searching 100 returns invoice
+    // number 100 only, not 1001, dates containing 100, or document IDs.
+    const normalizedQuery=normalizeSearch(q);
     rows=rows.filter(x=>{
-      const date=invoiceDateKey(x);
-      const invoiceNo=x.invoiceNumber??x.invoiceNo??x.invoice_no??x.invoiceID??x.invoiceId??x.number??"";
-      const serial=x.invoiceSerial??x.serialNumber??x.serial??"";
-      const values=[invoiceNo,serial,date,date?date.split("-").reverse().join("/"):"",x.date,x.invoiceDate,x.invoice_date,x.createdDate,x.id];
-      return values.some(value=>{
-        const raw=String(value??"").trim().toLowerCase();
-        return raw.includes(q.toLowerCase()) || normalize(value).includes(nq) || (normalizedDate!==q && date===normalizedDate);
+      const candidates=[x.invoiceNumber,x.invoiceNo,x.invoice_number];
+      return candidates.some(value=>{
+        if(value===undefined||value===null||String(value).trim()==="")return false;
+        return normalizeSearch(value)===normalizedQuery;
       });
     });
   }
@@ -3599,6 +3589,10 @@ function renderHistory(){
   box.innerHTML=`<div class="history-results-title">Invoice Records <span class="small">(${rows.length})</span></div><div class="history-range-note">${rangeText}${search?` · Search: “${historyEscape(search)}”`:""}</div><div class="history-table-card"><div class="history-table-wrap"><table class="history-table"><thead><tr><th>No.</th><th>Date</th><th>Invoice No.</th><th>Credit Card</th><th>App</th><th>Cash</th><th>Tips</th><th>Tollways</th><th>Shift Discount</th><th>Shift Trips</th><th>Bookings</th><th>Kilometers</th><th>Careem Discount</th><th>Paid in Careem</th><th>Hala Juniors</th><th>Hala Peak</th><th>Peak</th><th>Others</th><th>Total</th><th>Deductions</th><th>Net</th><th>Action</th></tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
 }
 
+// Inputs use inline HTML handlers, while this code runs as an ES module.
+// Explicitly expose the renderer so typing/changing dates triggers filtering.
+window.renderHistory=renderHistory;
+
 const CHARGE_DAYS=Array.from({length:31},(_,i)=>i+1);
 function chargeDayOptions(selected=""){const placeholder=`<option value="" ${selected===""||selected==null?"selected":""} disabled>Select Day</option>`;return placeholder+CHARGE_DAYS.map(day=>`<option value="${day}" ${String(day)===String(selected)?"selected":""}>${day}</option>`).join("")}
 function chargeStatus(message,type=""){const el=document.getElementById("chargeSetupStatus");if(!el)return;el.className="status"+(type?" "+type:"");el.textContent=message}
@@ -3739,7 +3733,7 @@ function initChargeSelectors(){
 
   updateChargeDatePreviews();
 }
-function resetChargeSetup(date=""){editingChargeDate=null;document.getElementById("chargeDate").value=date||dateKeyLocal(new Date());document.getElementById("chargeCycleType").value="1";["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>document.getElementById(id).value="");document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus("")}
+function resetChargeSetup(date=""){editingChargeDate=null;document.getElementById("chargeDate").value=date||new Date().toISOString().slice(0,10);document.getElementById("chargeCycleType").value="1";["chargeFrom1","chargeTo1","chargeFrom2","chargeTo2","chargeFrom3","chargeTo3"].forEach(id=>document.getElementById(id).value="");document.getElementById("fuelCharges").value="";document.getElementById("rtaCharges").value="";document.getElementById("bookingCharges").value="";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus("")}
 window.loadChargeRecord=id=>{const r=savedChargeRecords.find(x=>String(x.id)===String(id));if(!r)return;editingChargeDate=r.id;document.getElementById("chargeDate").value=r.date||"";document.getElementById("chargeCycleType").value=String(r.cycleType||1);const c=r.ranges||[];document.getElementById("chargeFrom1").value=String(r.cycleType===1?(c[0]?.from||""):"");document.getElementById("chargeTo1").value=String(r.cycleType===1?(c[0]?.to||""):"");document.getElementById("chargeFrom2").value=String(r.cycleType===2?(c[0]?.from||""):"");document.getElementById("chargeTo2").value=String(r.cycleType===2?(c[0]?.to||""):"");document.getElementById("chargeFrom3").value=String(r.cycleType===2?(c[1]?.from||""):"");document.getElementById("chargeTo3").value=String(r.cycleType===2?(c[1]?.to||""):"");document.getElementById("fuelCharges").value=r.fuelCharges??"";document.getElementById("rtaCharges").value=r.rtaCharges??"";document.getElementById("bookingCharges").value=r.bookingCharges??"";setChargeCycleUI();const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Update Record";chargeStatus("Record loaded. Make your changes and click Update Record.","success")}
 window.saveChargeSetup=async()=>{
 if(!requireActiveSubscription())return;if(!currentUser){chargeStatus("Please login first.","error");return}const date=document.getElementById("chargeDate").value,cycleType=Number(document.getElementById("chargeCycleType").value);const fuelRaw=document.getElementById("fuelCharges").value.trim(),rtaRaw=document.getElementById("rtaCharges").value.trim(),bookingRaw=document.getElementById("bookingCharges").value.trim();if(!date){chargeStatus("Please select a complete date.","error");return}const f1=Number(document.getElementById("chargeFrom1").value),t1=Number(document.getElementById("chargeTo1").value),f2=Number(document.getElementById("chargeFrom2").value),t2=Number(document.getElementById("chargeTo2").value),f3=Number(document.getElementById("chargeFrom3").value),t3=Number(document.getElementById("chargeTo3").value);const valid=v=>Number.isInteger(v)&&v>=1&&v<=31;const rangesValid=cycleType===1?(valid(f1)&&valid(t1)):(valid(f2)&&valid(t2)&&valid(f3)&&valid(t3));if(!rangesValid){chargeStatus("Kindly please select all Day numbers for the selected range(s).","error");return}if(fuelRaw===""||rtaRaw===""||bookingRaw===""){chargeStatus("Kindly please enter all Fuel, RTA and Booking Charge numbers before saving/updating.","error");return}const fuelCharges=Number(fuelRaw),rtaCharges=Number(rtaRaw),bookingCharges=Number(bookingRaw);if(![fuelCharges,rtaCharges,bookingCharges].every(v=>Number.isFinite(v)&&v>=0)){chargeStatus("Charges must be valid AED amounts (0 or more).","error");return}const ranges=cycleType===1?[{from:f1,to:t1}]:[{from:f2,to:t2},{from:f3,to:t3}];const now=new Date().toISOString();const record={date,cycleType,ranges,fuelCharges,rtaCharges,bookingCharges,updatedAt:now};try{const ref=doc(db,"drivers",currentUser.uid),snap=await getDoc(ref),existing=snap.exists()?snap.data():{},oldSetups={...(existing.chargeSetupsByDate||{})};let recordId=editingChargeDate;if(recordId){if(!oldSetups[recordId]){recordId=null}else{oldSetups[recordId]={...record,id:recordId}}}if(!recordId){recordId=`charge_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;oldSetups[recordId]={...record,id:recordId}}await setDoc(ref,{chargeSetupsByDate:oldSetups},{merge:true});driverData={...driverData,chargeSetupsByDate:oldSetups};const saved={...record,id:recordId};const i=savedChargeRecords.findIndex(x=>String(x.id)===String(recordId));if(i>=0)savedChargeRecords[i]=saved;else savedChargeRecords.push(saved);editingChargeDate=null;const btn=document.querySelector("#calculatorPage .primary");if(btn)btn.textContent="Save Record";chargeStatus(i>=0?"Charge setup updated successfully.":"New charge record saved successfully.","success");renderSavedCharges();resetChargeSetup(date);
@@ -3812,14 +3806,14 @@ function renderSavedCharges(){
     </table>
   </div>`;
 }
-initChargeSelectors();document.getElementById("chargeCycleType")?.addEventListener("change",setChargeCycleUI);resetChargeSetup(dateKeyLocal(new Date()));setChargeCycleUI();
+initChargeSelectors();document.getElementById("chargeCycleType")?.addEventListener("change",setChargeCycleUI);resetChargeSetup(new Date().toISOString().slice(0,10));setChargeCycleUI();
 
 const TARGET_PERCENTAGES=[5,10,15,20,25,30,35,37.5,40,42.5,45];
 const DEFAULT_TARGET_AMOUNTS=TARGET_PERCENTAGES.map(()=>"");
 const TARGET_MAX_AMOUNT=3000;
 
 function targetDateValue(){
-  return document.getElementById("targetDate")?.value || dateKeyLocal(new Date());
+  return document.getElementById("targetDate")?.value || new Date().toISOString().slice(0,10);
 }
 
 function money2(v){return (Number(v)||0).toFixed(2)}
@@ -3890,7 +3884,7 @@ function setTargetStatus(message,type=""){
 window.resetTargetTable=()=>{
   editingTargetDate=null;
   const d=document.getElementById("targetDate");
-  if(d)d.value=dateKeyLocal(new Date());
+  if(d)d.value=new Date().toISOString().slice(0,10);
   const btn=document.getElementById("saveTargetTableBtn");
   if(btn)btn.textContent="Save / Update";
   setTargetStatus("");
@@ -3966,7 +3960,7 @@ if(!requireActiveSubscription())return;
     editingTargetDate=null;
     document.getElementById("saveTargetTableBtn").textContent="Save Record";
     buildTargetRows();
-    document.getElementById("targetDate").value=dateKeyLocal(new Date());
+    document.getElementById("targetDate").value=new Date().toISOString().slice(0,10);
     setTargetStatus("Target record saved successfully. The form is ready for a new record.","success");
     showTargetToast("Record saved successfully ✓","success");
     renderSavedTargets();
@@ -4257,57 +4251,14 @@ function dateKeyLocal(date){
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
 
-// Keep blank/new-entry date fields in sync with the device's local calendar.
-// In Dubai, UTC-based toISOString() can still report yesterday just after 12 AM.
-let lastObservedLocalDate=dateKeyLocal(new Date());
-function refreshLocalDefaultDates(){
-  const today=dateKeyLocal(new Date());
-  if(!today)return;
-  if(today!==lastObservedLocalDate){
-    const previous=lastObservedLocalDate;
-    const invoiceDate=document.getElementById("invDate");
-    if(invoiceDate && !editingId && invoiceDate.value===previous){
-      invoiceDate.value=today;
-      updateInvoiceRateCard();
-      updatePreview();
-    }
-    const chargeDate=document.getElementById("chargeDate");
-    if(chargeDate && !editingChargeDate && chargeDate.value===previous){
-      chargeDate.value=today;
-      updateChargeDatePreviews();
-    }
-    const targetDate=document.getElementById("targetDate");
-    if(targetDate && targetDate.value===previous) targetDate.value=today;
-    lastObservedLocalDate=today;
-  }
-}
-setInterval(refreshLocalDefaultDates,30000);
-window.addEventListener("focus",refreshLocalDefaultDates);
-document.addEventListener("visibilitychange",()=>{
-  if(!document.hidden)refreshLocalDefaultDates();
-});
-
 function invoiceDateKey(invoice){
-  // Accept the current ISO date, legacy DD/MM/YYYY or DD-MM-YYYY strings,
-  // Firestore Timestamp values, and older alternate date field names.
-  const raw=invoice?.date ?? invoice?.invoiceDate ?? invoice?.invoice_date ?? invoice?.createdDate;
-  if(raw===undefined||raw===null||raw==="")return "";
+  const raw=invoice?.date;
+  if(!raw)return "";
   if(typeof raw==="string"){
-    const value=raw.trim();
-    const iso=value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-    if(iso)return `${iso[1]}-${String(iso[2]).padStart(2,"0")}-${String(iso[3]).padStart(2,"0")}`;
-    const dmy=value.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
-    if(dmy){
-      const day=Number(dmy[1]),month=Number(dmy[2]),year=Number(dmy[3]);
-      const check=new Date(year,month-1,day);
-      if(check.getFullYear()===year&&check.getMonth()===month-1&&check.getDate()===day)
-        return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    }
-    const parsed=new Date(value);
-    return Number.isNaN(parsed.getTime())?"":dateKeyLocal(parsed);
+    const m=raw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if(m)return m[1];
   }
   if(raw&&typeof raw.toDate==="function"){try{return dateKeyLocal(raw.toDate());}catch(e){}}
-  if(typeof raw==="number"){try{return dateKeyLocal(new Date(raw));}catch(e){return "";}}
   try{return dateKeyLocal(raw);}catch(e){return "";}
 }
 
