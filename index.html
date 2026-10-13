@@ -925,6 +925,7 @@ input:focus{border-color:#ed166a}
 }
 
 
+</style>
 <style>
 .charge-date-preview{
   display:inline-block;
@@ -934,7 +935,9 @@ input:focus{border-color:#ed166a}
   font-weight:600;
   direction:ltr;
 }
+</style>
 
+<style>
 /* Driver training tutorial */
 #driverHelpButton{position:fixed;right:max(16px,calc((100vw - 520px)/2 + 16px));bottom:22px;z-index:1200;border:0;border-radius:50%;width:54px;height:54px;background:#11143b;color:#fff;box-shadow:0 5px 18px #0003;font-size:25px;cursor:pointer;display:none}
 #driverTutorialModal{position:fixed;inset:0;z-index:5000;background:rgba(9,13,30,.78);display:none;align-items:center;justify-content:center;padding:14px}
@@ -943,14 +946,19 @@ input:focus{border-color:#ed166a}
 #driverTutorialModal .dt-languages{display:flex;gap:8px;margin-bottom:10px}
 #driverTutorialModal .dt-languages button{flex:1;border:1px solid #d6d9e4;border-radius:10px;padding:10px;background:#f5f6fa;font-weight:700;cursor:pointer}
 #driverTutorialModal .dt-languages button.active{background:#11143b;color:white;border-color:#11143b}
-#driverTutorialFrame{width:100%;aspect-ratio:16/9;background:#111;border:0;border-radius:10px;display:block}
+#driverTutorialStage{position:relative;width:100%;aspect-ratio:16/9;background:#080808;border-radius:10px;overflow:hidden;touch-action:manipulation}
+#driverTutorialFrame{position:absolute;inset:0;width:100%;height:100%;background:#111;border:0;display:block}
+#driverTutorialTapLayer{position:absolute;inset:0;z-index:2;background:transparent;cursor:pointer;touch-action:manipulation}
+#driverTutorialControls{position:absolute;left:0;right:0;bottom:0;z-index:4;padding:30px 10px 8px;background:linear-gradient(transparent,rgba(0,0,0,.85));color:#fff;display:flex;align-items:center;gap:8px;opacity:1;transition:opacity .2s}
+#driverTutorialControls button{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:7px 10px;font-weight:800;cursor:pointer;min-width:38px}
+#driverTutorialProgress{flex:1;min-width:30px;accent-color:#e7b84b;cursor:pointer}
+#driverTutorialTime{font:12px/1.2 Arial,sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
 #driverTutorialModal .dt-actions{display:flex;gap:8px;margin-top:12px}
 #driverTutorialModal .dt-actions button{flex:1;border:0;border-radius:10px;padding:12px;font-weight:800;cursor:pointer}
 #driverTutorialClose{background:#eceef4;color:#222}
 #driverTutorialReplay{background:#11143b;color:#fff}
 @media(max-width:420px){#driverTutorialModal .dt-card{padding:12px}#driverHelpButton{right:14px;bottom:16px}}
 </style>
-
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
 // Paddle Live configuration
@@ -1046,7 +1054,16 @@ const PADDLE_PRICE_IDS = {
       <button type="button" id="driverTutorialUrdu" class="active" onclick="window.selectDriverTutorialLanguage('ur')">اردو ویڈیو</button>
       <button type="button" id="driverTutorialEnglish" onclick="window.selectDriverTutorialLanguage('en')">English Video</button>
     </div>
-    <iframe id="driverTutorialFrame" title="Driver training video" src="about:blank" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    <div id="driverTutorialStage" aria-label="Driver training video player">
+      <div id="driverTutorialFrame" title="Driver training video"></div>
+      <div id="driverTutorialTapLayer" aria-label="Tap to play or pause; double tap for full screen"></div>
+      <div id="driverTutorialControls">
+        <button type="button" id="driverTutorialPlayPause" aria-label="Play or pause" onclick="window.toggleDriverTutorialPlayback()">▶</button>
+        <input id="driverTutorialProgress" type="range" min="0" max="1000" value="0" aria-label="Video progress" oninput="window.seekDriverTutorial(this.value)">
+        <span id="driverTutorialTime">0:00 / 0:00</span>
+        <button type="button" id="driverTutorialFullscreen" aria-label="Full screen" onclick="window.toggleDriverTutorialFullscreen()">⛶</button>
+      </div>
+    </div>
     <div style="font-size:12px;color:#667085;margin-top:8px;text-align:center" id="driverTutorialStatusText">ویڈیو مکمل دیکھنے پر اس کا اسٹیٹس محفوظ ہو جائے گا۔</div>
     <div class="dt-actions">
       <button type="button" id="driverTutorialClose" onclick="window.closeDriverTutorial()">Close / بند کریں</button>
@@ -4842,12 +4859,13 @@ function renderChart(cycle=getCurrentDashboardCycle()){
 // Per-account tutorial status is stored in Firestore, never localStorage.
 const DRIVER_TUTORIAL_VIDEOS={ur:"xFGi__79snw",en:"EVV4h_WpcUo"};
 let driverTutorialPlayer=null,driverTutorialLanguage="ur",driverTutorialActive=false,driverTutorialUserUid=null,driverTutorialCompleted=false;
+let driverTutorialProgressTimer=null,driverTutorialWakeLock=null,driverTutorialLastTap=0,driverTutorialSingleTapTimer=null;
 window.onYouTubeIframeAPIReady=function(){ /* iframe API is initialized when the modal is opened */ };
 function loadYouTubeApi(){
   if(window.YT&&window.YT.Player)return Promise.resolve();
   return new Promise((resolve,reject)=>{
     const existing=document.querySelector('script[data-driver-youtube-api="1"]');
-    if(existing){const started=Date.now();const poll=setInterval(()=>{if(window.YT&&window.YT.Player){clearInterval(poll);resolve()}else if(Date.now()-started>12000){clearInterval(poll);reject(new Error("YouTube player could not load"))}},200);return;}
+    if(existing){const started=Date.now();const poll=setInterval(()=>{if(window.YT&&window.YT.Player){clearInterval(poll);resolve()}else if(Date.now()-started>15000){clearInterval(poll);reject(new Error("YouTube player could not load"))}},200);return;}
     const script=document.createElement("script");script.src="https://www.youtube.com/iframe_api";script.async=true;script.dataset.driverYoutubeApi="1";
     const started=Date.now();const poll=setInterval(()=>{if(window.YT&&window.YT.Player){clearInterval(poll);resolve()}else if(Date.now()-started>15000){clearInterval(poll);reject(new Error("YouTube player could not load"))}},200);
     script.onerror=()=>{clearInterval(poll);reject(new Error("YouTube API failed to load"))};document.head.appendChild(script);
@@ -4857,23 +4875,47 @@ function setDriverTutorialLanguageButtons(){
   document.getElementById("driverTutorialUrdu")?.classList.toggle("active",driverTutorialLanguage==="ur");
   document.getElementById("driverTutorialEnglish")?.classList.toggle("active",driverTutorialLanguage==="en");
 }
-function destroyDriverTutorialPlayer(){try{driverTutorialPlayer?.destroy()}catch(e){}driverTutorialPlayer=null;}
+function acquireDriverTutorialWakeLock(){
+  try{if("wakeLock" in navigator && !driverTutorialWakeLock)navigator.wakeLock.request("screen").then(lock=>{driverTutorialWakeLock=lock;lock.addEventListener("release",()=>{driverTutorialWakeLock=null})}).catch(()=>{});}catch(e){}
+}
+function releaseDriverTutorialWakeLock(){try{driverTutorialWakeLock?.release()}catch(e){}driverTutorialWakeLock=null;}
+function driverTutorialFmtTime(seconds){seconds=Math.max(0,Math.floor(Number(seconds)||0));return Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");}
+function updateDriverTutorialControls(){
+  if(!driverTutorialPlayer||!driverTutorialActive)return;
+  try{
+    const duration=driverTutorialPlayer.getDuration()||0,current=driverTutorialPlayer.getCurrentTime()||0;
+    const progress=document.getElementById("driverTutorialProgress");if(progress)progress.value=duration?Math.round(current/duration*1000):0;
+    const time=document.getElementById("driverTutorialTime");if(time)time.textContent=driverTutorialFmtTime(current)+" / "+driverTutorialFmtTime(duration);
+    const button=document.getElementById("driverTutorialPlayPause");if(button)button.textContent=driverTutorialPlayer.getPlayerState()===YT.PlayerState.PLAYING?"Ⅱ":"▶";
+  }catch(e){}
+}
+function destroyDriverTutorialPlayer(){
+  if(driverTutorialProgressTimer){clearInterval(driverTutorialProgressTimer);driverTutorialProgressTimer=null;}
+  try{driverTutorialPlayer?.destroy()}catch(e){}driverTutorialPlayer=null;
+}
 window.selectDriverTutorialLanguage=async function(language){
   driverTutorialLanguage=language==="en"?"en":"ur";setDriverTutorialLanguageButtons();
-  const frame=document.getElementById("driverTutorialFrame");if(!frame)return;
-  destroyDriverTutorialPlayer();
+  const target=document.getElementById("driverTutorialFrame");if(!target)return;
+  destroyDriverTutorialPlayer();target.innerHTML="";
   const videoId=DRIVER_TUTORIAL_VIDEOS[driverTutorialLanguage];
-  frame.src=`https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0&playsinline=1&autoplay=1`;
   try{
     await loadYouTubeApi();
-    destroyDriverTutorialPlayer();
-    driverTutorialPlayer=new YT.Player("driverTutorialFrame",{videoId,playerVars:{rel:0,playsinline:1,autoplay:1},events:{onStateChange:async event=>{
-      if(event.data===YT.PlayerState.ENDED){await markDriverTutorialCompleted();}
-    }}});
-  }catch(error){console.warn("Tutorial player initialization:",error);}
+    if(!driverTutorialActive)return;
+    driverTutorialPlayer=new YT.Player("driverTutorialFrame",{videoId,playerVars:{controls:0,disablekb:1,rel:0,playsinline:1,autoplay:1,fs:0,modestbranding:1},events:{
+      onReady:event=>{try{event.target.playVideo();acquireDriverTutorialWakeLock();}catch(e){}if(driverTutorialProgressTimer)clearInterval(driverTutorialProgressTimer);driverTutorialProgressTimer=setInterval(updateDriverTutorialControls,400);},
+      onStateChange:async event=>{updateDriverTutorialControls();if(event.data===YT.PlayerState.PLAYING)acquireDriverTutorialWakeLock();if(event.data===YT.PlayerState.ENDED){await markDriverTutorialCompleted();releaseDriverTutorialWakeLock();}}
+    }});
+  }catch(error){console.warn("Tutorial player initialization:",error);const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent="ویڈیو لوڈ نہیں ہوئی۔ انٹرنیٹ چیک کرکے دوبارہ کوشش کریں۔";}
 };
+window.toggleDriverTutorialPlayback=function(){try{if(!driverTutorialPlayer)return;if(driverTutorialPlayer.getPlayerState()===YT.PlayerState.PLAYING)driverTutorialPlayer.pauseVideo();else{driverTutorialPlayer.playVideo();acquireDriverTutorialWakeLock();}updateDriverTutorialControls();}catch(e){}};
+window.seekDriverTutorial=function(value){try{const duration=driverTutorialPlayer?.getDuration()||0;if(duration)driverTutorialPlayer.seekTo(duration*(Number(value)/1000),true);}catch(e){}};
+window.toggleDriverTutorialFullscreen=function(){const stage=document.getElementById("driverTutorialStage");if(!stage)return;try{if(document.fullscreenElement)document.exitFullscreen?.();else if(stage.requestFullscreen)stage.requestFullscreen();else if(stage.webkitRequestFullscreen)stage.webkitRequestFullscreen();}catch(e){}};
+(function setupDriverTutorialTapLayer(){
+  const layer=document.getElementById("driverTutorialTapLayer");if(!layer)return;
+  layer.addEventListener("click",()=>{const now=Date.now();if(now-driverTutorialLastTap<320){clearTimeout(driverTutorialSingleTapTimer);driverTutorialSingleTapTimer=null;driverTutorialLastTap=0;window.toggleDriverTutorialFullscreen();return;}driverTutorialLastTap=now;driverTutorialSingleTapTimer=setTimeout(()=>{window.toggleDriverTutorialPlayback();driverTutorialSingleTapTimer=null;},260);});
+})();
 window.openDriverTutorial=async function(manual=false){
-  if(!currentUser){return;}
+  if(!currentUser)return;
   driverTutorialActive=true;
   const modal=document.getElementById("driverTutorialModal");if(modal)modal.style.display="flex";
   const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent=driverTutorialCompleted?"آپ یہ ٹریننگ دوبارہ دیکھ رہے ہیں۔":"ویڈیو مکمل دیکھنے پر اس کا اسٹیٹس ڈیٹابیس میں محفوظ ہو جائے گا۔";
@@ -4881,7 +4923,8 @@ window.openDriverTutorial=async function(manual=false){
 };
 window.closeDriverTutorial=function(){
   driverTutorialActive=false;const modal=document.getElementById("driverTutorialModal");if(modal)modal.style.display="none";
-  destroyDriverTutorialPlayer();const frame=document.getElementById("driverTutorialFrame");if(frame)frame.src="about:blank";
+  if(driverTutorialSingleTapTimer){clearTimeout(driverTutorialSingleTapTimer);driverTutorialSingleTapTimer=null;}
+  destroyDriverTutorialPlayer();releaseDriverTutorialWakeLock();const frame=document.getElementById("driverTutorialFrame");if(frame)frame.innerHTML="";
 };
 window.replayDriverTutorial=function(){window.selectDriverTutorialLanguage(driverTutorialLanguage);};
 async function markDriverTutorialCompleted(){
@@ -4889,6 +4932,7 @@ async function markDriverTutorialCompleted(){
   try{
     await setDoc(doc(db,"drivers",currentUser.uid),{tutorialStatus:"completed",tutorialCompletedAt:serverTimestamp(),tutorialCompletedVideo:driverTutorialLanguage},{merge:true});
     driverTutorialCompleted=true;
+    if(driverData)driverData.tutorialStatus="completed";
     const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent="Completed ✓ — آپ کی ٹریننگ مکمل محفوظ ہو گئی ہے۔";
   }catch(error){console.error("Could not save tutorial completion:",error);const status=document.getElementById("driverTutorialStatusText");if(status)status.textContent="اسٹیٹس محفوظ نہیں ہو سکا۔ انٹرنیٹ چیک کرکے ویڈیو دوبارہ مکمل کریں۔";}
 }
@@ -4897,7 +4941,6 @@ async function initializeDriverTutorial(user,data){
   const help=document.getElementById("driverHelpButton");if(help)help.style.display="block";
   driverTutorialCompleted=String(data?.tutorialStatus||"").toLowerCase()==="completed";
   if(!driverTutorialCompleted){
-    // Fresh read avoids showing the onboarding video if completion was saved on another device.
     try{const latest=await getDoc(doc(db,"drivers",user.uid));const latestData=latest.exists()?latest.data():{};driverTutorialCompleted=String(latestData.tutorialStatus||"").toLowerCase()==="completed";}
     catch(error){console.error("Could not check tutorial status:",error);}
   }
