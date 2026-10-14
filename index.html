@@ -3052,7 +3052,7 @@ finally{
 };
 
 function clearInvoice(){
-document.getElementById("invDate").value=new Date().toISOString().slice(0,10);
+document.getElementById("invDate").value=getLocalDateInputValue();
 ids.forEach(id=>document.getElementById(id).value="");
 updateInvoiceRateCard();
 updatePreview();
