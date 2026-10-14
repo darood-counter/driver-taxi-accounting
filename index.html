@@ -3262,7 +3262,12 @@ function getHistoryFilteredInvoices(){
       const candidates=[x.invoiceNumber,x.invoiceNo,x.invoice_number];
       return candidates.some(value=>{
         if(value===undefined||value===null||String(value).trim()==="")return false;
-        return normalizeSearch(value)===normalizedQuery;
+        const invoiceText=String(value).trim();
+        if(normalizeSearch(invoiceText)===normalizedQuery)return true;
+        // Also allow the numeric serial only: searching 10 matches INV-0010.
+        const queryDigits=normalizedQuery.match(/^\d+$/);
+        const invoiceSerial=/^INV[-\s]*0*(\d+)$/i.exec(invoiceText);
+        return !!(queryDigits&&invoiceSerial&&Number(invoiceSerial[1])===Number(queryDigits[0]));
       });
     });
   }
