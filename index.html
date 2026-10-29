@@ -32,9 +32,9 @@ main{padding:82px 22px 0}
 .cycle-badge-month{font-size:6px;font-weight:800;text-transform:uppercase;margin-top:2px;color:#fff;letter-spacing:.2px}
 .cycle-date-badge input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:0}
 .chart-area{position:relative;width:100%;margin-top:8px}
-.chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:0 58px 3px 0;box-sizing:border-box;scrollbar-width:thin}.chart-fixed-axis{position:absolute;top:0;right:0;width:58px;height:276px;pointer-events:none;z-index:15}
-.chart{height:276px;display:flex;align-items:flex-end;gap:9px;padding:24px 104px 8px 8px;border-bottom:2px solid #161922;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 59px,rgba(120,126,145,.18) 60px,transparent 61px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#666a76;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:58px}
-.chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2}
+.chart-scroll{display:block;width:calc(100% - 58px);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:0 0 3px;box-sizing:border-box;scrollbar-width:thin;scroll-padding-right:8px}.chart-fixed-axis{position:absolute;top:0;right:0;width:58px;height:276px;pointer-events:none;z-index:15}
+.chart{height:276px;display:flex;align-items:flex-end;gap:9px;padding:24px 12px 8px 8px;border-bottom:2px solid #161922;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 59px,rgba(120,126,145,.18) 60px,transparent 61px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#666a76;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:58px}
+.chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2;cursor:pointer;touch-action:manipulation}.chart-date{min-height:22px;padding:4px 2px 2px;position:relative;z-index:4;pointer-events:none;user-select:none;-webkit-user-select:none}
 .chart-value{display:block;font-size:10px;font-weight:900;color:#3155c8;white-space:nowrap;line-height:1.1;cursor:pointer;min-height:11px}
 .bar-wrap{height:205px;flex:0 0 205px;width:100%;display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:visible}
 @media(max-width:600px){.bar-wrap{height:184px;flex:0 0 184px}.chart-col{height:100%;flex:0 0 46px}.chart{padding-top:22px;padding-bottom:8px}.chart-value{min-height:16px}}
@@ -2331,6 +2331,9 @@ if(["invoicePage","calculatorPage","targetPage","leavesPage","historyPage","repo
 }
 document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
 document.getElementById(pageId).classList.add("active");
+if(pageId==="dashboardPage"){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>scrollDashboardChartToLastDate({smooth:false,force:true})));
+}
 
 const topbar=document.getElementById("mainTopbar");
 const leftBtn=document.getElementById("topbarLeftBtn");
@@ -4457,9 +4460,17 @@ window.selectDashboardDate=function(value){
 
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
-      scrollDashboardChartToDate(safeDate,{smooth:false,force:true});
+      scrollDashboardChartToLastDate({smooth:false,force:true});
     });
   });
+}
+
+function scrollDashboardChartToLastDate(options={}){
+  const chart=document.getElementById("chart");
+  if(!chart)return;
+  const cols=chart.querySelectorAll(".chart-col[data-date]");
+  const last=cols.length?cols[cols.length-1]:null;
+  if(last)scrollDashboardChartToDate(last.dataset.date,options);
 }
 
 function scrollDashboardChartToDate(dateKey,{smooth=true,force=false}={}){
@@ -4885,14 +4896,16 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     col.append(value,wrap,date);
     chart.appendChild(col);
 
-    col.addEventListener("click",()=>{
-      // Candle selection is visual only. Preserve the exact scroll position;
-      // rebuilding the chart must not jump to the beginning or latest date.
+    const selectThisCandle=()=>{
+      // Clicking either the candle or its date selects the same day and shows its AED amount.
       dashboardChartUserInteracted=true;
       chartSelectedDate=x.key;
       renderChart(cycle);
       openDashboardDateInvoices(x.key);
-    });
+    };
+    col.addEventListener("click",selectThisCandle);
+    date.addEventListener("click",event=>{event.stopPropagation();selectThisCandle();});
+    value.addEventListener("click",event=>{event.stopPropagation();selectThisCandle();});
 
 
     if(chartSelectedDate===x.key){
