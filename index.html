@@ -4478,17 +4478,17 @@ function scrollDashboardChartToDate(dateKey,{smooth=true,force=false}={}){
   const viewport=document.querySelector(".chart-scroll");
   const chart=document.getElementById("chart");
   if(!viewport||!chart)return;
-  const col=Array.from(chart.querySelectorAll(".chart-col[data-date]")).find(el=>el.dataset.date===String(dateKey));
+  const col=Array.from(chart.querySelectorAll('.chart-col[data-date]')).find(el=>el.dataset.date===String(dateKey));
   if(!col)return;
-  // Use the candle's live position inside the horizontal viewport. This works
-  // after a redraw and on touch devices where offsetLeft can be misleading.
+  // Center the clicked candle using its actual on-screen position. This is
+  // more reliable on mobile than offsetLeft when the chart has been redrawn.
   const viewportRect=viewport.getBoundingClientRect();
   const colRect=col.getBoundingClientRect();
-  const centerInViewport=colRect.left-viewportRect.left+colRect.width/2;
-  const desired=viewport.scrollLeft+centerInViewport-viewport.clientWidth/2;
+  const currentCenter=(colRect.left-viewportRect.left)+colRect.width/2;
+  const left=viewport.scrollLeft+currentCenter-(viewport.clientWidth/2);
   const maxLeft=Math.max(0,viewport.scrollWidth-viewport.clientWidth);
-  const target=Math.max(0,Math.min(desired,maxLeft));
-  if(force || Math.abs(viewport.scrollLeft-target)>2){
+  const target=Math.max(0,Math.min(left,maxLeft));
+  if(force || Math.abs(viewport.scrollLeft-target)>4){
     viewport.scrollTo({left:target,behavior:smooth?"smooth":"auto"});
   }
 }
@@ -4745,7 +4745,7 @@ function updateDashboard(){
 
 function openDashboardDateInvoices(dateKey){
   if(!dateKey)return;
-  const col=document.querySelector('.chart-col[data-date="'+dateKey+'"]');
+  const col=Array.from(document.querySelectorAll('.chart-col[data-date]')).find(el=>el.dataset.date===String(dateKey));
   if(!col)return;
   col.classList.add("active-click");
   setTimeout(()=>col.classList.remove("active-click"),350);
@@ -4906,13 +4906,12 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       renderChart(cycle);
       // Keep the selected candle and its AED callout in view, even when it
       // was outside the current horizontal viewport.
-      const keepSelectedCandleVisible=()=>scrollDashboardChartToDate(x.key,{smooth:false,force:true});
-      // Re-render first, then position the selected candle after layout. A few
-      // short retries prevent the previous chart scroll position winning a race.
-      requestAnimationFrame(()=>requestAnimationFrame(keepSelectedCandleVisible));
-      setTimeout(keepSelectedCandleVisible,80);
-      setTimeout(keepSelectedCandleVisible,220);
-      setTimeout(keepSelectedCandleVisible,420);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        scrollDashboardChartToDate(x.key,{smooth:false,force:true});
+        // Re-apply once after mobile layout settles so the selected candle
+        // and the AED label above it remain visible together.
+        setTimeout(()=>scrollDashboardChartToDate(x.key,{smooth:false,force:true}),80);
+      }));
       openDashboardDateInvoices(x.key);
     };
     col.addEventListener("click",selectThisCandle);
@@ -4925,21 +4924,23 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       // This avoids hard-coded day offsets drifting away from the candle.
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
-      callout.textContent="AED "+money(x.value);
-      // Position the compact AED label just above the actual rendered candle tip.
-      // The bar's real pixel height avoids percentage/parent-height mismatches.
-      const barHeight=bar.offsetHeight||0;
-      callout.style.bottom=(barHeight+4)+"px";
+      callout.textContent=money(x.value)+" AED";
+      // Position the compact AED label just above the true candle tip.
+      callout.style.bottom="calc("+height+"% + 6px)";
+      callout.style.left="50%";
+      callout.style.transform="translateX(-50%)";
+      callout.style.zIndex="30";
+      callout.style.maxWidth="none";
       const valueText=String("AED "+money(x.value));
-      callout.style.fontSize=(valueText.length>=14?7:valueText.length>=11?7.5:8)+"px";
-      callout.style.padding="2px 3px";
+      callout.style.fontSize=(valueText.length>=14?8:valueText.length>=11?9:10)+"px";
+      callout.style.padding="3px 4px";
       wrap.appendChild(callout);
     }
   });
 
   // Restore the user's exact horizontal position after every chart redraw.
   // This prevents the viewport jumping when a candle is selected.
-  if(chartViewport)chartViewport.scrollLeft=savedScrollLeft;
+  if(chartViewport && !dashboardChartUserInteracted)chartViewport.scrollLeft=savedScrollLeft;
 
   // Initial positioning only. If the user has already clicked a candle, do not
   // let a delayed first-render frame move the chart after that interaction.
