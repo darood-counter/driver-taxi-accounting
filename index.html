@@ -23,7 +23,7 @@ main{padding:82px 22px 0}
 .badge{background:#ec1268;color:white;padding:12px 13px;border-radius:11px;font-weight:800}
 .card{background:#fff;border-radius:28px;padding:25px 22px;box-shadow:0 1px 1px rgba(0,0,0,.02);margin-bottom:34px}
 .period{font-size:16px;color:#70747e;margin-bottom:20px}
-.total-row{display:flex;justify-content:space-between;align-items:center;margin-top:-4px;margin-bottom:14px;position:relative;z-index:2}
+.total-row{display:flex;justify-content:space-between;align-items:center;margin-top:-8px;margin-bottom:14px;position:relative;z-index:2}
 .total{font-size:42px;font-weight:800;letter-spacing:-1.5px}
 .currency{font-size:20px;font-weight:700}
 .cycle-date-badge{width:34px;height:34px;border:0;border-radius:50%;background:#0d1033;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;box-shadow:0 3px 8px rgba(13,16,51,.16);position:relative;cursor:pointer;padding:0;overflow:hidden;transform:translateY(-7px);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
@@ -35,7 +35,7 @@ main{padding:82px 22px 0}
 .chart-scroll{display:block;width:calc(100% - 34px);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:0 0 3px;box-sizing:border-box;scrollbar-width:thin;scroll-padding-right:4px}.chart-fixed-axis{position:absolute;top:0;right:0;width:34px;height:276px;pointer-events:none;z-index:15}
 .chart{height:276px;display:flex;align-items:flex-end;gap:9px;padding:24px 12px 8px 8px;border-bottom:2px solid #161922;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 59px,rgba(120,126,145,.18) 60px,transparent 61px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#666a76;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:34px}
 .chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2;cursor:pointer;touch-action:manipulation}.chart-date{min-height:22px;padding:4px 2px 2px;position:relative;z-index:6;pointer-events:auto;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
-.chart-value{display:block;font-size:10px;font-weight:900;color:#3155c8;white-space:nowrap;line-height:1.1;cursor:pointer;min-height:11px}
+.chart-value{display:block;font-size:9px;font-weight:900;color:#3155c8;white-space:nowrap;line-height:1.1;cursor:pointer;min-height:11px}
 .bar-wrap{height:205px;flex:0 0 205px;width:100%;display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:visible}
 @media(max-width:600px){.bar-wrap{height:184px;flex:0 0 184px}.chart-col{height:100%;flex:0 0 46px}.chart{padding-top:22px;padding-bottom:8px}.chart-value{min-height:16px}}
 .bar{width:40px;background:#cbd4f5;border-radius:7px 7px 0 0;min-height:3px;transition:background .2s ease;box-shadow:none}
@@ -49,7 +49,7 @@ main{padding:82px 22px 0}
 .chart-average-overlay .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#d62970;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;white-space:nowrap}
 .chart-highlight-value{position:absolute;transform:translateX(-50%);background:#fff;color:#3155c8;border:2px solid #3155c8;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:900;line-height:1;white-space:nowrap;z-index:9;box-shadow:0 1px 2px rgba(0,0,0,.06);pointer-events:none}.chart-highlight-value:after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #3155c8}.chart-highlight-value:before{content:"";position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #fff;z-index:1}
 .chart-col.active-click .bar{transform:scaleY(.94);transform-origin:bottom;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
-.chart-col.active-click .chart-value{font-size:11px}
+.chart-col.active-click .chart-value{font-size:10px}
 .chart-click-value{position:absolute;left:50%;transform:translateX(-50%);background:#fff;color:#2563eb;border:1px solid #2563eb;border-radius:5px;padding:2px 5px;font-size:10px;font-weight:900;white-space:nowrap;z-index:8;box-shadow:0 2px 5px rgba(0,0,0,.12);pointer-events:none}
 .chart-selected-value{position:absolute;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #3155c8;color:#3155c8;border-radius:5px;padding:2px 3px;font-size:8px;font-weight:900;white-space:nowrap;z-index:12;box-shadow:0 1px 2px rgba(0,0,0,.06);pointer-events:none;line-height:1.1;box-sizing:border-box;width:max-content;max-width:78px;overflow:visible}
 .dashboard-cycle-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:-8px;margin-bottom:8px}
@@ -4880,7 +4880,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
 
     const value=document.createElement("div");
     value.className="chart-value";
-    value.textContent=(x.hasSales && i===maxIndex && chartSelectedDate!==x.key)?money(x.value)+" AED":"";
+    value.textContent=(x.hasSales && i===maxIndex && chartSelectedDate!==x.key)?"AED "+money(x.value):"";
     if(!x.hasSales)value.setAttribute("aria-hidden","true");
 
     const wrap=document.createElement("div");
@@ -4930,7 +4930,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       // This avoids hard-coded day offsets drifting away from the candle.
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
-      callout.textContent=money(x.value)+" AED";
+      callout.textContent="AED "+money(x.value);
       // Position the compact AED label just above the true candle tip.
       callout.style.bottom="calc("+height+"% + 6px)";
       callout.style.left="50%";
@@ -4938,8 +4938,8 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       callout.style.zIndex="30";
       callout.style.maxWidth="none";
       const valueText=String("AED "+money(x.value));
-      callout.style.fontSize=(valueText.length>=14?8:valueText.length>=11?9:10)+"px";
-      callout.style.padding="3px 4px";
+      callout.style.fontSize=(valueText.length>=14?7:valueText.length>=11?8:9)+"px";
+      callout.style.padding="2px 3px";
       wrap.appendChild(callout);
     }
   });
