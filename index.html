@@ -34,7 +34,7 @@ main{padding:82px 22px 0}
 .chart-area{position:relative;width:100%;margin-top:8px}
 .chart-scroll{display:block;width:calc(100% - 34px);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:0 0 3px;box-sizing:border-box;scrollbar-width:thin;scroll-padding-right:4px}.chart-fixed-axis{position:absolute;top:0;right:0;width:34px;height:276px;pointer-events:none;z-index:15}
 .chart{height:276px;display:flex;align-items:flex-end;gap:9px;padding:24px 12px 8px 8px;border-bottom:2px solid #161922;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 59px,rgba(120,126,145,.18) 60px,transparent 61px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#666a76;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:34px}
-.chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2;cursor:pointer;touch-action:manipulation}.chart-date{min-height:22px;padding:4px 2px 2px;position:relative;z-index:4;pointer-events:none;user-select:none;-webkit-user-select:none}
+.chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2;cursor:pointer;touch-action:manipulation}.chart-date{min-height:22px;padding:4px 2px 2px;position:relative;z-index:6;pointer-events:auto;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .chart-value{display:block;font-size:10px;font-weight:900;color:#3155c8;white-space:nowrap;line-height:1.1;cursor:pointer;min-height:11px}
 .bar-wrap{height:205px;flex:0 0 205px;width:100%;display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:visible}
 @media(max-width:600px){.bar-wrap{height:184px;flex:0 0 184px}.chart-col{height:100%;flex:0 0 46px}.chart{padding-top:22px;padding-bottom:8px}.chart-value{min-height:16px}}
@@ -4480,11 +4480,13 @@ function scrollDashboardChartToDate(dateKey,{smooth=true,force=false}={}){
   if(!viewport||!chart)return;
   const col=chart.querySelector('.chart-col[data-date="'+CSS.escape(String(dateKey))+'"]');
   if(!col)return;
-  // Keep the selected/latest day comfortably visible instead of jumping to an
-  // arbitrary position at the end of the chart.
-  const colCenter=col.offsetLeft+(col.offsetWidth/2);
-  const left=colCenter-(viewport.clientWidth/2);
-  const maxLeft=Math.max(0,chart.scrollWidth-viewport.clientWidth);
+  // Center the clicked candle using its actual on-screen position. This is
+  // more reliable on mobile than offsetLeft when the chart has been redrawn.
+  const viewportRect=viewport.getBoundingClientRect();
+  const colRect=col.getBoundingClientRect();
+  const currentCenter=(colRect.left-viewportRect.left)+colRect.width/2;
+  const left=viewport.scrollLeft+currentCenter-(viewport.clientWidth/2);
+  const maxLeft=Math.max(0,viewport.scrollWidth-viewport.clientWidth);
   const target=Math.max(0,Math.min(left,maxLeft));
   if(force || Math.abs(viewport.scrollLeft-target)>4){
     viewport.scrollTo({left:target,behavior:smooth?"smooth":"auto"});
@@ -4904,7 +4906,12 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       renderChart(cycle);
       // Keep the selected candle and its AED callout in view, even when it
       // was outside the current horizontal viewport.
-      requestAnimationFrame(()=>requestAnimationFrame(()=>scrollDashboardChartToDate(x.key,{smooth:false,force:true})));
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        scrollDashboardChartToDate(x.key,{smooth:false,force:true});
+        // Re-apply once after mobile layout settles so the selected candle
+        // and the AED label above it remain visible together.
+        setTimeout(()=>scrollDashboardChartToDate(x.key,{smooth:false,force:true}),80);
+      }));
       openDashboardDateInvoices(x.key);
     };
     col.addEventListener("click",selectThisCandle);
