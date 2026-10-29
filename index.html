@@ -36,8 +36,8 @@ main{padding:82px 22px 0}
 .chart{height:276px;display:flex;align-items:flex-end;gap:9px;padding:24px 62px 8px 8px;border-bottom:2px solid #161922;min-width:max-content;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 59px,rgba(120,126,145,.18) 60px,transparent 61px)}.chart-y-label{position:absolute;right:7px;left:auto;transform:translateY(-50%);font-size:10px;font-weight:800;color:#666a76;background:#fff;padding:1px 3px;z-index:5;pointer-events:none}.chart-average-label{left:auto;right:4px}.chart-average-line{left:8px;right:58px}
 .chart-col{width:46px;min-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;position:relative;z-index:2}
 .chart-value{display:block;font-size:10px;font-weight:900;color:#3155c8;white-space:nowrap;line-height:1.1;cursor:pointer;min-height:11px}
-.bar-wrap{height:205px;flex:0 0 205px;width:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}
-@media(max-width:600px){.bar-wrap{height:170px;flex:0 0 170px}.chart-col{height:100%;flex:0 0 46px}.chart{padding-top:22px;padding-bottom:8px}.chart-value{min-height:16px}}
+.bar-wrap{height:205px;flex:0 0 205px;width:100%;display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:visible}
+@media(max-width:600px){.bar-wrap{height:184px;flex:0 0 184px}.chart-col{height:100%;flex:0 0 46px}.chart{padding-top:22px;padding-bottom:8px}.chart-value{min-height:16px}}
 .bar{width:40px;background:#cbd4f5;border-radius:7px 7px 0 0;min-height:3px;transition:background .2s ease;box-shadow:none}
 .chart-col.selected .bar{background:#b9c6f3}.chart-col.has-sales .bar{background:#cbd4f5}.chart-col.has-sales .chart-date{color:#555b68;font-weight:800}.chart-col.has-sales{cursor:pointer}.chart-col.has-sales:hover .bar{background:#bdc9f1}
 .chart-col.selected .chart-date{color:#d62970;font-weight:900}
@@ -51,7 +51,7 @@ main{padding:82px 22px 0}
 .chart-col.active-click .bar{transform:scaleY(.94);transform-origin:bottom;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
 .chart-col.active-click .chart-value{font-size:11px}
 .chart-click-value{position:absolute;left:50%;transform:translateX(-50%);background:#fff;color:#2563eb;border:1px solid #2563eb;border-radius:5px;padding:2px 5px;font-size:10px;font-weight:900;white-space:nowrap;z-index:8;box-shadow:0 2px 5px rgba(0,0,0,.12);pointer-events:none}
-.chart-selected-value{position:absolute;left:50%;transform:translateX(-50%);background:#fff;border:2px solid #3155c8;color:#3155c8;border-radius:7px;padding:4px 6px;font-size:11px;font-weight:900;white-space:nowrap;z-index:12;box-shadow:0 1px 2px rgba(0,0,0,.06);pointer-events:none;line-height:1.15;box-sizing:border-box;width:max-content;max-width:none;overflow:visible}
+.chart-selected-value{position:absolute;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #3155c8;color:#3155c8;border-radius:5px;padding:2px 3px;font-size:8px;font-weight:900;white-space:nowrap;z-index:12;box-shadow:0 1px 2px rgba(0,0,0,.06);pointer-events:none;line-height:1.1;box-sizing:border-box;width:max-content;max-width:78px;overflow:visible}
 .dashboard-cycle-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .dashboard-cycle-controls .period{margin:0;flex:1;min-width:0;font-size:11.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dashboard-date-picker{display:none}
@@ -4261,9 +4261,10 @@ function handleDashboardDateInputChange(input){
   lastDashboardDateHandled=selected;
   window.selectDashboardDate(selected);
 }
-// Auto-scroll the chart only once on initial render. Repeated live Firebase
-// updates must not keep moving the horizontal chart viewport.
+// Auto-scroll only once on initial render. Preserve the user's viewport after
+// any candle click, including if the first-render animation frame is still pending.
 let dashboardChartInitialAutoScrollDone=false;
+let dashboardChartUserInteracted=false;
 
 function dateKeyLocal(date){
   const d=new Date(date);
@@ -4742,6 +4743,8 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   if(fixedAxis)fixedAxis.innerHTML="";
   const chart=document.getElementById("chart");
   if(!chart)return;
+  const chartViewport=chart.closest(".chart-scroll");
+  const savedScrollLeft=chartViewport?chartViewport.scrollLeft:0;
   chart.innerHTML="";
   chart.style.transformOrigin="bottom left";
 
@@ -4870,7 +4873,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     wrap.className="bar-wrap";
     const bar=document.createElement("div");
     bar.className="bar";
-    const height=x.hasSales?Math.min(96,Math.max(4,((x.value-min)/range)*100*1.25)):3;
+    const height=x.hasSales?Math.min(82,Math.max(4,((x.value-min)/range)*100*0.82)):3;
     bar.style.background=x.hasSales?"#cbd4f5":"#eef0f5";
     bar.style.height=height+"%";
     bar.title=x.hasSales?`${x.date.toLocaleDateString("en-GB")}: Net ${money(x.value)} AED · Sale ${money(x.saleTotal)} AED`:`${x.date.toLocaleDateString("en-GB")}: No positive Net Sale`;
@@ -4883,8 +4886,9 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     chart.appendChild(col);
 
     col.addEventListener("click",()=>{
-      // Candle selection is visual only. It must never change the Dashboard
-      // Net Cash / Net Amount totals or the dashboard "as-of" date.
+      // Candle selection is visual only. Preserve the exact scroll position;
+      // rebuilding the chart must not jump to the beginning or latest date.
+      dashboardChartUserInteracted=true;
       chartSelectedDate=x.key;
       renderChart(cycle);
       openDashboardDateInvoices(x.key);
@@ -4896,25 +4900,30 @@ function renderChart(cycle=getCurrentDashboardCycle()){
       // This avoids hard-coded day offsets drifting away from the candle.
       const callout=document.createElement("div");
       callout.className="chart-selected-value";
-      callout.textContent=money(x.value)+" AED";
-      callout.style.bottom="calc("+height+"% + 6px)";
-
-      // Reduce the label size for longer amounts on narrow mobile screens.
-      const valueText=String(money(x.value)+" AED");
-      callout.style.fontSize=(valueText.length>=13?9:valueText.length>=10?10:11)+"px";
-      callout.style.padding="4px 3px";
+      callout.textContent="AED "+money(x.value);
+      // Position the compact AED label just above the true candle tip.
+      callout.style.bottom="calc("+height+"% + 4px)";
+      const valueText=String("AED "+money(x.value));
+      callout.style.fontSize=(valueText.length>=14?7:valueText.length>=11?7.5:8)+"px";
+      callout.style.padding="2px 3px";
       wrap.appendChild(callout);
     }
   });
 
-  // Initial positioning only. Live Firestore snapshots rerender the chart;
-  // they must not repeatedly smooth-scroll the candles back and forth.
+  // Restore the user's exact horizontal position after every chart redraw.
+  // This prevents the viewport jumping when a candle is selected.
+  if(chartViewport)chartViewport.scrollLeft=savedScrollLeft;
+
+  // Initial positioning only. If the user has already clicked a candle, do not
+  // let a delayed first-render frame move the chart after that interaction.
   if(!dashboardChartInitialAutoScrollDone){
     dashboardChartInitialAutoScrollDone=true;
     const dataDates=arr.filter(x=>x.count>0);
     const latestData=dataDates.length?dataDates[dataDates.length-1].key:null;
     const followDate=dashboardSelectedDate||latestData||endKey;
-    if(followDate)requestAnimationFrame(()=>scrollDashboardChartToDate(followDate,{smooth:false}));
+    if(followDate)requestAnimationFrame(()=>{
+      if(!dashboardChartUserInteracted)scrollDashboardChartToDate(followDate,{smooth:false});
+    });
   }
 }
 
