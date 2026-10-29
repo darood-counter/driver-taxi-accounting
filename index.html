@@ -45,8 +45,8 @@ main{padding:82px 22px 0}
 .chart-average-line{position:absolute;height:3px;background:#111827;left:8px;right:8px;z-index:1;border-radius:2px;pointer-events:none}
 .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#111827;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;z-index:3;white-space:nowrap}
 .chart-average-overlay{position:absolute;inset:0;z-index:20;pointer-events:none;display:none}
-.chart-average-overlay .chart-average-line{position:absolute;left:8px;right:58px;height:2px;background:#d62970;border-radius:2px}
-.chart-average-overlay .chart-average-label{position:absolute;right:4px;transform:translateY(-50%);background:#fff;color:#d62970;font-size:11px;font-weight:900;padding:2px 5px;border-radius:5px;white-space:nowrap}
+.chart-average-overlay .chart-average-line{position:absolute;left:8px;right:0;height:1px;background:#d62970;border-radius:1px;z-index:0}
+.chart-average-overlay .chart-average-label{position:absolute;right:7px;width:max-content;min-width:0;box-sizing:border-box;text-align:right;transform:translateY(-50%);background:#fff;color:#d62970;font-size:9px;font-weight:900;padding:1px 3px;border-radius:3px;white-space:nowrap;overflow:visible;z-index:2}
 .chart-highlight-value{position:absolute;transform:translateX(-50%);background:#fff;color:#3155c8;border:2px solid #3155c8;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:900;line-height:1;white-space:nowrap;z-index:9;box-shadow:0 1px 2px rgba(0,0,0,.06);pointer-events:none}.chart-highlight-value:after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #3155c8}.chart-highlight-value:before{content:"";position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #fff;z-index:1}
 .chart-col.active-click .bar{transform:scaleY(.94);transform-origin:bottom;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
 .chart-col.active-click .chart-value{font-size:10px}
@@ -4865,8 +4865,16 @@ function renderChart(cycle=getCurrentDashboardCycle()){
   if(avg>0){
     const ratio=Math.min(1,avg/max),top=plotTop+(1-ratio)*plotHeight;
     if(avgOverlay)avgOverlay.style.display="block";
-    if(avgLine)avgLine.style.top=top+"px";
-    if(avgLabel){avgLabel.style.top=top+"px";avgLabel.textContent=money(avg)+" AED";}
+    if(avgLabel){
+      avgLabel.style.top=top+"px";
+      avgLabel.style.right="7px";
+      avgLabel.textContent=money(avg);
+    }
+    if(avgLine){
+      avgLine.style.top=top+"px";
+      // Stop the red average line exactly before its value; never let it continue past the label.
+      avgLine.style.right=((avgLabel ? avgLabel.offsetWidth : 0)+7)+"px";
+    }
   }
 
   const positiveIndexes=arr.map((x,i)=>x.hasSales?i:-1).filter(i=>i>=0);
@@ -4888,7 +4896,7 @@ function renderChart(cycle=getCurrentDashboardCycle()){
     wrap.className="bar-wrap";
     const bar=document.createElement("div");
     bar.className="bar";
-    const height=x.hasSales?Math.min(74,Math.max(4,((x.value-min)/range)*100*0.88)):3;
+    const height=x.hasSales?Math.min(100,Math.max(1.5,(x.value/max)*100)):1.5;
     bar.style.background=x.hasSales?"#cbd4f5":"#eef0f5";
     bar.style.height=height+"%";
     bar.title=x.hasSales?`${x.date.toLocaleDateString("en-GB")}: Net ${money(x.value)} AED · Sale ${money(x.saleTotal)} AED`:`${x.date.toLocaleDateString("en-GB")}: No positive Net Sale`;
